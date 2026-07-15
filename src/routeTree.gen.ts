@@ -9,10 +9,16 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TekrarRouteImport } from './routes/tekrar'
 import { Route as IstatistikRouteImport } from './routes/istatistik'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as KategoriSlugRouteImport } from './routes/kategori.$slug'
 
+const TekrarRoute = TekrarRouteImport.update({
+  id: '/tekrar',
+  path: '/tekrar',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IstatistikRoute = IstatistikRouteImport.update({
   id: '/istatistik',
   path: '/istatistik',
@@ -32,35 +38,46 @@ const KategoriSlugRoute = KategoriSlugRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/istatistik': typeof IstatistikRoute
+  '/tekrar': typeof TekrarRoute
   '/kategori/$slug': typeof KategoriSlugRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/istatistik': typeof IstatistikRoute
+  '/tekrar': typeof TekrarRoute
   '/kategori/$slug': typeof KategoriSlugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/istatistik': typeof IstatistikRoute
+  '/tekrar': typeof TekrarRoute
   '/kategori/$slug': typeof KategoriSlugRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/istatistik' | '/kategori/$slug'
+  fullPaths: '/' | '/istatistik' | '/tekrar' | '/kategori/$slug'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/istatistik' | '/kategori/$slug'
-  id: '__root__' | '/' | '/istatistik' | '/kategori/$slug'
+  to: '/' | '/istatistik' | '/tekrar' | '/kategori/$slug'
+  id: '__root__' | '/' | '/istatistik' | '/tekrar' | '/kategori/$slug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   IstatistikRoute: typeof IstatistikRoute
+  TekrarRoute: typeof TekrarRoute
   KategoriSlugRoute: typeof KategoriSlugRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/tekrar': {
+      id: '/tekrar'
+      path: '/tekrar'
+      fullPath: '/tekrar'
+      preLoaderRoute: typeof TekrarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/istatistik': {
       id: '/istatistik'
       path: '/istatistik'
@@ -88,6 +105,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   IstatistikRoute: IstatistikRoute,
+  TekrarRoute: TekrarRoute,
   KategoriSlugRoute: KategoriSlugRoute,
 }
 export const routeTree = rootRouteImport
