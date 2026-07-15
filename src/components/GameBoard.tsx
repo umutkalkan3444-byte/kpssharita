@@ -205,12 +205,7 @@ export function GameBoard({ category }: { category: Category }) {
           <TurkeyMap className="absolute inset-0 h-full w-full" />
           <div className="absolute inset-0">
             {targets.map((t) => (
-              <DropDot
-                key={t.id}
-                t={t}
-                placed={!!placed[t.id]}
-                wrongPulse={!!shakeId}
-              />
+              <DropDot key={t.id} t={t} placed={!!placed[t.id]} />
             ))}
           </div>
         </div>
