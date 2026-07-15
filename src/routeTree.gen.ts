@@ -13,6 +13,7 @@ import { Route as TekrarRouteImport } from './routes/tekrar'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as IstatistikRouteImport } from './routes/istatistik'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as KonuMainSlugRouteImport } from './routes/konu.$mainSlug'
 import { Route as KategoriSlugRouteImport } from './routes/kategori.$slug'
 
 const TekrarRoute = TekrarRouteImport.update({
@@ -35,6 +36,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const KonuMainSlugRoute = KonuMainSlugRouteImport.update({
+  id: '/konu/$mainSlug',
+  path: '/konu/$mainSlug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const KategoriSlugRoute = KategoriSlugRouteImport.update({
   id: '/kategori/$slug',
   path: '/kategori/$slug',
@@ -47,6 +53,7 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/tekrar': typeof TekrarRoute
   '/kategori/$slug': typeof KategoriSlugRoute
+  '/konu/$mainSlug': typeof KonuMainSlugRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -54,6 +61,7 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/tekrar': typeof TekrarRoute
   '/kategori/$slug': typeof KategoriSlugRoute
+  '/konu/$mainSlug': typeof KonuMainSlugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -62,6 +70,7 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/tekrar': typeof TekrarRoute
   '/kategori/$slug': typeof KategoriSlugRoute
+  '/konu/$mainSlug': typeof KonuMainSlugRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -71,8 +80,15 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/tekrar'
     | '/kategori/$slug'
+    | '/konu/$mainSlug'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/istatistik' | '/sitemap.xml' | '/tekrar' | '/kategori/$slug'
+  to:
+    | '/'
+    | '/istatistik'
+    | '/sitemap.xml'
+    | '/tekrar'
+    | '/kategori/$slug'
+    | '/konu/$mainSlug'
   id:
     | '__root__'
     | '/'
@@ -80,6 +96,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/tekrar'
     | '/kategori/$slug'
+    | '/konu/$mainSlug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -88,6 +105,7 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TekrarRoute: typeof TekrarRoute
   KategoriSlugRoute: typeof KategoriSlugRoute
+  KonuMainSlugRoute: typeof KonuMainSlugRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -120,6 +138,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/konu/$mainSlug': {
+      id: '/konu/$mainSlug'
+      path: '/konu/$mainSlug'
+      fullPath: '/konu/$mainSlug'
+      preLoaderRoute: typeof KonuMainSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/kategori/$slug': {
       id: '/kategori/$slug'
       path: '/kategori/$slug'
@@ -136,17 +161,8 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TekrarRoute: TekrarRoute,
   KategoriSlugRoute: KategoriSlugRoute,
+  KonuMainSlugRoute: KonuMainSlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

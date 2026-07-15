@@ -1,9 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
-import { MapPin, Sparkles, Repeat2, BarChart3, Trophy, Flame } from "lucide-react";
+import { MapPin, Sparkles, Repeat2, BarChart3, Trophy, Flame, ArrowRight } from "lucide-react";
 
-import { CATEGORIES } from "@/lib/game-data";
+import { MAIN_CATEGORIES } from "@/lib/game-data";
 import { TurkeyMap } from "@/components/TurkeyMap";
 import { loadState, xpProgress, type GameState } from "@/lib/storage";
 
@@ -14,7 +14,7 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "KPSS coğrafya konularını Türkiye haritası üzerinde sürükle-bırak oyunlarıyla öğren. Dağlar, göller, ovalar, iller ve daha fazlası.",
+          "KPSS coğrafya konularını Türkiye haritası üzerinde sürükle-bırak oyunlarıyla öğren. Tarım, madenler, enerji, göller, dağlar, iller ve daha fazlası.",
       },
       { property: "og:title", content: "KPSS Coğrafya Harita Oyunu" },
       {
@@ -28,10 +28,10 @@ export const Route = createFileRoute("/")({
 
 function Home() {
   const [state, setState] = useState<GameState | null>(null);
-  useEffect(() => {
-    setState(loadState());
-  }, []);
+  useEffect(() => setState(loadState()), []);
   const xp = state ? xpProgress(state) : null;
+
+  const totalSubs = MAIN_CATEGORIES.reduce((s, m) => s + m.subs.length, 0);
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-white via-sky-50 to-cyan-50 text-slate-900">
@@ -47,7 +47,7 @@ function Home() {
         <nav className="flex items-center gap-1 text-sm font-semibold">
           <Link
             to="/tekrar"
-            className="hidden rounded-full px-3 py-1.5 text-slate-600 transition-colors hover:bg-white hover:text-cyan-700 sm:inline-flex sm:items-center sm:gap-1.5"
+            className="rounded-full px-3 py-1.5 text-slate-600 transition-colors hover:bg-white hover:text-cyan-700 sm:inline-flex sm:items-center sm:gap-1.5"
           >
             <Repeat2 className="h-4 w-4" /> Tekrar
           </Link>
@@ -60,7 +60,7 @@ function Home() {
         </nav>
       </header>
 
-      <section className="relative z-10 mx-auto grid max-w-6xl grid-cols-1 gap-8 px-4 pt-6 pb-10 sm:px-6 lg:grid-cols-[1.05fr_1fr] lg:pt-14 lg:pb-16">
+      <section className="relative z-10 mx-auto grid max-w-6xl grid-cols-1 gap-8 px-4 pt-4 pb-8 sm:px-6 lg:grid-cols-[1.05fr_1fr] lg:pt-10 lg:pb-14">
         <div>
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -87,8 +87,8 @@ function Home() {
             transition={{ duration: 0.7, delay: 0.15 }}
             className="mt-4 max-w-xl text-base text-slate-600 sm:text-lg"
           >
-            Harita üzerinde öğren, kalıcı ezberle. Dağları, gölleri, ovaları ve iller sürükleyip bırakarak
-            ÖSYM tarzına hazır ol.
+            {MAIN_CATEGORIES.length} ana konu · {totalSubs} alt konu. Bölgelerden madenlere,
+            tarımdan enerjiye — haritada oynayarak KPSS için kalıcı öğren.
           </motion.p>
 
           {state && (
@@ -133,60 +133,75 @@ function Home() {
           >
             <TurkeyMap className="h-auto w-full" />
           </motion.div>
-          <FloatingPin className="left-[18%] top-[35%]" delay={0.3} label="Uludağ" />
-          <FloatingPin className="right-[10%] top-[42%]" delay={0.9} label="Ağrı" />
-          <FloatingPin className="left-[42%] top-[70%]" delay={1.5} label="Toros" />
         </motion.div>
       </section>
 
       <section className="relative z-10 mx-auto max-w-6xl px-4 pb-24 sm:px-6">
         <div className="mb-5 flex items-end justify-between">
           <div>
-            <h2 className="text-2xl font-black tracking-tight sm:text-3xl">Kategoriler</h2>
-            <p className="mt-1 text-sm text-slate-600">Bir konu seç, haritada oynayarak öğren.</p>
+            <h2 className="text-2xl font-black tracking-tight sm:text-3xl">Ana Konular</h2>
+            <p className="mt-1 text-sm text-slate-600">
+              Bir başlık seç, alt konularına göz at ve oynayarak öğren.
+            </p>
           </div>
           <div className="text-xs font-semibold text-slate-500">
-            {CATEGORIES.length} bölüm
+            {MAIN_CATEGORIES.length} kategori
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
-          {CATEGORIES.map((c, i) => {
-            const stat = state?.categories[c.slug];
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {MAIN_CATEGORIES.map((m, i) => {
+            const played = state
+              ? m.subs.filter((s) => state.categories[s.slug]).length
+              : 0;
+            const perfect = state
+              ? m.subs.filter((s) => state.categories[s.slug]?.perfect).length
+              : 0;
+            const totalItems = m.subs.reduce((n, s) => n + s.items.length, 0);
             return (
               <motion.div
-                key={c.slug}
+                key={m.slug}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.05 * i }}
+                transition={{ duration: 0.45, delay: 0.05 * i }}
+                whileHover={{ y: -4 }}
               >
                 <Link
-                  to="/kategori/$slug"
-                  params={{ slug: c.slug }}
-                  className="group relative block h-full overflow-hidden rounded-3xl border border-cyan-100 bg-white/80 p-5 shadow-md shadow-cyan-500/5 backdrop-blur transition-all hover:-translate-y-1 hover:border-cyan-300 hover:shadow-xl hover:shadow-cyan-500/20"
+                  to="/konu/$mainSlug"
+                  params={{ mainSlug: m.slug }}
+                  className="group relative flex h-full flex-col overflow-hidden rounded-3xl border border-cyan-100 bg-white/85 p-6 shadow-lg shadow-cyan-500/5 backdrop-blur transition-all hover:border-cyan-300 hover:shadow-2xl hover:shadow-cyan-500/25"
                 >
                   <div
-                    className={`mb-3 grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br ${c.gradient} text-2xl shadow-lg shadow-cyan-500/20`}
+                    className={`absolute -right-8 -top-8 h-32 w-32 rounded-full bg-gradient-to-br ${m.gradient} opacity-20 blur-2xl transition-opacity group-hover:opacity-40`}
+                  />
+                  <div
+                    className={`relative mb-4 grid h-14 w-14 place-items-center rounded-3xl bg-gradient-to-br ${m.gradient} text-3xl shadow-lg shadow-cyan-500/25`}
                   >
-                    {c.emoji}
+                    {m.emoji}
                   </div>
-                  <div className="text-base font-black text-slate-900">{c.title}</div>
-                  <div className="mt-1 text-xs text-slate-500">{c.items.length} konu</div>
-                  {stat ? (
-                    <div className="mt-3 flex items-center justify-between text-[11px] font-semibold">
-                      <span className="text-cyan-700">En iyi %{stat.best}</span>
-                      {stat.perfect && (
-                        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-emerald-700">
-                          %100 ✓
-                        </span>
-                      )}
+                  <div className="relative text-xl font-black text-slate-900">
+                    {m.title}
+                  </div>
+                  <p className="relative mt-1 line-clamp-2 text-sm text-slate-600">
+                    {m.description}
+                  </p>
+                  <div className="relative mt-4 flex items-center justify-between text-[11px] font-bold">
+                    <div className="flex items-center gap-2 text-slate-500">
+                      <span className="rounded-full bg-cyan-50 px-2 py-0.5 text-cyan-700">
+                        {m.subs.length} konu
+                      </span>
+                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-slate-600">
+                        {totalItems} hedef
+                      </span>
                     </div>
-                  ) : (
-                    <div className="mt-3 text-[11px] font-semibold text-slate-400">
-                      Henüz oynanmadı
-                    </div>
-                  )}
-                  <div className="absolute right-3 top-3 opacity-0 transition-opacity group-hover:opacity-100">
-                    <span className="text-xs font-semibold text-cyan-600">Başla →</span>
+                    {state && played > 0 && (
+                      <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-emerald-700">
+                        {played}/{m.subs.length}
+                        {perfect > 0 && ` · ${perfect}★`}
+                      </span>
+                    )}
+                  </div>
+                  <div className="relative mt-4 inline-flex items-center gap-1 text-sm font-bold text-cyan-700 transition-transform group-hover:translate-x-1">
+                    Alt konuları gör <ArrowRight className="h-4 w-4" />
                   </div>
                 </Link>
               </motion.div>
@@ -223,33 +238,5 @@ function BackgroundBlobs() {
         className="absolute bottom-0 left-1/3 h-96 w-96 rounded-full bg-teal-200/40 blur-3xl"
       />
     </div>
-  );
-}
-
-function FloatingPin({
-  className,
-  delay = 0,
-  label,
-}: {
-  className: string;
-  delay?: number;
-  label: string;
-}) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.5 }}
-      animate={{ opacity: 1, scale: 1, y: [0, -6, 0] }}
-      transition={{
-        opacity: { duration: 0.6, delay },
-        scale: { duration: 0.6, delay },
-        y: { duration: 3, repeat: Infinity, ease: "easeInOut", delay },
-      }}
-      className={`pointer-events-none absolute ${className}`}
-    >
-      <div className="flex items-center gap-1.5 rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-bold text-cyan-700 shadow-lg ring-1 ring-cyan-200">
-        <span className="h-1.5 w-1.5 rounded-full bg-cyan-500" />
-        {label}
-      </div>
-    </motion.div>
   );
 }
