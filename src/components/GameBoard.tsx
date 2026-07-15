@@ -186,7 +186,14 @@ export function GameBoard({ category }: { category: Category }) {
       </div>
 
       <div className="mb-3">
-        <Progress value={progressPct} className="h-2 bg-cyan-100 [&>[data-slot=progress-indicator]]:bg-gradient-to-r [&>[data-slot=progress-indicator]]:from-cyan-500 [&>[data-slot=progress-indicator]]:to-emerald-500" />
+        <div className="h-2 w-full overflow-hidden rounded-full bg-cyan-100">
+          <motion.div
+            className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-emerald-500"
+            initial={{ width: 0 }}
+            animate={{ width: `${progressPct}%` }}
+            transition={{ duration: 0.4 }}
+          />
+        </div>
         <div className="mt-1 text-right text-xs font-medium text-slate-500">
           {correctCount} / {total} • {progressPct}%
         </div>
