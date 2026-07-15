@@ -164,10 +164,24 @@ export function GameBoard({ category }: { category: Category }) {
 
   return (
     <div className="mx-auto w-full max-w-6xl px-3 pb-24 pt-4 sm:px-6">
-      <div className="mb-4 flex flex-wrap items-center gap-3">
-        <Link to="/" className="text-sm font-medium text-cyan-700 hover:underline">
-          ← Ana sayfa
+      <nav className="mb-2 flex flex-wrap items-center gap-1.5 text-xs font-semibold text-slate-500">
+        <Link to="/" className="rounded-full px-2 py-1 hover:bg-white hover:text-cyan-700">
+          Ana Sayfa
         </Link>
+        <span className="opacity-50">›</span>
+        <Link
+          to="/konu/$mainSlug"
+          params={{ mainSlug: category.mainSlug }}
+          className="rounded-full px-2 py-1 hover:bg-white hover:text-cyan-700"
+        >
+          {category.mainTitle}
+        </Link>
+        <span className="opacity-50">›</span>
+        <span className="rounded-full bg-white/80 px-2 py-1 text-slate-800 ring-1 ring-cyan-100">
+          {category.title}
+        </span>
+      </nav>
+      <div className="mb-4 flex flex-wrap items-center gap-3">
         <h1 className="text-xl font-black tracking-tight text-slate-900 sm:text-2xl">
           <span className="mr-2">{category.emoji}</span>
           {category.title}
