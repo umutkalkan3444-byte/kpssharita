@@ -20,7 +20,7 @@ import { TurkeyMap } from "@/components/TurkeyMap";
 import { sfx } from "@/lib/sfx";
 import { recordRun } from "@/lib/storage";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
+
 import { cn } from "@/lib/utils";
 
 function shuffle<T>(arr: T[]): T[] {
