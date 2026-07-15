@@ -16,10 +16,10 @@ export const Route = createFileRoute("/")({
         content:
           "KPSS coğrafya konularını Türkiye haritası üzerinde sürükle-bırak oyunlarıyla öğren. Tarım, madenler, enerji, göller, dağlar, iller ve daha fazlası.",
       },
-      { property: "og:title", content: "KPSS Coğrafya Harita Oyunu" },
+      { property: "og:title", content: "KPSS Coğrafya Harita Oyunu — Harita Üzerinde Öğren" },
       {
         property: "og:description",
-        content: "Harita üzerinde öğren, kalıcı ezberle. KPSS için oyunlaştırılmış coğrafya çalışması.",
+        content: "KPSS coğrafya konularını Türkiye haritası üzerinde sürükle-bırak oyunlarıyla öğren. Tarım, madenler, enerji, göller, dağlar, iller ve daha fazlası.",
       },
     ],
   }),
