@@ -77,14 +77,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "KPSS Coğrafya Harita Oyunu" },
+      { name: "description", content: "Harita üzerinde öğren, kalıcı ezberle. KPSS için oyunlaştırılmış coğrafya çalışması." },
+      { name: "author", content: "KPSS Harita Oyunu" },
+      { property: "og:title", content: "KPSS Coğrafya Harita Oyunu" },
+      { property: "og:description", content: "Harita üzerinde öğren, kalıcı ezberle." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@Lovable" },
     ],
     links: [
       {
