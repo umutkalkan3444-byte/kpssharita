@@ -34,25 +34,24 @@ function shuffle<T>(arr: T[]): T[] {
 
 type Placed = Record<string, TargetPoint>;
 
-function DropDot({ t, placed, wrongPulse }: { t: TargetPoint; placed?: boolean; wrongPulse: boolean }) {
+function DropDot({ t, placed }: { t: TargetPoint; placed?: boolean }) {
   const { setNodeRef, isOver } = useDroppable({ id: t.id });
   return (
     <div
       ref={setNodeRef}
-      className="absolute -translate-x-1/2 -translate-y-1/2"
+      className="absolute grid h-12 w-12 -translate-x-1/2 -translate-y-1/2 place-items-center sm:h-14 sm:w-14"
       style={{ left: `${(t.x / MAP_W) * 100}%`, top: `${(t.y / MAP_H) * 100}%` }}
     >
       <div
         className={cn(
-          "grid h-9 w-9 place-items-center rounded-full transition-all duration-200 sm:h-10 sm:w-10",
+          "grid place-items-center rounded-full transition-all duration-200",
           placed
-            ? "bg-emerald-500/95 text-white shadow-lg shadow-emerald-500/40"
-            : "bg-white/70 ring-2 ring-cyan-400/60 backdrop-blur",
-          isOver && !placed && "scale-125 ring-cyan-500 bg-cyan-100",
-          wrongPulse && isOver && "animate-pulse ring-rose-400 bg-rose-100",
+            ? "h-8 w-8 bg-emerald-500/95 text-white shadow-lg shadow-emerald-500/40 sm:h-9 sm:w-9"
+            : "h-5 w-5 bg-white/80 ring-2 ring-cyan-400/70 backdrop-blur",
+          isOver && !placed && "h-10 w-10 scale-110 bg-cyan-100 ring-cyan-500",
         )}
       >
-        {placed ? <CheckCircle2 className="h-5 w-5" /> : <span className="h-2 w-2 rounded-full bg-cyan-500" />}
+        {placed ? <CheckCircle2 className="h-5 w-5" /> : <span className="h-1.5 w-1.5 rounded-full bg-cyan-500" />}
       </div>
       {placed && (
         <motion.div
