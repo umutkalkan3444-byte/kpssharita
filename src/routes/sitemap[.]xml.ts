@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type {} from "@tanstack/react-start";
-import { CATEGORIES } from "@/lib/game-data";
+import { CATEGORIES, MAIN_CATEGORIES } from "@/lib/game-data";
 
 const BASE_URL = "";
 
@@ -12,6 +12,11 @@ export const Route = createFileRoute("/sitemap.xml")({
           { path: "/", changefreq: "weekly", priority: "1.0" },
           { path: "/istatistik", changefreq: "weekly", priority: "0.6" },
           { path: "/tekrar", changefreq: "weekly", priority: "0.6" },
+          ...MAIN_CATEGORIES.map((m) => ({
+            path: `/konu/${m.slug}`,
+            changefreq: "monthly" as const,
+            priority: "0.9",
+          })),
           ...CATEGORIES.map((c) => ({
             path: `/kategori/${c.slug}`,
             changefreq: "monthly" as const,

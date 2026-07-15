@@ -190,7 +190,7 @@ export function GameBoard({ category }: { category: Category }) {
           <span className="rounded-full bg-emerald-100 px-2.5 py-1 font-semibold text-emerald-700">
             ✓ {correctCount}
           </span>
-          <span className="rounded-full bg-rose-100 px-2.5 py-1 font-semibold text-wrongdum text-rose-700">
+          <span className="rounded-full bg-rose-100 px-2.5 py-1 font-semibold text-rose-700">
             ✗ {wrongCount}
           </span>
           <Button size="sm" variant="outline" onClick={reset} className="gap-1.5">
