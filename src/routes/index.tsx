@@ -1,11 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
-import { MapPin, Sparkles, Repeat2, BarChart3, Trophy, Flame, ArrowRight } from "lucide-react";
+import { MapPin, Sparkles, Repeat2, BarChart3, Trophy, Flame, ArrowRight, CalendarClock } from "lucide-react";
 
 import { MAIN_CATEGORIES } from "@/lib/game-data";
 import { TurkeyMap } from "@/components/TurkeyMap";
 import { loadState, xpProgress, type GameState } from "@/lib/storage";
+import { kpssCountdown } from "@/lib/kpss-date";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -28,8 +29,14 @@ export const Route = createFileRoute("/")({
 
 function Home() {
   const [state, setState] = useState<GameState | null>(null);
+  const [now, setNow] = useState(() => new Date());
   useEffect(() => setState(loadState()), []);
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(id);
+  }, []);
   const xp = state ? xpProgress(state) : null;
+  const countdown = kpssCountdown(now);
 
   const totalSubs = MAIN_CATEGORIES.reduce((s, m) => s + m.subs.length, 0);
 
@@ -90,6 +97,38 @@ function Home() {
             {MAIN_CATEGORIES.length} ana konu · {totalSubs} alt konu. Bölgelerden madenlere,
             tarımdan enerjiye — haritada oynayarak KPSS için kalıcı öğren.
           </motion.p>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="mt-5 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 overflow-hidden rounded-3xl border border-amber-200 bg-gradient-to-br from-amber-50 via-white to-orange-50 p-4 shadow-lg shadow-amber-500/10 sm:flex sm:flex-wrap"
+          >
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow-md">
+                <CalendarClock className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-[10px] font-bold uppercase tracking-widest text-amber-700">
+                  KPSS Lisans · 6 Eylül
+                </div>
+                <div className="truncate text-sm font-semibold text-slate-700 sm:text-base">
+                  Sınava kalan süre
+                </div>
+              </div>
+            </div>
+            <div className="col-span-2 flex items-baseline justify-end gap-2 sm:ml-auto sm:col-auto">
+              <div className="text-3xl font-black leading-none text-orange-600 sm:text-4xl">
+                {countdown.totalDays}
+              </div>
+              <div className="text-xs font-bold uppercase text-slate-500">gün</div>
+              <div className="ml-2 hidden text-xs font-semibold text-slate-500 sm:block">
+                ≈ {countdown.months} ay {countdown.days} gün
+              </div>
+            </div>
+          </motion.div>
+
+
 
           {state && (
             <motion.div

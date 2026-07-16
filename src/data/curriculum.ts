@@ -6,11 +6,14 @@
 
 export type GameItem = { name: string; lat: number; lon: number; hint?: string };
 
+export type MapVariant = "provinces" | "regions" | "muted";
+
 export type Subcategory = {
   slug: string; // uygulama genelinde benzersiz
   title: string;
   emoji?: string;
   description?: string;
+  mapVariant?: MapVariant;
   items: GameItem[];
 };
 
@@ -74,6 +77,7 @@ export const MAIN_CATEGORIES: MainCategory[] = [
         title: "Türkiye Bölgeleri",
         emoji: "🌍",
         description: "7 coğrafi bölgeyi haritada işaretle.",
+        mapVariant: "regions",
         items: [
           { name: "Marmara", lat: 40.4, lon: 28.5 },
           { name: "Ege", lat: 38.4, lon: 27.5 },

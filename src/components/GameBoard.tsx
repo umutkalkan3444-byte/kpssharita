@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -11,8 +11,9 @@ import {
 } from "@dnd-kit/core";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
-import { CheckCircle2, RotateCcw, Trophy } from "lucide-react";
+import { CheckCircle2, RotateCcw, Trophy, Smartphone, LogOut, ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
+import { TransformComponent, TransformWrapper, useControls } from "react-zoom-pan-pinch";
 
 import { type Category, targetsFor, type TargetPoint } from "@/lib/game-data";
 import { MAP_W, MAP_H } from "@/lib/geo";
@@ -39,7 +40,8 @@ function DropDot({ t, placed }: { t: TargetPoint; placed?: boolean }) {
   return (
     <div
       ref={setNodeRef}
-      className="absolute grid h-12 w-12 -translate-x-1/2 -translate-y-1/2 place-items-center sm:h-14 sm:w-14"
+      // Büyük görünmez hitbox (dokunmatik için) + görünür küçük nokta
+      className="absolute grid h-16 w-16 -translate-x-1/2 -translate-y-1/2 place-items-center sm:h-20 sm:w-20"
       style={{ left: `${(t.x / MAP_W) * 100}%`, top: `${(t.y / MAP_H) * 100}%` }}
     >
       <div
@@ -47,7 +49,7 @@ function DropDot({ t, placed }: { t: TargetPoint; placed?: boolean }) {
           "grid place-items-center rounded-full transition-all duration-200",
           placed
             ? "h-8 w-8 bg-emerald-500/95 text-white shadow-lg shadow-emerald-500/40 sm:h-9 sm:w-9"
-            : "h-5 w-5 bg-white/80 ring-2 ring-cyan-400/70 backdrop-blur",
+            : "h-5 w-5 bg-white/90 ring-2 ring-cyan-400/70 backdrop-blur",
           isOver && !placed && "h-10 w-10 scale-110 bg-cyan-100 ring-cyan-500",
         )}
       >
@@ -57,7 +59,7 @@ function DropDot({ t, placed }: { t: TargetPoint; placed?: boolean }) {
         <motion.div
           initial={{ opacity: 0, y: 4 }}
           animate={{ opacity: 1, y: 0 }}
-          className="pointer-events-none absolute left-1/2 top-full mt-1 -translate-x-1/2 whitespace-nowrap rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-semibold text-white shadow sm:text-xs"
+          className="pointer-events-none absolute left-1/2 top-full mt-1 max-w-[140px] -translate-x-1/2 whitespace-normal break-words rounded-lg bg-emerald-600 px-2 py-0.5 text-center text-[10px] font-semibold text-white shadow sm:text-xs"
         >
           {t.name}
         </motion.div>
@@ -76,7 +78,7 @@ function Card({ id, name, shake }: { id: string; name: string; shake: boolean })
       animate={shake ? { x: [0, -8, 8, -6, 6, 0] } : { x: 0 }}
       transition={{ duration: 0.4 }}
       className={cn(
-        "group relative touch-none select-none rounded-2xl border border-cyan-200/70 bg-white/85 px-4 py-2.5 text-sm font-semibold text-slate-800 shadow-md shadow-cyan-500/10 backdrop-blur",
+        "group relative min-h-[44px] w-[150px] touch-none select-none whitespace-normal break-words rounded-2xl border border-cyan-200/70 bg-white/95 px-3 py-2 text-center text-xs font-semibold text-slate-800 shadow-md shadow-cyan-500/10 backdrop-blur sm:w-[170px] sm:text-sm",
         "transition-all hover:-translate-y-0.5 hover:border-cyan-400 hover:shadow-lg active:cursor-grabbing",
         isDragging && "opacity-30",
         shake && "border-rose-400 bg-rose-50 text-rose-700",
@@ -85,6 +87,56 @@ function Card({ id, name, shake }: { id: string; name: string; shake: boolean })
       {name}
     </motion.button>
   );
+}
+
+function ZoomControls() {
+  const { zoomIn, zoomOut, resetTransform } = useControls();
+  return (
+    <div className="absolute right-2 top-2 z-10 flex flex-col gap-1">
+      <button
+        type="button"
+        onClick={() => zoomIn()}
+        aria-label="Yakınlaştır"
+        className="grid h-9 w-9 place-items-center rounded-xl border border-cyan-200 bg-white/90 text-slate-700 shadow-md backdrop-blur transition hover:bg-white"
+      >
+        <ZoomIn className="h-4 w-4" />
+      </button>
+      <button
+        type="button"
+        onClick={() => zoomOut()}
+        aria-label="Uzaklaştır"
+        className="grid h-9 w-9 place-items-center rounded-xl border border-cyan-200 bg-white/90 text-slate-700 shadow-md backdrop-blur transition hover:bg-white"
+      >
+        <ZoomOut className="h-4 w-4" />
+      </button>
+      <button
+        type="button"
+        onClick={() => resetTransform()}
+        aria-label="Sıfırla"
+        className="grid h-9 w-9 place-items-center rounded-xl border border-cyan-200 bg-white/90 text-slate-700 shadow-md backdrop-blur transition hover:bg-white"
+      >
+        <Maximize2 className="h-4 w-4" />
+      </button>
+    </div>
+  );
+}
+
+function useIsPortraitMobile() {
+  const [portrait, setPortrait] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(orientation: portrait) and (max-width: 900px)");
+    const update = () => setPortrait(mq.matches);
+    update();
+    mq.addEventListener?.("change", update);
+    window.addEventListener("resize", update);
+    window.addEventListener("orientationchange", update);
+    return () => {
+      mq.removeEventListener?.("change", update);
+      window.removeEventListener("resize", update);
+      window.removeEventListener("orientationchange", update);
+    };
+  }, []);
+  return portrait;
 }
 
 export function GameBoard({ category }: { category: Category }) {
@@ -104,6 +156,7 @@ export function GameBoard({ category }: { category: Category }) {
   } | null>(null);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
+  const isPortraitMobile = useIsPortraitMobile();
 
   const total = category.items.length;
 
@@ -111,8 +164,12 @@ export function GameBoard({ category }: { category: Category }) {
     setActiveId(null);
     const cardId = String(e.active.id);
     const overId = e.over ? String(e.over.id) : null;
-    if (overId && overId === cardId) {
-      // correct
+
+    // Hiçbir hedefe bırakılmadıysa — hiçbir şey olmasın
+    if (!overId) return;
+
+    if (overId === cardId) {
+      // Doğru
       sfx.correct();
       confetti({
         particleCount: 40,
@@ -128,7 +185,7 @@ export function GameBoard({ category }: { category: Category }) {
       setCorrectCount(next);
       if (next === total) finalize(next, wrongCount, wrongIds);
     } else {
-      // wrong (dropped in empty space or wrong zone) — never reveal correct answer
+      // Yalnızca YANLIŞ bir hedef üzerine bırakıldıysa yanlış say
       sfx.wrong();
       setShakeId(cardId);
       setWrongCount((w) => w + 1);
@@ -163,7 +220,7 @@ export function GameBoard({ category }: { category: Category }) {
   const progressPct = Math.round((correctCount / total) * 100);
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-3 pb-24 pt-4 sm:px-6">
+    <div className="mx-auto w-full max-w-6xl px-3 pb-28 pt-4 sm:px-6">
       <nav className="mb-2 flex flex-wrap items-center gap-1.5 text-xs font-semibold text-slate-500">
         <Link to="/" className="rounded-full px-2 py-1 hover:bg-white hover:text-cyan-700">
           Ana Sayfa
@@ -177,27 +234,27 @@ export function GameBoard({ category }: { category: Category }) {
           {category.mainTitle}
         </Link>
         <span className="opacity-50">›</span>
-        <span className="rounded-full bg-white/80 px-2 py-1 text-slate-800 ring-1 ring-cyan-100">
+        <span className="max-w-[60vw] truncate rounded-full bg-white/80 px-2 py-1 text-slate-800 ring-1 ring-cyan-100">
           {category.title}
         </span>
       </nav>
-      <div className="mb-4 flex flex-wrap items-center gap-3">
-        <h1 className="text-xl font-black tracking-tight text-slate-900 sm:text-2xl">
+      <header className="mb-4 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 sm:flex sm:flex-wrap">
+        <h1 className="min-w-0 truncate text-lg font-black tracking-tight text-slate-900 sm:text-2xl">
           <span className="mr-2">{category.emoji}</span>
           {category.title}
         </h1>
-        <div className="ml-auto flex items-center gap-3 text-sm text-slate-700">
-          <span className="rounded-full bg-emerald-100 px-2.5 py-1 font-semibold text-emerald-700">
+        <div className="col-span-2 flex flex-wrap items-center justify-end gap-2 text-sm text-slate-700 sm:ml-auto">
+          <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700">
             ✓ {correctCount}
           </span>
-          <span className="rounded-full bg-rose-100 px-2.5 py-1 font-semibold text-rose-700">
+          <span className="rounded-full bg-rose-100 px-2.5 py-1 text-xs font-semibold text-rose-700">
             ✗ {wrongCount}
           </span>
           <Button size="sm" variant="outline" onClick={reset} className="gap-1.5">
             <RotateCcw className="h-3.5 w-3.5" /> Sıfırla
           </Button>
         </div>
-      </div>
+      </header>
 
       <div className="mb-3">
         <div className="h-2 w-full overflow-hidden rounded-full bg-cyan-100">
@@ -219,50 +276,133 @@ export function GameBoard({ category }: { category: Category }) {
         onDragCancel={() => setActiveId(null)}
         onDragEnd={onDragEnd}
       >
-        <div
-          className="relative w-full overflow-hidden rounded-3xl border border-cyan-200 bg-gradient-to-br from-white via-sky-50 to-cyan-50 shadow-xl shadow-cyan-500/10"
-          style={{ aspectRatio: `${MAP_W} / ${MAP_H}` }}
-        >
-          <TurkeyMap className="absolute inset-0 h-full w-full" />
-          <div className="absolute inset-0">
-            {targets.map((t) => (
-              <DropDot key={t.id} t={t} placed={!!placed[t.id]} />
-            ))}
-          </div>
+        <div className="relative">
+          <TransformWrapper
+            initialScale={1}
+            minScale={1}
+            maxScale={4}
+            doubleClick={{ mode: "toggle", step: 1.5 }}
+            wheel={{ step: 0.15 }}
+            pinch={{ step: 5 }}
+            panning={{ velocityDisabled: true }}
+          >
+            <>
+              <ZoomControls />
+              <TransformComponent
+                wrapperClass="!w-full !overflow-hidden !rounded-3xl !border !border-cyan-200 !bg-gradient-to-br !from-white !via-sky-50 !to-cyan-50 !shadow-xl !shadow-cyan-500/10"
+                contentClass="!w-full"
+              >
+                <div
+                  className="relative w-full"
+                  style={{ aspectRatio: `${MAP_W} / ${MAP_H}` }}
+                >
+                  <TurkeyMap
+                    className="absolute inset-0 h-full w-full"
+                    variant={category.mapVariant}
+                  />
+                  <div className="absolute inset-0">
+                    {targets.map((t) => (
+                      <DropDot key={t.id} t={t} placed={!!placed[t.id]} />
+                    ))}
+                  </div>
+                </div>
+              </TransformComponent>
+            </>
+          </TransformWrapper>
+          <p className="mt-1 text-center text-[10px] font-medium text-slate-400">
+            İki parmakla yakınlaştır · sürükleyerek gezin
+          </p>
         </div>
 
-        <div className="mt-5">
+        <div className="mt-4">
           <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
             Kartları haritaya sürükle
           </div>
-          <div className="flex flex-wrap gap-2">
-            <AnimatePresence>
-              {cards.map((c) => (
-                <motion.div
-                  key={c.id}
-                  layout
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.6 }}
-                >
-                  <Card id={c.id} name={c.name} shake={shakeId === c.id} />
-                </motion.div>
-              ))}
-            </AnimatePresence>
-            {cards.length === 0 && !done && (
-              <div className="text-sm text-slate-500">Tüm kartlar yerleştirildi 🎉</div>
-            )}
+          <div className="max-h-[36vh] overflow-y-auto rounded-2xl bg-white/50 p-2 ring-1 ring-cyan-100">
+            <div className="flex flex-wrap items-start justify-start gap-2">
+              <AnimatePresence>
+                {cards.map((c) => (
+                  <motion.div
+                    key={c.id}
+                    layout
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.6 }}
+                  >
+                    <Card id={c.id} name={c.name} shake={shakeId === c.id} />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+              {cards.length === 0 && !done && (
+                <div className="p-3 text-sm text-slate-500">
+                  Tüm kartlar yerleştirildi 🎉
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
         <DragOverlay dropAnimation={null}>
           {activeId ? (
-            <div className="rounded-2xl border border-cyan-400 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 shadow-2xl shadow-cyan-500/40">
+            <div className="min-h-[44px] w-[150px] whitespace-normal break-words rounded-2xl border border-cyan-400 bg-white px-3 py-2 text-center text-xs font-semibold text-slate-800 shadow-2xl shadow-cyan-500/40 sm:w-[170px] sm:text-sm">
               {category.items.find((i) => i.id === activeId)?.name}
             </div>
           ) : null}
         </DragOverlay>
       </DndContext>
+
+      {/* Sabit çıkış butonu */}
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-rose-200 bg-white/95 px-3 py-2 shadow-[0_-8px_20px_-10px_rgba(0,0,0,0.15)] backdrop-blur">
+        <div className="mx-auto flex max-w-6xl items-center justify-center">
+          <Button
+            asChild
+            variant="destructive"
+            size="sm"
+            className="w-full max-w-md whitespace-normal text-center text-[11px] leading-tight sm:text-xs"
+          >
+            <Link to="/">
+              <LogOut className="mr-1.5 h-3.5 w-3.5 shrink-0" />
+              Atanmak istemeyen bir orospu olduğum için oyunu terk etmek istiyorum 😞
+            </Link>
+          </Button>
+        </div>
+      </div>
+
+      {/* Dikey uyarısı — mobil dikey ekranda tam ekran */}
+      <AnimatePresence>
+        {isPortraitMobile && !done && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] grid place-items-center bg-gradient-to-br from-cyan-600 via-teal-600 to-emerald-600 px-6 text-white"
+          >
+            <div className="max-w-sm text-center">
+              <motion.div
+                animate={{ rotate: [0, 90, 90, 0], scale: [1, 1.05, 1.05, 1] }}
+                transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+                className="mx-auto mb-6 grid h-24 w-24 place-items-center rounded-3xl bg-white/15 backdrop-blur"
+              >
+                <Smartphone className="h-12 w-12" />
+              </motion.div>
+              <h2 className="text-2xl font-black leading-tight">
+                Lütfen telefonunuzu yatay çevirin 📱
+              </h2>
+              <p className="mt-3 text-sm text-white/85">
+                Türkiye haritası oyunları için en iyi deneyim <b>yatay ekranda</b> sunulur.
+                Telefonunuzu yatay konuma getirdiğinizde oyun otomatik açılacak.
+              </p>
+              <Link
+                to="/"
+                className="mt-6 inline-flex items-center gap-1.5 rounded-full bg-white/15 px-4 py-2 text-xs font-semibold text-white backdrop-blur transition hover:bg-white/25"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+                Ana sayfaya dön
+              </Link>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {done && summary && (
@@ -281,11 +421,11 @@ export function GameBoard({ category }: { category: Category }) {
                 <div className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-cyan-400 to-emerald-500 text-white shadow-lg">
                   <Trophy className="h-6 w-6" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <div className="text-xs font-semibold uppercase tracking-wide text-cyan-600">
                     Bölüm tamamlandı
                   </div>
-                  <div className="text-xl font-black text-slate-900">
+                  <div className="truncate text-xl font-black text-slate-900">
                     {category.title}
                   </div>
                 </div>
