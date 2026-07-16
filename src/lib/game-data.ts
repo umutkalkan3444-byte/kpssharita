@@ -7,10 +7,11 @@ import {
   type Subcategory,
   type MainCategory,
   type GameItem,
+  type MapVariant,
 } from "@/data/curriculum";
 
 export { MAIN_CATEGORIES, MAIN_MAP, SUBCATEGORY_MAP };
-export type { Subcategory, MainCategory, GameItem };
+export type { Subcategory, MainCategory, GameItem, MapVariant };
 
 // Oyunun kullandığı düzleştirilmiş kategori tipi.
 export type Category = {
@@ -21,6 +22,7 @@ export type Category = {
   gradient: string;
   mainSlug: string;
   mainTitle: string;
+  mapVariant: MapVariant;
   items: { id: string; name: string; lat: number; lon: number; hint?: string }[];
 };
 
@@ -33,6 +35,7 @@ function buildCategory(main: MainCategory, sub: Subcategory): Category {
     gradient: main.gradient,
     mainSlug: main.slug,
     mainTitle: main.title,
+    mapVariant: sub.mapVariant ?? "provinces",
     items: sub.items.map((it, i) => ({
       id: `${sub.slug}-${i}`,
       name: it.name,
