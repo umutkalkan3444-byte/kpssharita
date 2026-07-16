@@ -1,11 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
-import { MapPin, Sparkles, Repeat2, BarChart3, Trophy, Flame, ArrowRight } from "lucide-react";
+import { MapPin, Sparkles, Repeat2, BarChart3, Trophy, Flame, ArrowRight, CalendarClock } from "lucide-react";
 
 import { MAIN_CATEGORIES } from "@/lib/game-data";
 import { TurkeyMap } from "@/components/TurkeyMap";
 import { loadState, xpProgress, type GameState } from "@/lib/storage";
+import { kpssCountdown } from "@/lib/kpss-date";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -28,8 +29,14 @@ export const Route = createFileRoute("/")({
 
 function Home() {
   const [state, setState] = useState<GameState | null>(null);
+  const [now, setNow] = useState(() => new Date());
   useEffect(() => setState(loadState()), []);
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(id);
+  }, []);
   const xp = state ? xpProgress(state) : null;
+  const countdown = kpssCountdown(now);
 
   const totalSubs = MAIN_CATEGORIES.reduce((s, m) => s + m.subs.length, 0);
 
