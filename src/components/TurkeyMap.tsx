@@ -1,17 +1,19 @@
 import provincesData from "@/data/turkey-provinces.json";
 import { MAP_W, MAP_H } from "@/lib/geo";
+import { REGION_OF, REGION_COLORS } from "@/lib/province-regions";
 
 type ProvinceDef = { name: string; path: string };
 const provinces = (provincesData as { provinces: ProvinceDef[] }).provinces;
 
+export type MapVariant = "provinces" | "regions" | "muted";
+
 type Props = {
   className?: string;
   children?: React.ReactNode;
-  fill?: string;
-  stroke?: string;
+  variant?: MapVariant;
 };
 
-export function TurkeyMap({ className, children, fill = "url(#tr-fill)", stroke = "rgba(15,118,155,0.45)" }: Props) {
+export function TurkeyMap({ className, children, variant = "provinces" }: Props) {
   return (
     <svg
       viewBox={`0 0 ${MAP_W} ${MAP_H}`}
@@ -34,16 +36,33 @@ export function TurkeyMap({ className, children, fill = "url(#tr-fill)", stroke 
       </defs>
       <rect width={MAP_W} height={MAP_H} fill="url(#tr-sea)" />
       <g filter="url(#tr-shadow)">
-        {provinces.map((p) => (
-          <path
-            key={p.name}
-            d={p.path}
-            fill={fill}
-            stroke={stroke}
-            strokeWidth={0.6}
-            strokeLinejoin="round"
-          />
-        ))}
+        {provinces.map((p) => {
+          let fill: string = "url(#tr-fill)";
+          let stroke = "rgba(15,118,155,0.45)";
+          let strokeWidth = 0.6;
+
+          if (variant === "regions") {
+            const region = REGION_OF[p.name] ?? "İç Anadolu";
+            fill = REGION_COLORS[region] ?? "#e6f7fb";
+            // Bölge içindeki il sınırlarını neredeyse gizle, dış sınırlar için hafif çizgi
+            stroke = "rgba(15,118,155,0.15)";
+            strokeWidth = 0.3;
+          } else if (variant === "muted") {
+            fill = "#eaf6f8";
+            stroke = "rgba(15,118,155,0.25)";
+          }
+
+          return (
+            <path
+              key={p.name}
+              d={p.path}
+              fill={fill}
+              stroke={stroke}
+              strokeWidth={strokeWidth}
+              strokeLinejoin="round"
+            />
+          );
+        })}
       </g>
       {children}
     </svg>
