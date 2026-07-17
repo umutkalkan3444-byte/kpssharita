@@ -241,7 +241,7 @@ function Home() {
 
       <footer className="relative z-10 border-t border-cyan-100 bg-white/50 py-6 backdrop-blur">
         <div className="mx-auto max-w-6xl px-4 text-center text-xs text-slate-500 sm:px-6">
-          KPSS adayları için hazırlanmıştır · Harita oyunlarıyla kalıcı öğrenme
+          Türkiye coğrafyasını harita üzerinde oynayarak öğren · kalıcı öğrenme
         </div>
       </footer>
     </div>
