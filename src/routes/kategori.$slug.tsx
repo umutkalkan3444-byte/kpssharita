@@ -5,10 +5,10 @@ import { GameBoard } from "@/components/GameBoard";
 export const Route = createFileRoute("/kategori/$slug")({
   head: ({ params }) => {
     const c = CATEGORY_MAP[params.slug];
-    const title = c ? `${c.title} — KPSS Harita Oyunu` : "Kategori — KPSS Harita Oyunu";
+    const title = c ? `${c.title} — Harita Ustası` : "Kategori — Harita Ustası";
     const desc = c
       ? `${c.title} konusunu Türkiye haritasında sürükle-bırak oyunuyla öğren.`
-      : "KPSS coğrafya harita oyunu kategorisi.";
+      : "Türkiye coğrafyası harita oyunu kategorisi.";
     return {
       meta: [
         { title },

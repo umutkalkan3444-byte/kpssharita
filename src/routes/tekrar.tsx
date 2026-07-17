@@ -7,7 +7,7 @@ import { CATEGORY_MAP } from "@/lib/game-data";
 export const Route = createFileRoute("/tekrar")({
   head: () => ({
     meta: [
-      { title: "Tekrar Et — KPSS Harita Oyunu" },
+      { title: "Tekrar Et — Harita Ustası" },
       { name: "description", content: "Yanlış yaptığın konuları aralıklı tekrar ile pekiştir." },
     ],
   }),

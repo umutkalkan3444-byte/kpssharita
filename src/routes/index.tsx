@@ -11,16 +11,16 @@ import { kpssCountdown } from "@/lib/kpss-date";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "KPSS Coğrafya Harita Oyunu — Harita Üzerinde Öğren" },
+      { title: "Harita Ustası — Türkiye Coğrafya Haritada Öğren" },
       {
         name: "description",
         content:
-          "KPSS coğrafya konularını Türkiye haritası üzerinde sürükle-bırak oyunlarıyla öğren. Tarım, madenler, enerji, göller, dağlar, iller ve daha fazlası.",
+          "Türkiye coğrafyasını harita üzerinde sürükle-bırak oyunlarıyla öğren. Bölgeler, iller, dağlar, göller, akarsular ve daha fazlası.",
       },
-      { property: "og:title", content: "KPSS Coğrafya Harita Oyunu — Harita Üzerinde Öğren" },
+      { property: "og:title", content: "Harita Ustası — Türkiye Coğrafya Haritada Öğren" },
       {
         property: "og:description",
-        content: "KPSS coğrafya konularını Türkiye haritası üzerinde sürükle-bırak oyunlarıyla öğren. Tarım, madenler, enerji, göller, dağlar, iller ve daha fazlası.",
+        content: "Türkiye coğrafyasını harita üzerinde sürükle-bırak oyunlarıyla öğren.",
       },
     ],
   }),
@@ -49,7 +49,7 @@ function Home() {
           <div className="grid h-9 w-9 place-items-center rounded-2xl bg-gradient-to-br from-cyan-500 to-emerald-500 text-white shadow-lg shadow-cyan-500/30">
             <MapPin className="h-5 w-5" />
           </div>
-          <span className="text-base font-black tracking-tight">Harita Oyunu</span>
+          <span className="text-base font-black tracking-tight">Harita Ustası</span>
         </Link>
         <nav className="flex items-center gap-1 text-sm font-semibold">
           <Link
@@ -75,7 +75,7 @@ function Home() {
             transition={{ duration: 0.6 }}
             className="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-white/70 px-3 py-1 text-xs font-semibold text-cyan-700 backdrop-blur"
           >
-            <Sparkles className="h-3.5 w-3.5" /> KPSS Coğrafya için oyunlaştırılmış çalışma
+            <Sparkles className="h-3.5 w-3.5" /> Türkiye coğrafyası için oyunlaştırılmış çalışma
           </motion.div>
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
@@ -83,9 +83,9 @@ function Home() {
             transition={{ duration: 0.7, delay: 0.05 }}
             className="mt-4 text-4xl font-black leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl"
           >
-            KPSS Coğrafya{" "}
+            Türkiye{" "}
             <span className="bg-gradient-to-r from-cyan-500 via-teal-500 to-emerald-500 bg-clip-text text-transparent">
-              Harita Oyunu
+              Harita Ustası
             </span>
           </motion.h1>
           <motion.p
@@ -95,36 +95,26 @@ function Home() {
             className="mt-4 max-w-xl text-base text-slate-600 sm:text-lg"
           >
             {MAIN_CATEGORIES.length} ana konu · {totalSubs} alt konu. Bölgelerden madenlere,
-            tarımdan enerjiye — haritada oynayarak KPSS için kalıcı öğren.
+            tarımdan enerjiye — haritada oynayarak kalıcı öğren.
           </motion.p>
 
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="mt-5 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 overflow-hidden rounded-3xl border border-amber-200 bg-gradient-to-br from-amber-50 via-white to-orange-50 p-4 shadow-lg shadow-amber-500/10 sm:flex sm:flex-wrap"
+            className="mt-5 flex items-center gap-3 rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 via-white to-orange-50 px-3 py-2.5 shadow-md shadow-amber-500/10"
           >
-            <div className="flex min-w-0 items-center gap-3">
-              <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow-md">
-                <CalendarClock className="h-5 w-5" />
-              </div>
-              <div className="min-w-0">
-                <div className="text-[10px] font-bold uppercase tracking-widest text-amber-700">
-                  KPSS Lisans · 6 Eylül
-                </div>
-                <div className="truncate text-sm font-semibold text-slate-700 sm:text-base">
-                  Sınava kalan süre
-                </div>
-              </div>
+            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow">
+              <CalendarClock className="h-4 w-4" />
             </div>
-            <div className="col-span-2 flex items-baseline justify-end gap-2 sm:ml-auto sm:col-auto">
-              <div className="text-3xl font-black leading-none text-orange-600 sm:text-4xl">
+            <div className="min-w-0 flex-1 text-xs font-semibold text-slate-600">
+              Sınava kalan
+            </div>
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-2xl font-black leading-none text-orange-600 sm:text-3xl">
                 {countdown.totalDays}
-              </div>
-              <div className="text-xs font-bold uppercase text-slate-500">gün</div>
-              <div className="ml-2 hidden text-xs font-semibold text-slate-500 sm:block">
-                ≈ {countdown.months} ay {countdown.days} gün
-              </div>
+              </span>
+              <span className="text-xs font-bold uppercase text-slate-500">gün</span>
             </div>
           </motion.div>
 
@@ -251,7 +241,7 @@ function Home() {
 
       <footer className="relative z-10 border-t border-cyan-100 bg-white/50 py-6 backdrop-blur">
         <div className="mx-auto max-w-6xl px-4 text-center text-xs text-slate-500 sm:px-6">
-          KPSS adayları için hazırlanmıştır · Harita oyunlarıyla kalıcı öğrenme
+          Türkiye coğrafyasını harita üzerinde oynayarak öğren · kalıcı öğrenme
         </div>
       </footer>
     </div>

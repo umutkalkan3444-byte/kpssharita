@@ -9,7 +9,7 @@ import { CATEGORIES } from "@/lib/game-data";
 export const Route = createFileRoute("/istatistik")({
   head: () => ({
     meta: [
-      { title: "İstatistikler — KPSS Harita Oyunu" },
+      { title: "İstatistikler — Harita Ustası" },
       { name: "description", content: "Seviyeni, serini, kategori başarılarını ve rozetlerini görüntüle." },
     ],
   }),

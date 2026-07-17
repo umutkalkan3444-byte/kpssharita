@@ -10,11 +10,11 @@ export const Route = createFileRoute("/konu/$mainSlug")({
   head: ({ params }) => {
     const m = MAIN_MAP[params.mainSlug];
     const title = m
-      ? `${m.title} — KPSS Harita Oyunu`
-      : "Konu — KPSS Harita Oyunu";
+      ? `${m.title} — Harita Ustası`
+      : "Konu — Harita Ustası";
     const desc = m
       ? `${m.title} başlığı altındaki alt konuları Türkiye haritası üzerinde oyunla öğren.`
-      : "KPSS coğrafya konu kategorisi.";
+      : "Türkiye coğrafyası konu kategorisi.";
     return {
       meta: [
         { title },
