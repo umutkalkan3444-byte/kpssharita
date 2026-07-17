@@ -49,7 +49,7 @@ function Home() {
           <div className="grid h-9 w-9 place-items-center rounded-2xl bg-gradient-to-br from-cyan-500 to-emerald-500 text-white shadow-lg shadow-cyan-500/30">
             <MapPin className="h-5 w-5" />
           </div>
-          <span className="text-base font-black tracking-tight">Harita Oyunu</span>
+          <span className="text-base font-black tracking-tight">Harita Ustası</span>
         </Link>
         <nav className="flex items-center gap-1 text-sm font-semibold">
           <Link
