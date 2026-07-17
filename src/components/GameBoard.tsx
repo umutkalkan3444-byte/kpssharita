@@ -308,7 +308,7 @@ export function GameBoard({ category }: { category: Category }) {
           <Link
             to="/"
             aria-label="Oyundan çık"
-            className="grid h-7 w-7 place-items-center rounded-full bg-rose-100 text-rose-700 transition hover:bg-rose-200 max-lg:landscape:inline-grid lg:hidden landscape:inline-grid"
+            className="hidden h-7 w-7 place-items-center rounded-full bg-rose-100 text-rose-700 transition hover:bg-rose-200 max-lg:landscape:grid"
           >
             <X className="h-3.5 w-3.5" />
           </Link>
