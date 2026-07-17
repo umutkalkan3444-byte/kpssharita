@@ -11,16 +11,16 @@ import { kpssCountdown } from "@/lib/kpss-date";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "KPSS Coğrafya Harita Oyunu — Harita Üzerinde Öğren" },
+      { title: "Harita Ustası — Türkiye Coğrafya Haritada Öğren" },
       {
         name: "description",
         content:
-          "KPSS coğrafya konularını Türkiye haritası üzerinde sürükle-bırak oyunlarıyla öğren. Tarım, madenler, enerji, göller, dağlar, iller ve daha fazlası.",
+          "Türkiye coğrafyasını harita üzerinde sürükle-bırak oyunlarıyla öğren. Bölgeler, iller, dağlar, göller, akarsular ve daha fazlası.",
       },
-      { property: "og:title", content: "KPSS Coğrafya Harita Oyunu — Harita Üzerinde Öğren" },
+      { property: "og:title", content: "Harita Ustası — Türkiye Coğrafya Haritada Öğren" },
       {
         property: "og:description",
-        content: "KPSS coğrafya konularını Türkiye haritası üzerinde sürükle-bırak oyunlarıyla öğren. Tarım, madenler, enerji, göller, dağlar, iller ve daha fazlası.",
+        content: "Türkiye coğrafyasını harita üzerinde sürükle-bırak oyunlarıyla öğren.",
       },
     ],
   }),
