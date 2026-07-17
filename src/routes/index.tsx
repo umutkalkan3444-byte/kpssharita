@@ -75,7 +75,7 @@ function Home() {
             transition={{ duration: 0.6 }}
             className="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-white/70 px-3 py-1 text-xs font-semibold text-cyan-700 backdrop-blur"
           >
-            <Sparkles className="h-3.5 w-3.5" /> KPSS Coğrafya için oyunlaştırılmış çalışma
+            <Sparkles className="h-3.5 w-3.5" /> Türkiye coğrafyası için oyunlaştırılmış çalışma
           </motion.div>
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
@@ -83,9 +83,9 @@ function Home() {
             transition={{ duration: 0.7, delay: 0.05 }}
             className="mt-4 text-4xl font-black leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl"
           >
-            KPSS Coğrafya{" "}
+            Türkiye{" "}
             <span className="bg-gradient-to-r from-cyan-500 via-teal-500 to-emerald-500 bg-clip-text text-transparent">
-              Harita Oyunu
+              Harita Ustası
             </span>
           </motion.h1>
           <motion.p
@@ -95,7 +95,7 @@ function Home() {
             className="mt-4 max-w-xl text-base text-slate-600 sm:text-lg"
           >
             {MAIN_CATEGORIES.length} ana konu · {totalSubs} alt konu. Bölgelerden madenlere,
-            tarımdan enerjiye — haritada oynayarak KPSS için kalıcı öğren.
+            tarımdan enerjiye — haritada oynayarak kalıcı öğren.
           </motion.p>
 
           <motion.div
