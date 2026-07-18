@@ -43,31 +43,25 @@ type Placed = Record<string, TargetPoint>;
 
 function DropDot({ t, placed }: { t: TargetPoint; placed?: boolean }) {
   const { setNodeRef, isOver } = useDroppable({ id: t.id });
+  const hasShape = !!t.shape;
   return (
     <div
       ref={setNodeRef}
-      // Görünmez geniş hitbox (dokunmatik için)
       className="absolute grid h-16 w-16 -translate-x-1/2 -translate-y-1/2 place-items-center sm:h-20 sm:w-20"
       style={{ left: `${(t.x / MAP_W) * 100}%`, top: `${(t.y / MAP_H) * 100}%` }}
     >
       {placed ? (
-        <>
-          {/* Yerleştirilmiş — sadece küçük yeşil pin ve etiket */}
-          <motion.span
-            initial={{ scale: 0.4, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ type: "spring", stiffness: 400, damping: 18 }}
-            className="h-2.5 w-2.5 rounded-full bg-emerald-600 ring-2 ring-white shadow"
-          />
-          <motion.span
-            initial={{ opacity: 0, y: 2 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.05 }}
-            className="pointer-events-none absolute left-1/2 top-full mt-0.5 max-w-[110px] -translate-x-1/2 whitespace-normal break-words rounded-md bg-emerald-600/95 px-1.5 py-0.5 text-center text-[9px] font-semibold text-white shadow sm:text-[10px]"
-          >
-            {t.name}
-          </motion.span>
-        </>
+        <motion.span
+          initial={{ opacity: 0, y: 2 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+          className={cn(
+            "pointer-events-none absolute left-1/2 whitespace-normal break-words rounded-md bg-emerald-600/95 px-1.5 py-0.5 text-center text-[9px] font-semibold text-white shadow sm:text-[10px] max-w-[110px] -translate-x-1/2",
+            hasShape ? "top-1/2 -translate-y-1/2" : "top-full mt-0.5",
+          )}
+        >
+          {t.name}
+        </motion.span>
       ) : (
         <div
           className={cn(
@@ -81,6 +75,51 @@ function DropDot({ t, placed }: { t: TargetPoint; placed?: boolean }) {
     </div>
   );
 }
+
+/** Doğru yerleştirilen öğelerin gerçek coğrafi şekillerini çizen SVG katmanı. */
+function ShapeLayer({
+  targets,
+  placed,
+  categorySlug,
+}: {
+  targets: TargetPoint[];
+  placed: Record<string, TargetPoint>;
+  categorySlug: string;
+}) {
+  const stroke =
+    categorySlug === "akarsular" ? "#0284c7" :
+    categorySlug.includes("dag") || categorySlug === "kivrim-daglari" || categorySlug === "kirik-daglari" ? "#78350f" :
+    "#065f46";
+  const fill =
+    categorySlug === "akarsular" ? "none" :
+    categorySlug === "delta-ovalari" ? "rgba(16,185,129,0.55)" :
+    "rgba(14,165,233,0.55)";
+  return (
+    <svg
+      viewBox={`0 0 ${MAP_W} ${MAP_H}`}
+      className="pointer-events-none absolute inset-0 h-full w-full"
+      preserveAspectRatio="xMidYMid meet"
+    >
+      {targets.map((t) => {
+        if (!t.shape || !placed[t.id]) return null;
+        const isLine = t.shape.type === "polyline";
+        return (
+          <path
+            key={t.id}
+            d={t.shape.d}
+            fill={isLine ? "none" : fill}
+            stroke={stroke}
+            strokeWidth={isLine ? 2.2 : 1.2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            opacity={0.95}
+          />
+        );
+      })}
+    </svg>
+  );
+}
+
 
 function Card({ id, name, shake }: { id: string; name: string; shake: boolean }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id });
