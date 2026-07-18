@@ -9,6 +9,7 @@ import {
   useSensors,
   type DragEndEvent,
 } from "@dnd-kit/core";
+import { snapCenterToCursor } from "@dnd-kit/modifiers";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
 import { RotateCcw, Trophy, Smartphone, LogOut, ZoomIn, ZoomOut, Maximize2, X } from "lucide-react";
