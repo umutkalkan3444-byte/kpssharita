@@ -79,6 +79,8 @@ export function targetsFor(category: Category): TargetPoint[] {
     const { x, y } = project(it.lat, it.lon);
     return { id: it.id, name: it.name, x, y };
   });
+}
+
 
 export function categoriesForMain(mainSlug: string): Category[] {
   const m = MAIN_MAP[mainSlug];
