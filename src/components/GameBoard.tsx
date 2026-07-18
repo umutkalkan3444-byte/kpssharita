@@ -9,6 +9,7 @@ import {
   useSensors,
   type DragEndEvent,
 } from "@dnd-kit/core";
+import { snapCenterToCursor } from "@dnd-kit/modifiers";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
 import { RotateCcw, Trophy, Smartphone, LogOut, ZoomIn, ZoomOut, Maximize2, X } from "lucide-react";
@@ -182,7 +183,9 @@ export function GameBoard({ category }: { category: Category }) {
 
   // Otomatik odak (bölge oyunları için)
   const focus = useMemo(() => focusBoundsForSlug(category.slug), [category.slug]);
-  const focusScale = focus ? Math.min(MAP_W / focus.w, MAP_H / focus.h) : 1;
+  // Daha geniş bir genel görünüm için odak ölçeğine padding uygula (0.72 → %28 daha geriden bak)
+  const focusScale = focus ? Math.min(MAP_W / focus.w, MAP_H / focus.h) * 0.72 : 1;
+  const isFocused = !!focus;
 
   const mapWrapRef = useRef<HTMLDivElement>(null);
   const zoomRef = useRef<ReactZoomPanPinchRef | null>(null);
@@ -329,6 +332,7 @@ export function GameBoard({ category }: { category: Category }) {
 
       <DndContext
         sensors={sensors}
+        modifiers={[snapCenterToCursor]}
         onDragStart={(e) => setActiveId(String(e.active.id))}
         onDragCancel={() => setActiveId(null)}
         onDragEnd={onDragEnd}
@@ -341,16 +345,16 @@ export function GameBoard({ category }: { category: Category }) {
               ref={zoomRef}
               initialScale={focusScale}
               minScale={focusScale}
-              maxScale={Math.max(focusScale * 3, 5)}
-              doubleClick={{ mode: "toggle", step: 1.5 }}
-              wheel={{ step: 0.15 }}
-              pinch={{ step: 5 }}
-              panning={{ velocityDisabled: true }}
+              maxScale={isFocused ? focusScale : 5}
+              doubleClick={{ disabled: isFocused, mode: "toggle", step: 1.5 }}
+              wheel={{ disabled: isFocused, step: 0.15 }}
+              pinch={{ disabled: isFocused, step: 5 }}
+              panning={{ disabled: isFocused, velocityDisabled: true }}
               limitToBounds={true}
               centerOnInit={!focus}
             >
               <>
-                <ZoomControls />
+                {!isFocused && <ZoomControls />}
                 <TransformComponent
                   wrapperClass="!w-full !h-full !overflow-hidden !rounded-2xl !border !border-cyan-200 !bg-gradient-to-br !from-white !via-sky-50 !to-cyan-50 !shadow-xl !shadow-cyan-500/10"
                   contentClass="!w-full"
@@ -382,14 +386,14 @@ export function GameBoard({ category }: { category: Category }) {
             </div>
             <div className="max-h-[32vh] overflow-y-auto rounded-2xl bg-white/50 p-2 ring-1 ring-cyan-100 max-lg:landscape:max-h-full max-lg:landscape:h-full">
               <div className="flex flex-wrap items-start justify-start gap-1.5 max-lg:landscape:flex-col max-lg:landscape:flex-nowrap">
-                <AnimatePresence>
+                <AnimatePresence initial={false}>
                   {cards.map((c) => (
                     <motion.div
                       key={c.id}
-                      layout
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.6 }}
+                      transition={{ duration: 0.15 }}
                       className="max-lg:landscape:w-full"
                     >
                       <Card id={c.id} name={c.name} shake={shakeId === c.id} />
