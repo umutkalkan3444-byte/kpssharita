@@ -79,23 +79,6 @@ export function targetsFor(category: Category): TargetPoint[] {
     const { x, y } = project(it.lat, it.lon);
     return { id: it.id, name: it.name, x, y };
   });
-}
-  return category.items.map((it) => {
-    const def = SHAPES[it.name];
-    if (def) {
-      const c = shapeCentroid(def);
-      return {
-        id: it.id,
-        name: it.name,
-        x: c.x,
-        y: c.y,
-        shape: { type: def.type, d: projectShapePath(def) },
-      };
-    }
-    const { x, y } = project(it.lat, it.lon);
-    return { id: it.id, name: it.name, x, y };
-  });
-}
 
 export function categoriesForMain(mainSlug: string): Category[] {
   const m = MAIN_MAP[mainSlug];
