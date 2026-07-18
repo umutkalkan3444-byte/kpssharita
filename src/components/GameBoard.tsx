@@ -354,7 +354,7 @@ export function GameBoard({ category }: { category: Category }) {
               centerOnInit={!focus}
             >
               <>
-                <ZoomControls />
+                {!isFocused && <ZoomControls />}
                 <TransformComponent
                   wrapperClass="!w-full !h-full !overflow-hidden !rounded-2xl !border !border-cyan-200 !bg-gradient-to-br !from-white !via-sky-50 !to-cyan-50 !shadow-xl !shadow-cyan-500/10"
                   contentClass="!w-full"
