@@ -332,6 +332,7 @@ export function GameBoard({ category }: { category: Category }) {
 
       <DndContext
         sensors={sensors}
+        modifiers={[snapCenterToCursor]}
         onDragStart={(e) => setActiveId(String(e.active.id))}
         onDragCancel={() => setActiveId(null)}
         onDragEnd={onDragEnd}
