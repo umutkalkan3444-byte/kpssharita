@@ -386,14 +386,14 @@ export function GameBoard({ category }: { category: Category }) {
             </div>
             <div className="max-h-[32vh] overflow-y-auto rounded-2xl bg-white/50 p-2 ring-1 ring-cyan-100 max-lg:landscape:max-h-full max-lg:landscape:h-full">
               <div className="flex flex-wrap items-start justify-start gap-1.5 max-lg:landscape:flex-col max-lg:landscape:flex-nowrap">
-                <AnimatePresence>
+                <AnimatePresence initial={false}>
                   {cards.map((c) => (
                     <motion.div
                       key={c.id}
-                      layout
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.6 }}
+                      transition={{ duration: 0.15 }}
                       className="max-lg:landscape:w-full"
                     >
                       <Card id={c.id} name={c.name} shake={shakeId === c.id} />
