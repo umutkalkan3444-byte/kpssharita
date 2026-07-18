@@ -1,5 +1,6 @@
 // Geriye uyumlu düz kategori API'si. Hiyerarşi src/data/curriculum.ts'de.
 import { project } from "./geo";
+import { SHAPES, projectShapePath, shapeCentroid } from "@/data/shapes";
 import {
   MAIN_CATEGORIES,
   MAIN_MAP,
