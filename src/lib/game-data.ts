@@ -59,10 +59,25 @@ export type TargetPoint = {
   name: string;
   x: number;
   y: number;
+  shape?: { type: "polyline" | "polygon"; d: string };
 };
 
 export function targetsFor(category: Category): TargetPoint[] {
+  // Lazy import to avoid circulars at module init
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { SHAPES, projectShapePath, shapeCentroid } = require("@/data/shapes") as typeof import("@/data/shapes");
   return category.items.map((it) => {
+    const def = SHAPES[it.name];
+    if (def) {
+      const c = shapeCentroid(def);
+      return {
+        id: it.id,
+        name: it.name,
+        x: c.x,
+        y: c.y,
+        shape: { type: def.type, d: projectShapePath(def) },
+      };
+    }
     const { x, y } = project(it.lat, it.lon);
     return { id: it.id, name: it.name, x, y };
   });
