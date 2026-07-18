@@ -183,7 +183,9 @@ export function GameBoard({ category }: { category: Category }) {
 
   // Otomatik odak (bölge oyunları için)
   const focus = useMemo(() => focusBoundsForSlug(category.slug), [category.slug]);
-  const focusScale = focus ? Math.min(MAP_W / focus.w, MAP_H / focus.h) : 1;
+  // Daha geniş bir genel görünüm için odak ölçeğine padding uygula (0.72 → %28 daha geriden bak)
+  const focusScale = focus ? Math.min(MAP_W / focus.w, MAP_H / focus.h) * 0.72 : 1;
+  const isFocused = !!focus;
 
   const mapWrapRef = useRef<HTMLDivElement>(null);
   const zoomRef = useRef<ReactZoomPanPinchRef | null>(null);
