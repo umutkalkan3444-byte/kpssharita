@@ -407,6 +407,7 @@ export function GameBoard({ category }: { category: Category }) {
                       variant={category.mapVariant}
                       highlightedProvinces={highlightedProvinces}
                     />
+                    <ShapeLayer targets={targets} placed={placed} categorySlug={category.slug} />
                     <div className="absolute inset-0">
                       {targets.map((t) => (
                         <DropDot key={t.id} t={t} placed={!!placed[t.id]} />
