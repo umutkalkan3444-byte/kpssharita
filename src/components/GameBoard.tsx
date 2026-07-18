@@ -345,11 +345,11 @@ export function GameBoard({ category }: { category: Category }) {
               ref={zoomRef}
               initialScale={focusScale}
               minScale={focusScale}
-              maxScale={Math.max(focusScale * 3, 5)}
-              doubleClick={{ mode: "toggle", step: 1.5 }}
-              wheel={{ step: 0.15 }}
-              pinch={{ step: 5 }}
-              panning={{ velocityDisabled: true }}
+              maxScale={isFocused ? focusScale : 5}
+              doubleClick={{ disabled: isFocused, mode: "toggle", step: 1.5 }}
+              wheel={{ disabled: isFocused, step: 0.15 }}
+              pinch={{ disabled: isFocused, step: 5 }}
+              panning={{ disabled: isFocused, velocityDisabled: true }}
               limitToBounds={true}
               centerOnInit={!focus}
             >
