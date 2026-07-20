@@ -222,11 +222,15 @@ export function GameBoard({ category }: { category: Category }) {
 
   // İl-illeri kategorilerinde doğru bırakılan illeri harita üzerinde yeşile boyayalım
   const isIlleri =
-    !!REGION_ILLERI_SLUGS[category.slug] || category.slug === "iller-81" || category.slug === "buyuksehirler";
+    !!REGION_ILLERI_SLUGS[category.slug] ||
+    category.slug === "iller-81" ||
+    category.slug === "buyuksehirler" ||
+    isClickMode;
   const highlightedProvinces = useMemo(
     () => (isIlleri ? Object.values(placed).map((p) => p.name) : []),
     [placed, isIlleri],
   );
+
 
   // Otomatik odak (bölge oyunları için)
   const focus = useMemo(() => focusBoundsForSlug(category.slug), [category.slug]);
