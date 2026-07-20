@@ -390,14 +390,34 @@ export function GameBoard({ category }: { category: Category }) {
         </span>
       </nav>
 
-      <header className="mb-3 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 sm:flex sm:flex-wrap max-lg:landscape:mb-1 max-lg:landscape:gap-2">
+      <header className="mb-3 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 max-lg:landscape:mb-1">
+        {/* Mobil yatay: sol üstte belirgin ÇIK butonu (Sıfırla'dan uzak) */}
+        <Link
+          to="/"
+          aria-label="Oyundan çık"
+          className="hidden h-9 items-center gap-1.5 rounded-full bg-slate-900 px-3 text-xs font-bold text-white shadow-md ring-1 ring-slate-700 transition active:scale-95 max-lg:landscape:inline-flex"
+        >
+          <LogOut className="h-3.5 w-3.5" />
+          Çık
+        </Link>
+
         <h1 className="min-w-0 truncate text-base font-black tracking-tight text-slate-900 sm:text-2xl max-lg:landscape:text-sm">
           <span className="mr-2">{category.emoji}</span>
-          {category.title}
+          {isClickMode ? (
+            <>
+              <span className="text-emerald-700">{category.title}</span>
+              <span className="ml-1 text-slate-500 font-semibold text-xs sm:text-sm max-lg:landscape:text-[10px]">
+                — üretim illerini bul
+              </span>
+            </>
+          ) : (
+            category.title
+          )}
         </h1>
-        <div className="col-span-2 flex flex-wrap items-center justify-end gap-2 text-sm text-slate-700 sm:ml-auto max-lg:landscape:col-auto max-lg:landscape:gap-1.5">
+
+        <div className="flex items-center justify-end gap-1.5 text-sm text-slate-700 sm:gap-2">
           <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">
-            ✓ {correctCount}
+            ✓ {correctCount}{isClickMode ? `/${total}` : ""}
           </span>
           <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-semibold text-rose-700">
             ✗ {wrongCount}
@@ -405,13 +425,6 @@ export function GameBoard({ category }: { category: Category }) {
           <Button size="sm" variant="outline" onClick={reset} className="h-7 gap-1.5 px-2 text-xs">
             <RotateCcw className="h-3.5 w-3.5" /> Sıfırla
           </Button>
-          <Link
-            to="/"
-            aria-label="Oyundan çık"
-            className="hidden h-7 w-7 place-items-center rounded-full bg-rose-100 text-rose-700 transition hover:bg-rose-200 max-lg:landscape:grid"
-          >
-            <X className="h-3.5 w-3.5" />
-          </Link>
         </div>
       </header>
 
@@ -427,6 +440,45 @@ export function GameBoard({ category }: { category: Category }) {
         </div>
       </div>
 
+      {isClickMode ? (
+        // Click-mode: harita tam genişlik, kart paneli yok
+        <div className="flex flex-1 min-h-0 flex-col">
+          <div className="relative flex-1 min-h-0" ref={mapWrapRef}>
+            <TransformWrapper
+              key={category.slug + (containerW > 0 ? "-ready" : "-init")}
+              ref={zoomRef}
+              initialScale={focusScale}
+              minScale={focusScale}
+              maxScale={isFocused ? focusScale : 5}
+              doubleClick={{ disabled: true }}
+              wheel={{ disabled: isFocused, step: 0.15 }}
+              pinch={{ disabled: isFocused, step: 5 }}
+              panning={{ disabled: isFocused, velocityDisabled: true }}
+              limitToBounds={true}
+              centerOnInit={!focus}
+            >
+              <>
+                {!isFocused && <ZoomControls />}
+                <TransformComponent
+                  wrapperClass="!w-full !h-full !overflow-hidden !rounded-2xl !border !border-cyan-200 !bg-gradient-to-br !from-white !via-sky-50 !to-cyan-50 !shadow-xl !shadow-cyan-500/10"
+                  contentClass="!w-full"
+                >
+                  <div className="relative w-full" style={{ aspectRatio: `${MAP_W} / ${MAP_H}` }}>
+                    <TurkeyMap
+                      className="absolute inset-0 h-full w-full"
+                      variant={category.mapVariant}
+                      highlightedProvinces={highlightedProvinces}
+                      wrongProvinces={wrongProvinces}
+                      onProvinceClick={onProvinceClick}
+                      interactive
+                    />
+                  </div>
+                </TransformComponent>
+              </>
+            </TransformWrapper>
+          </div>
+        </div>
+      ) : (
       <DndContext
         sensors={sensors}
         modifiers={[snapCenterToCursor]}
@@ -507,6 +559,8 @@ export function GameBoard({ category }: { category: Category }) {
           ) : null}
         </DragOverlay>
       </DndContext>
+      )}
+
 
       {/* Sabit çıkış butonu — mobil yatayda gizli (üstteki X kullanılır) */}
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-rose-200 bg-white/95 px-3 py-2 shadow-[0_-8px_20px_-10px_rgba(0,0,0,0.15)] backdrop-blur max-lg:landscape:hidden">
