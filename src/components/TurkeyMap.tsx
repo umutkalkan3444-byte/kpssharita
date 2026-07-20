@@ -11,11 +11,16 @@ type Props = {
   className?: string;
   children?: React.ReactNode;
   variant?: MapVariant;
-  /** İl adları — bunlar yeşil dolgu ile vurgulanır (doğru yerleştirilen iller). */
+  /** İl adları — yeşil dolgu ile vurgulanır (doğru). */
   highlightedProvinces?: string[];
+  /** İl adları — kırmızı dolgu ile vurgulanır (yanlış). */
+  wrongProvinces?: string[];
+  /** Tıklama callback'i. */
+  onProvinceClick?: (name: string) => void;
+  /** Etkileşim modu — iller tıklanabilir. */
+  interactive?: boolean;
 };
 
-// ASCII normalize — kart adları ("Istanbul") ile SVG path adları ("Istanbul") eşleşsin
 function norm(s: string): string {
   return s
     .toLocaleLowerCase("tr")
@@ -30,8 +35,17 @@ function norm(s: string): string {
     .replace(/[^a-z0-9]/g, "");
 }
 
-export function TurkeyMap({ className, children, variant = "provinces", highlightedProvinces }: Props) {
+export function TurkeyMap({
+  className,
+  children,
+  variant = "provinces",
+  highlightedProvinces,
+  wrongProvinces,
+  onProvinceClick,
+  interactive,
+}: Props) {
   const highlightSet = new Set((highlightedProvinces ?? []).map(norm));
+  const wrongSet = new Set((wrongProvinces ?? []).map(norm));
   return (
     <svg
       viewBox={`0 0 ${MAP_W} ${MAP_H}`}
@@ -52,6 +66,10 @@ export function TurkeyMap({ className, children, variant = "provinces", highligh
           <stop offset="0%" stopColor="#6ee7b7" />
           <stop offset="100%" stopColor="#10b981" />
         </linearGradient>
+        <linearGradient id="tr-wrong" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#fca5a5" />
+          <stop offset="100%" stopColor="#ef4444" />
+        </linearGradient>
         <filter id="tr-shadow" x="-5%" y="-5%" width="110%" height="120%">
           <feDropShadow dx="0" dy="4" stdDeviation="6" floodColor="#0ea5b7" floodOpacity="0.18" />
         </filter>
@@ -59,7 +77,10 @@ export function TurkeyMap({ className, children, variant = "provinces", highligh
       <rect width={MAP_W} height={MAP_H} fill="url(#tr-sea)" />
       <g filter="url(#tr-shadow)">
         {provinces.map((p) => {
-          const isHighlighted = highlightSet.has(norm(p.name));
+          const key = norm(p.name);
+          const isHighlighted = highlightSet.has(key);
+          const isWrong = wrongSet.has(key);
+          const isLocked = isHighlighted || isWrong;
           let fill: string = "url(#tr-fill)";
           let stroke = "rgba(15,118,155,0.45)";
           let strokeWidth = 0.6;
@@ -78,7 +99,13 @@ export function TurkeyMap({ className, children, variant = "provinces", highligh
             fill = "url(#tr-highlight)";
             stroke = "rgba(6,95,70,0.7)";
             strokeWidth = 0.8;
+          } else if (isWrong) {
+            fill = "url(#tr-wrong)";
+            stroke = "rgba(153,27,27,0.7)";
+            strokeWidth = 0.8;
           }
+
+          const clickable = interactive && !isLocked && !!onProvinceClick;
 
           return (
             <path
@@ -88,7 +115,12 @@ export function TurkeyMap({ className, children, variant = "provinces", highligh
               stroke={stroke}
               strokeWidth={strokeWidth}
               strokeLinejoin="round"
-            />
+              onClick={clickable ? () => onProvinceClick!(p.name) : undefined}
+              style={clickable ? { cursor: "pointer" } : undefined}
+              className={clickable ? "transition-opacity hover:opacity-75" : undefined}
+            >
+              {interactive ? <title>{p.name}</title> : null}
+            </path>
           );
         })}
       </g>
