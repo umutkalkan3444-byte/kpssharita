@@ -42,30 +42,30 @@ function shuffle<T>(arr: T[]): T[] {
 type Placed = Record<string, TargetPoint>;
 
 function DropDot({ t, placed }: { t: TargetPoint; placed?: boolean }) {
-  const { setNodeRef, isOver } = useDroppable({ id: t.id });
-  const hasShape = !!t.shape;
+  // Doğru bilinmiş hedefler artık drop hedefi değil — üzerine bırakılırsa etkisiz.
+  const { setNodeRef, isOver } = useDroppable({ id: t.id, disabled: !!placed });
   return (
     <div
       ref={setNodeRef}
-      className="absolute grid h-16 w-16 -translate-x-1/2 -translate-y-1/2 place-items-center sm:h-20 sm:w-20"
+      className={cn(
+        "absolute -translate-x-1/2 -translate-y-1/2",
+        placed
+          ? "pointer-events-none flex items-center gap-0.5"
+          : "grid h-16 w-16 place-items-center sm:h-20 sm:w-20",
+      )}
       style={{ left: `${(t.x / MAP_W) * 100}%`, top: `${(t.y / MAP_H) * 100}%` }}
     >
       {placed ? (
-        <motion.span
-          initial={{ opacity: 0, y: 2 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.05 }}
-          className={cn(
-            "pointer-events-none absolute left-1/2 whitespace-normal break-words rounded-md bg-emerald-600/95 px-1.5 py-0.5 text-center text-[9px] font-semibold text-white shadow sm:text-[10px] max-w-[110px] -translate-x-1/2",
-            hasShape ? "top-1/2 -translate-y-1/2" : "top-full mt-0.5",
-          )}
-        >
-          {t.name}
-        </motion.span>
+        <>
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 ring-1 ring-white shadow" />
+          <span className="whitespace-nowrap rounded-sm bg-white/85 px-1 text-[8px] font-semibold leading-tight text-emerald-800 shadow-sm sm:text-[9px]">
+            {t.name}
+          </span>
+        </>
       ) : (
         <div
           className={cn(
-            "grid h-4 w-4 place-items-center rounded-full bg-white/90 ring-2 ring-cyan-400/70 backdrop-blur transition-all duration-200",
+            "grid h-4 w-4 place-items-center rounded-full bg-white/90 ring-2 ring-cyan-400/70 backdrop-blur transition-all duration-150",
             isOver && "h-6 w-6 scale-110 bg-cyan-100 ring-cyan-500",
           )}
         >
@@ -124,22 +124,20 @@ function ShapeLayer({
 function Card({ id, name, shake }: { id: string; name: string; shake: boolean }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id });
   return (
-    <motion.button
+    <button
       ref={setNodeRef}
       {...attributes}
       {...listeners}
-      animate={shake ? { x: [0, -8, 8, -6, 6, 0] } : { x: 0 }}
-      transition={{ duration: 0.4 }}
       className={cn(
         "group relative min-h-[40px] w-full touch-none select-none whitespace-normal break-words rounded-xl border border-cyan-200/70 bg-white/95 px-2.5 py-1.5 text-center text-xs font-semibold text-slate-800 shadow-md shadow-cyan-500/10 backdrop-blur",
         "sm:w-[170px]",
-        "transition-all hover:-translate-y-0.5 hover:border-cyan-400 hover:shadow-lg active:cursor-grabbing",
+        "hover:border-cyan-400 active:cursor-grabbing",
         isDragging && "opacity-30",
-        shake && "border-rose-400 bg-rose-50 text-rose-700",
+        shake && "animate-shake border-rose-400 bg-rose-50 text-rose-700",
       )}
     >
       {name}
-    </motion.button>
+    </button>
   );
 }
 
@@ -426,20 +424,11 @@ export function GameBoard({ category }: { category: Category }) {
             </div>
             <div className="max-h-[32vh] overflow-y-auto rounded-2xl bg-white/50 p-2 ring-1 ring-cyan-100 max-lg:landscape:max-h-full max-lg:landscape:h-full">
               <div className="flex flex-wrap items-start justify-start gap-1.5 max-lg:landscape:flex-col max-lg:landscape:flex-nowrap">
-                <AnimatePresence initial={false}>
-                  {cards.map((c) => (
-                    <motion.div
-                      key={c.id}
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.6 }}
-                      transition={{ duration: 0.15 }}
-                      className="max-lg:landscape:w-full"
-                    >
-                      <Card id={c.id} name={c.name} shake={shakeId === c.id} />
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
+                {cards.map((c) => (
+                  <div key={c.id} className="max-lg:landscape:w-full">
+                    <Card id={c.id} name={c.name} shake={shakeId === c.id} />
+                  </div>
+                ))}
                 {cards.length === 0 && !done && (
                   <div className="p-3 text-sm text-slate-500">
                     Tüm kartlar yerleştirildi 🎉
