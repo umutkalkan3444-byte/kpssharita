@@ -194,6 +194,13 @@ function useIsPortraitMobile() {
 export function GameBoard({ category }: { category: Category }) {
   const targets = useMemo(() => targetsFor(category), [category]);
   const targetById = useMemo(() => Object.fromEntries(targets.map((t) => [t.id, t])), [targets]);
+
+  // Tarım & Hayvancılık → "il tıklama" modu (sürükleme yok, harita büyük).
+  // "Tüm ..." alt kategorileri (item adları ürün adı olan) klasik sürükleme modunda kalır.
+  const isClickMode =
+    (category.mainSlug === "tarim" || category.mainSlug === "hayvancilik") &&
+    !category.slug.startsWith("tum-");
+
   const [cards, setCards] = useState(() => shuffle(category.items));
   const [placed, setPlaced] = useState<Placed>({});
   const [wrongIds, setWrongIds] = useState<string[]>([]);
@@ -201,6 +208,8 @@ export function GameBoard({ category }: { category: Category }) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [correctCount, setCorrectCount] = useState(0);
   const [wrongCount, setWrongCount] = useState(0);
+  // Click-mode: yanlış tıklanan il adları (kırmızıya boyanır, tekrar tıklanamaz)
+  const [wrongProvinces, setWrongProvinces] = useState<string[]>([]);
   const [startedAt] = useState(() => Date.now());
   const [done, setDone] = useState(false);
   const [summary, setSummary] = useState<{
@@ -208,6 +217,7 @@ export function GameBoard({ category }: { category: Category }) {
   } | null>(null);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
+
   const isPortraitMobile = useIsPortraitMobile();
 
   // İl-illeri kategorilerinde doğru bırakılan illeri harita üzerinde yeşile boyayalım
