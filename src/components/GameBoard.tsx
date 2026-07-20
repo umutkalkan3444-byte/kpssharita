@@ -298,6 +298,50 @@ export function GameBoard({ category }: { category: Category }) {
     }
   };
 
+  // Click-mode: il tıklama akışı (sadece tarım/hayvancılık)
+  const norm = (s: string) =>
+    s
+      .toLocaleLowerCase("tr")
+      .replace(/ı/g, "i").replace(/İ/g, "i")
+      .replace(/ş/g, "s").replace(/ç/g, "c")
+      .replace(/ğ/g, "g").replace(/ü/g, "u")
+      .replace(/ö/g, "o").replace(/â/g, "a")
+      .replace(/[^a-z0-9]/g, "");
+
+  const answerMap = useMemo(() => {
+    const m = new Map<string, TargetPoint>();
+    if (isClickMode) {
+      for (const t of targets) m.set(norm(t.name), t);
+    }
+    return m;
+  }, [targets, isClickMode]);
+
+  const onProvinceClick = (provinceName: string) => {
+    if (!isClickMode || done) return;
+    const key = norm(provinceName);
+    // Zaten doğru veya yanlış işaretlendi → etkisiz
+    if (Object.values(placed).some((p) => norm(p.name) === key)) return;
+    if (wrongProvinces.some((n) => norm(n) === key)) return;
+
+    const target = answerMap.get(key);
+    if (target) {
+      sfx.correct();
+      confetti({
+        particleCount: 14, spread: 40, startVelocity: 22,
+        origin: { y: 0.5 },
+        colors: ["#10b981", "#34d399", "#a7f3d0"], scalar: 0.7,
+      });
+      setPlaced((p) => ({ ...p, [target.id]: target }));
+      const next = correctCount + 1;
+      setCorrectCount(next);
+      if (next === total) finalize(next, wrongCount, wrongIds);
+    } else {
+      sfx.wrong();
+      setWrongProvinces((prev) => [...prev, provinceName]);
+      setWrongCount((w) => w + 1);
+    }
+  };
+
   const finalize = (correct: number, wrong: number, wIds: string[]) => {
     const totalMs = Date.now() - startedAt;
     const pct = Math.round((correct / total) * 100);
@@ -315,11 +359,13 @@ export function GameBoard({ category }: { category: Category }) {
     setCards(shuffle(category.items));
     setPlaced({});
     setWrongIds([]);
+    setWrongProvinces([]);
     setCorrectCount(0);
     setWrongCount(0);
     setDone(false);
     setSummary(null);
   };
+
 
   const progressPct = Math.round((correctCount / total) * 100);
 
