@@ -218,6 +218,15 @@ export function GameBoard({ category }: { category: Category }) {
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
 
+  const router = useRouter();
+  const goBack = useCallback(() => {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.history.back();
+    } else {
+      router.navigate({ to: "/konu/$mainSlug", params: { mainSlug: category.mainSlug } });
+    }
+  }, [router, category.mainSlug]);
+
   const isPortraitMobile = useIsPortraitMobile();
 
   // İl-illeri kategorilerinde doğru bırakılan illeri harita üzerinde yeşile boyayalım
