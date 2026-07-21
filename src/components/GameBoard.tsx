@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -12,8 +12,8 @@ import {
 import { snapCenterToCursor } from "@dnd-kit/modifiers";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
-import { RotateCcw, Trophy, Smartphone, LogOut, ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
-import { Link } from "@tanstack/react-router";
+import { RotateCcw, Trophy, Smartphone, LogOut, ArrowLeft, ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
+import { Link, useRouter } from "@tanstack/react-router";
 import {
   TransformComponent,
   TransformWrapper,
