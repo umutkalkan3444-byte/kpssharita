@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -12,8 +12,8 @@ import {
 import { snapCenterToCursor } from "@dnd-kit/modifiers";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
-import { RotateCcw, Trophy, Smartphone, LogOut, ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
-import { Link } from "@tanstack/react-router";
+import { RotateCcw, Trophy, Smartphone, ArrowLeft, ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
+import { Link, useRouter } from "@tanstack/react-router";
 import {
   TransformComponent,
   TransformWrapper,
@@ -218,6 +218,15 @@ export function GameBoard({ category }: { category: Category }) {
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
 
+  const router = useRouter();
+  const goBack = useCallback(() => {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.history.back();
+    } else {
+      router.navigate({ to: "/konu/$mainSlug", params: { mainSlug: category.mainSlug } });
+    }
+  }, [router, category.mainSlug]);
+
   const isPortraitMobile = useIsPortraitMobile();
 
   // İl-illeri kategorilerinde doğru bırakılan illeri harita üzerinde yeşile boyayalım
@@ -316,31 +325,39 @@ export function GameBoard({ category }: { category: Category }) {
     return m;
   }, [targets, isClickMode]);
 
-  const onProvinceClick = (provinceName: string) => {
-    if (!isClickMode || done) return;
+  // Stable refs so onProvinceClick keeps a stable identity (memoized <path> children don't re-render).
+  const placedRef = useRef(placed);
+  const wrongProvincesRef = useRef(wrongProvinces);
+  const doneRef = useRef(done);
+  const correctCountRef = useRef(correctCount);
+  const wrongCountRef = useRef(wrongCount);
+  const wrongIdsRef = useRef(wrongIds);
+  useEffect(() => { placedRef.current = placed; }, [placed]);
+  useEffect(() => { wrongProvincesRef.current = wrongProvinces; }, [wrongProvinces]);
+  useEffect(() => { doneRef.current = done; }, [done]);
+  useEffect(() => { correctCountRef.current = correctCount; }, [correctCount]);
+  useEffect(() => { wrongCountRef.current = wrongCount; }, [wrongCount]);
+  useEffect(() => { wrongIdsRef.current = wrongIds; }, [wrongIds]);
+
+  const onProvinceClick = useCallback((provinceName: string) => {
+    if (!isClickMode || doneRef.current) return;
     const key = norm(provinceName);
-    // Zaten doğru veya yanlış işaretlendi → etkisiz
-    if (Object.values(placed).some((p) => norm(p.name) === key)) return;
-    if (wrongProvinces.some((n) => norm(n) === key)) return;
+    if (Object.values(placedRef.current).some((p) => norm(p.name) === key)) return;
+    if (wrongProvincesRef.current.some((n) => norm(n) === key)) return;
 
     const target = answerMap.get(key);
     if (target) {
       sfx.correct();
-      confetti({
-        particleCount: 14, spread: 40, startVelocity: 22,
-        origin: { y: 0.5 },
-        colors: ["#10b981", "#34d399", "#a7f3d0"], scalar: 0.7,
-      });
       setPlaced((p) => ({ ...p, [target.id]: target }));
-      const next = correctCount + 1;
+      const next = correctCountRef.current + 1;
       setCorrectCount(next);
-      if (next === total) finalize(next, wrongCount, wrongIds);
+      if (next === total) finalize(next, wrongCountRef.current, wrongIdsRef.current);
     } else {
       sfx.wrong();
       setWrongProvinces((prev) => [...prev, provinceName]);
       setWrongCount((w) => w + 1);
     }
-  };
+  }, [answerMap, isClickMode, total]);
 
   const finalize = (correct: number, wrong: number, wIds: string[]) => {
     const totalMs = Date.now() - startedAt;
@@ -391,15 +408,16 @@ export function GameBoard({ category }: { category: Category }) {
       </nav>
 
       <header className="mb-3 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 max-lg:landscape:mb-1">
-        {/* Mobil yatay: sol üstte belirgin ÇIK butonu (Sıfırla'dan uzak) */}
-        <Link
-          to="/"
-          aria-label="Oyundan çık"
+        {/* Mobil yatay: sol üstte belirgin GERİ butonu (Sıfırla'dan uzak) */}
+        <button
+          type="button"
+          onClick={goBack}
+          aria-label="Bir önceki ekrana dön"
           className="hidden h-9 items-center gap-1.5 rounded-full bg-slate-900 px-3 text-xs font-bold text-white shadow-md ring-1 ring-slate-700 transition active:scale-95 max-lg:landscape:inline-flex"
         >
-          <LogOut className="h-3.5 w-3.5" />
-          Çık
-        </Link>
+          <ArrowLeft className="h-3.5 w-3.5" />
+          Geri
+        </button>
 
         <h1 className="min-w-0 truncate text-base font-black tracking-tight text-slate-900 sm:text-2xl max-lg:landscape:text-sm">
           <span className="mr-2">{category.emoji}</span>
@@ -566,15 +584,13 @@ export function GameBoard({ category }: { category: Category }) {
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-rose-200 bg-white/95 px-3 py-2 shadow-[0_-8px_20px_-10px_rgba(0,0,0,0.15)] backdrop-blur max-lg:landscape:hidden">
         <div className="mx-auto flex max-w-6xl items-center justify-center">
           <Button
-            asChild
             variant="destructive"
             size="sm"
+            onClick={goBack}
             className="w-full max-w-md whitespace-normal text-center text-[11px] leading-tight sm:text-xs"
           >
-            <Link to="/">
-              <LogOut className="mr-1.5 h-3.5 w-3.5 shrink-0" />
-              Atanmak istemeyen bir orospu olduğum için oyunu terk etmek istiyorum 😞
-            </Link>
+            <ArrowLeft className="mr-1.5 h-3.5 w-3.5 shrink-0" />
+            Geri dön — bu konuyu bir sonraki hayatımda çalışacağım 😞
           </Button>
         </div>
       </div>
@@ -603,13 +619,14 @@ export function GameBoard({ category }: { category: Category }) {
                 Türkiye haritası oyunları için en iyi deneyim <b>yatay ekranda</b> sunulur.
                 Telefonunuzu yatay konuma getirdiğinizde oyun otomatik açılacak.
               </p>
-              <Link
-                to="/"
+              <button
+                type="button"
+                onClick={goBack}
                 className="mt-6 inline-flex items-center gap-1.5 rounded-full bg-white/15 px-4 py-2 text-xs font-semibold text-white backdrop-blur transition hover:bg-white/25"
               >
-                <LogOut className="h-3.5 w-3.5" />
-                Ana sayfaya dön
-              </Link>
+                <ArrowLeft className="h-3.5 w-3.5" />
+                Geri dön
+              </button>
             </div>
           </motion.div>
         )}

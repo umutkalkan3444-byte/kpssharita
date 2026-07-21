@@ -1,3 +1,4 @@
+import { memo, useMemo } from "react";
 import provincesData from "@/data/turkey-provinces.json";
 import { MAP_W, MAP_H } from "@/lib/geo";
 import { REGION_OF, REGION_COLORS } from "@/lib/province-regions";
@@ -35,6 +36,42 @@ function norm(s: string): string {
     .replace(/[^a-z0-9]/g, "");
 }
 
+type ProvincePathProps = {
+  name: string;
+  d: string;
+  fill: string;
+  stroke: string;
+  strokeWidth: number;
+  clickable: boolean;
+  onClick?: (name: string) => void;
+  showTitle: boolean;
+};
+
+const ProvincePath = memo(function ProvincePath({
+  name,
+  d,
+  fill,
+  stroke,
+  strokeWidth,
+  clickable,
+  onClick,
+  showTitle,
+}: ProvincePathProps) {
+  return (
+    <path
+      d={d}
+      fill={fill}
+      stroke={stroke}
+      strokeWidth={strokeWidth}
+      strokeLinejoin="round"
+      onClick={clickable && onClick ? () => onClick(name) : undefined}
+      style={clickable ? { cursor: "pointer" } : undefined}
+    >
+      {showTitle ? <title>{name}</title> : null}
+    </path>
+  );
+});
+
 export function TurkeyMap({
   className,
   children,
@@ -44,8 +81,20 @@ export function TurkeyMap({
   onProvinceClick,
   interactive,
 }: Props) {
-  const highlightSet = new Set((highlightedProvinces ?? []).map(norm));
-  const wrongSet = new Set((wrongProvinces ?? []).map(norm));
+  const highlightKey = (highlightedProvinces ?? []).join("|");
+  const wrongKey = (wrongProvinces ?? []).join("|");
+
+  const highlightSet = useMemo(
+    () => new Set((highlightedProvinces ?? []).map(norm)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [highlightKey],
+  );
+  const wrongSet = useMemo(
+    () => new Set((wrongProvinces ?? []).map(norm)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [wrongKey],
+  );
+
   return (
     <svg
       viewBox={`0 0 ${MAP_W} ${MAP_H}`}
@@ -62,20 +111,9 @@ export function TurkeyMap({
           <stop offset="0%" stopColor="#f2fbff" />
           <stop offset="100%" stopColor="#e2f4ff" />
         </linearGradient>
-        <linearGradient id="tr-highlight" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#6ee7b7" />
-          <stop offset="100%" stopColor="#10b981" />
-        </linearGradient>
-        <linearGradient id="tr-wrong" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#fca5a5" />
-          <stop offset="100%" stopColor="#ef4444" />
-        </linearGradient>
-        <filter id="tr-shadow" x="-5%" y="-5%" width="110%" height="120%">
-          <feDropShadow dx="0" dy="4" stdDeviation="6" floodColor="#0ea5b7" floodOpacity="0.18" />
-        </filter>
       </defs>
       <rect width={MAP_W} height={MAP_H} fill="url(#tr-sea)" />
-      <g filter="url(#tr-shadow)">
+      <g>
         {provinces.map((p) => {
           const key = norm(p.name);
           const isHighlighted = highlightSet.has(key);
@@ -96,31 +134,29 @@ export function TurkeyMap({
           }
 
           if (isHighlighted) {
-            fill = "url(#tr-highlight)";
+            fill = "#10b981";
             stroke = "rgba(6,95,70,0.7)";
             strokeWidth = 0.8;
           } else if (isWrong) {
-            fill = "url(#tr-wrong)";
+            fill = "#ef4444";
             stroke = "rgba(153,27,27,0.7)";
             strokeWidth = 0.8;
           }
 
-          const clickable = interactive && !isLocked && !!onProvinceClick;
+          const clickable = !!interactive && !isLocked && !!onProvinceClick;
 
           return (
-            <path
+            <ProvincePath
               key={p.name}
+              name={p.name}
               d={p.path}
               fill={fill}
               stroke={stroke}
               strokeWidth={strokeWidth}
-              strokeLinejoin="round"
-              onClick={clickable ? () => onProvinceClick!(p.name) : undefined}
-              style={clickable ? { cursor: "pointer" } : undefined}
-              className={clickable ? "transition-opacity hover:opacity-75" : undefined}
-            >
-              {interactive ? <title>{p.name}</title> : null}
-            </path>
+              clickable={clickable}
+              onClick={onProvinceClick}
+              showTitle={!!interactive}
+            />
           );
         })}
       </g>
