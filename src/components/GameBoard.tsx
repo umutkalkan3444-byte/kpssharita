@@ -316,31 +316,39 @@ export function GameBoard({ category }: { category: Category }) {
     return m;
   }, [targets, isClickMode]);
 
-  const onProvinceClick = (provinceName: string) => {
-    if (!isClickMode || done) return;
+  // Stable refs so onProvinceClick keeps a stable identity (memoized <path> children don't re-render).
+  const placedRef = useRef(placed);
+  const wrongProvincesRef = useRef(wrongProvinces);
+  const doneRef = useRef(done);
+  const correctCountRef = useRef(correctCount);
+  const wrongCountRef = useRef(wrongCount);
+  const wrongIdsRef = useRef(wrongIds);
+  useEffect(() => { placedRef.current = placed; }, [placed]);
+  useEffect(() => { wrongProvincesRef.current = wrongProvinces; }, [wrongProvinces]);
+  useEffect(() => { doneRef.current = done; }, [done]);
+  useEffect(() => { correctCountRef.current = correctCount; }, [correctCount]);
+  useEffect(() => { wrongCountRef.current = wrongCount; }, [wrongCount]);
+  useEffect(() => { wrongIdsRef.current = wrongIds; }, [wrongIds]);
+
+  const onProvinceClick = useCallback((provinceName: string) => {
+    if (!isClickMode || doneRef.current) return;
     const key = norm(provinceName);
-    // Zaten doğru veya yanlış işaretlendi → etkisiz
-    if (Object.values(placed).some((p) => norm(p.name) === key)) return;
-    if (wrongProvinces.some((n) => norm(n) === key)) return;
+    if (Object.values(placedRef.current).some((p) => norm(p.name) === key)) return;
+    if (wrongProvincesRef.current.some((n) => norm(n) === key)) return;
 
     const target = answerMap.get(key);
     if (target) {
       sfx.correct();
-      confetti({
-        particleCount: 14, spread: 40, startVelocity: 22,
-        origin: { y: 0.5 },
-        colors: ["#10b981", "#34d399", "#a7f3d0"], scalar: 0.7,
-      });
       setPlaced((p) => ({ ...p, [target.id]: target }));
-      const next = correctCount + 1;
+      const next = correctCountRef.current + 1;
       setCorrectCount(next);
-      if (next === total) finalize(next, wrongCount, wrongIds);
+      if (next === total) finalize(next, wrongCountRef.current, wrongIdsRef.current);
     } else {
       sfx.wrong();
       setWrongProvinces((prev) => [...prev, provinceName]);
       setWrongCount((w) => w + 1);
     }
-  };
+  }, [answerMap, isClickMode, total]);
 
   const finalize = (correct: number, wrong: number, wIds: string[]) => {
     const totalMs = Date.now() - startedAt;
