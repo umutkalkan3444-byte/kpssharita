@@ -619,13 +619,14 @@ export function GameBoard({ category }: { category: Category }) {
                 Türkiye haritası oyunları için en iyi deneyim <b>yatay ekranda</b> sunulur.
                 Telefonunuzu yatay konuma getirdiğinizde oyun otomatik açılacak.
               </p>
-              <Link
-                to="/"
+              <button
+                type="button"
+                onClick={goBack}
                 className="mt-6 inline-flex items-center gap-1.5 rounded-full bg-white/15 px-4 py-2 text-xs font-semibold text-white backdrop-blur transition hover:bg-white/25"
               >
-                <LogOut className="h-3.5 w-3.5" />
-                Ana sayfaya dön
-              </Link>
+                <ArrowLeft className="h-3.5 w-3.5" />
+                Geri dön
+              </button>
             </div>
           </motion.div>
         )}
