@@ -584,15 +584,13 @@ export function GameBoard({ category }: { category: Category }) {
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-rose-200 bg-white/95 px-3 py-2 shadow-[0_-8px_20px_-10px_rgba(0,0,0,0.15)] backdrop-blur max-lg:landscape:hidden">
         <div className="mx-auto flex max-w-6xl items-center justify-center">
           <Button
-            asChild
             variant="destructive"
             size="sm"
+            onClick={goBack}
             className="w-full max-w-md whitespace-normal text-center text-[11px] leading-tight sm:text-xs"
           >
-            <Link to="/">
-              <LogOut className="mr-1.5 h-3.5 w-3.5 shrink-0" />
-              Atanmak istemeyen bir orospu olduğum için oyunu terk etmek istiyorum 😞
-            </Link>
+            <ArrowLeft className="mr-1.5 h-3.5 w-3.5 shrink-0" />
+            Geri dön — bu konuyu bir sonraki hayatımda çalışacağım 😞
           </Button>
         </div>
       </div>
