@@ -57,18 +57,37 @@ const ProvincePath = memo(function ProvincePath({
   onClick,
   showTitle,
 }: ProvincePathProps) {
+  const handler = clickable && onClick ? (e: React.PointerEvent<SVGPathElement>) => {
+    // Only primary button / touch / pen — prevent duplicate synthetic click
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    e.preventDefault();
+    onClick(name);
+  } : undefined;
   return (
-    <path
-      d={d}
-      fill={fill}
-      stroke={stroke}
-      strokeWidth={strokeWidth}
-      strokeLinejoin="round"
-      onClick={clickable && onClick ? () => onClick(name) : undefined}
-      style={clickable ? { cursor: "pointer" } : undefined}
-    >
-      {showTitle ? <title>{name}</title> : null}
-    </path>
+    <>
+      <path
+        d={d}
+        fill={fill}
+        stroke={stroke}
+        strokeWidth={strokeWidth}
+        strokeLinejoin="round"
+        pointerEvents="none"
+      >
+        {showTitle ? <title>{name}</title> : null}
+      </path>
+      {clickable ? (
+        <path
+          d={d}
+          fill="transparent"
+          stroke="transparent"
+          strokeWidth={12}
+          strokeLinejoin="round"
+          onPointerUp={handler}
+          style={{ cursor: "pointer", touchAction: "manipulation" }}
+          pointerEvents="all"
+        />
+      ) : null}
+    </>
   );
 });
 
