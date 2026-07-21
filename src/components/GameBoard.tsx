@@ -408,15 +408,16 @@ export function GameBoard({ category }: { category: Category }) {
       </nav>
 
       <header className="mb-3 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 max-lg:landscape:mb-1">
-        {/* Mobil yatay: sol üstte belirgin ÇIK butonu (Sıfırla'dan uzak) */}
-        <Link
-          to="/"
-          aria-label="Oyundan çık"
+        {/* Mobil yatay: sol üstte belirgin GERİ butonu (Sıfırla'dan uzak) */}
+        <button
+          type="button"
+          onClick={goBack}
+          aria-label="Bir önceki ekrana dön"
           className="hidden h-9 items-center gap-1.5 rounded-full bg-slate-900 px-3 text-xs font-bold text-white shadow-md ring-1 ring-slate-700 transition active:scale-95 max-lg:landscape:inline-flex"
         >
-          <LogOut className="h-3.5 w-3.5" />
-          Çık
-        </Link>
+          <ArrowLeft className="h-3.5 w-3.5" />
+          Geri
+        </button>
 
         <h1 className="min-w-0 truncate text-base font-black tracking-tight text-slate-900 sm:text-2xl max-lg:landscape:text-sm">
           <span className="mr-2">{category.emoji}</span>
