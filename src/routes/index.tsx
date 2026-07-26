@@ -1,12 +1,22 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
-import { MapPin, Sparkles, Repeat2, BarChart3, Trophy, Flame, ArrowRight, CalendarClock } from "lucide-react";
+import {
+  MapPin,
+  Sparkles,
+  Repeat2,
+  BarChart3,
+  Trophy,
+  Flame,
+  ArrowRight,
+  CalendarClock,
+} from "lucide-react";
 
 import { MAIN_CATEGORIES } from "@/lib/game-data";
 import { TurkeyMap } from "@/components/TurkeyMap";
 import { loadState, xpProgress, type GameState } from "@/lib/storage";
 import { kpssCountdown } from "@/lib/kpss-date";
+import { ArenaToggleCard } from "@/components/ArenaMode";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -107,9 +117,7 @@ function Home() {
             <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow">
               <CalendarClock className="h-4 w-4" />
             </div>
-            <div className="min-w-0 flex-1 text-xs font-semibold text-slate-600">
-              Sınava kalan
-            </div>
+            <div className="min-w-0 flex-1 text-xs font-semibold text-slate-600">Sınava kalan</div>
             <div className="flex items-baseline gap-1.5">
               <span className="text-2xl font-black leading-none text-orange-600 sm:text-3xl">
                 {countdown.totalDays}
@@ -117,8 +125,6 @@ function Home() {
               <span className="text-xs font-bold uppercase text-slate-500">gün</span>
             </div>
           </motion.div>
-
-
 
           {state && (
             <motion.div
@@ -179,9 +185,7 @@ function Home() {
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {MAIN_CATEGORIES.map((m, i) => {
-            const played = state
-              ? m.subs.filter((s) => state.categories[s.slug]).length
-              : 0;
+            const played = state ? m.subs.filter((s) => state.categories[s.slug]).length : 0;
             const perfect = state
               ? m.subs.filter((s) => state.categories[s.slug]?.perfect).length
               : 0;
@@ -197,7 +201,7 @@ function Home() {
                 <Link
                   to="/konu/$mainSlug"
                   params={{ mainSlug: m.slug }}
-                  className="group relative flex h-full flex-col overflow-hidden rounded-3xl border border-cyan-100 bg-white/85 p-6 shadow-lg shadow-cyan-500/5 backdrop-blur transition-all hover:border-cyan-300 hover:shadow-2xl hover:shadow-cyan-500/25"
+                  className="group relative flex h-full flex-col overflow-hidden rounded-3xl border border-cyan-100 bg-white/85 p-6 shadow-lg shadow-cyan-500/5 transition-all hover:border-cyan-300 hover:shadow-2xl hover:shadow-cyan-500/25"
                 >
                   <div
                     className={`absolute -right-8 -top-8 h-32 w-32 rounded-full bg-gradient-to-br ${m.gradient} opacity-20 blur-2xl transition-opacity group-hover:opacity-40`}
@@ -207,9 +211,7 @@ function Home() {
                   >
                     {m.emoji}
                   </div>
-                  <div className="relative text-xl font-black text-slate-900">
-                    {m.title}
-                  </div>
+                  <div className="relative text-xl font-black text-slate-900">{m.title}</div>
                   <p className="relative mt-1 line-clamp-2 text-sm text-slate-600">
                     {m.description}
                   </p>
@@ -236,6 +238,10 @@ function Home() {
               </motion.div>
             );
           })}
+        </div>
+
+        <div className="mt-8">
+          <ArenaToggleCard />
         </div>
       </section>
 

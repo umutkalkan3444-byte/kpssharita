@@ -15,19 +15,6 @@ export function project(lat: number, lon: number): { x: number; y: number } {
 
 export type Bounds = { x: number; y: number; w: number; h: number };
 
-// Türkiye Coğrafi Bölgeleri için elle ayarlanmış çerçeveler (harita
-// koordinatlarında, 1000x420). Her bölge oyununda kamera bu çerçeveye
-// odaklanır ve zoom-out kilitlenir.
-export const REGION_BOUNDS: Record<string, Bounds> = {
-  Marmara: { x: 60, y: 5, w: 250, h: 110 },
-  Ege: { x: 70, y: 90, w: 220, h: 170 },
-  Akdeniz: { x: 230, y: 210, w: 320, h: 130 },
-  "İç Anadolu": { x: 260, y: 90, w: 340, h: 200 },
-  Karadeniz: { x: 220, y: 5, w: 620, h: 175 },
-  "Doğu Anadolu": { x: 540, y: 100, w: 370, h: 195 },
-  "Güneydoğu Anadolu": { x: 480, y: 220, w: 320, h: 130 },
-};
-
 // Slug → bölge adı eşlemesi (auto-focus için).
 export const REGION_ILLERI_SLUGS: Record<string, string> = {
   "marmara-illeri": "Marmara",
@@ -39,8 +26,29 @@ export const REGION_ILLERI_SLUGS: Record<string, string> = {
   "guneydogu-anadolu-illeri": "Güneydoğu Anadolu",
 };
 
-export function focusBoundsForSlug(slug: string): Bounds | null {
+export function focusBoundsForSlug(
+  slug: string,
+  items: readonly { lat: number; lon: number }[],
+): Bounds | null {
   const region = REGION_ILLERI_SLUGS[slug];
-  if (!region) return null;
-  return REGION_BOUNDS[region] ?? null;
+  if (!region || items.length === 0) return null;
+
+  const points = items.map((item) => project(item.lat, item.lon));
+  const minX = Math.min(...points.map((point) => point.x));
+  const maxX = Math.max(...points.map((point) => point.x));
+  const minY = Math.min(...points.map((point) => point.y));
+  const maxY = Math.max(...points.map((point) => point.y));
+  const paddingX = 48;
+  const paddingY = 34;
+  const x = Math.max(0, minX - paddingX);
+  const y = Math.max(0, minY - paddingY);
+  const right = Math.min(MAP_W, maxX + paddingX);
+  const bottom = Math.min(MAP_H, maxY + paddingY);
+
+  return {
+    x,
+    y,
+    w: Math.max(1, right - x),
+    h: Math.max(1, bottom - y),
+  };
 }
