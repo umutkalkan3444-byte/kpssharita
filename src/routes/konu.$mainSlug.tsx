@@ -9,9 +9,7 @@ import { loadState, type GameState } from "@/lib/storage";
 export const Route = createFileRoute("/konu/$mainSlug")({
   head: ({ params }) => {
     const m = MAIN_MAP[params.mainSlug];
-    const title = m
-      ? `${m.title} — Harita Ustası`
-      : "Konu — Harita Ustası";
+    const title = m ? `${m.title} — Harita Ustası` : "Konu — Harita Ustası";
     const desc = m
       ? `${m.title} başlığı altındaki alt konuları Türkiye haritası üzerinde oyunla öğren.`
       : "Türkiye coğrafyası konu kategorisi.";
@@ -32,7 +30,7 @@ export const Route = createFileRoute("/konu/$mainSlug")({
 });
 
 function MainCategoryPage() {
-  const { mainSlug } = Route.useLoaderData();
+  const { mainSlug } = Route.useParams();
   const main = MAIN_MAP[mainSlug];
   const subs = categoriesForMain(mainSlug);
   const [state, setState] = useState<GameState | null>(null);
@@ -43,7 +41,10 @@ function MainCategoryPage() {
       <div className="mx-auto max-w-6xl px-4 pt-6 sm:px-6">
         {/* Breadcrumb */}
         <nav className="flex flex-wrap items-center gap-1.5 text-xs font-semibold text-slate-500">
-          <Link to="/" className="inline-flex items-center gap-1 rounded-full px-2 py-1 hover:bg-white hover:text-cyan-700">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-1 rounded-full px-2 py-1 hover:bg-white hover:text-cyan-700"
+          >
             <Home className="h-3.5 w-3.5" /> Ana Sayfa
           </Link>
           <ChevronRight className="h-3 w-3 opacity-50" />
@@ -52,7 +53,10 @@ function MainCategoryPage() {
           </span>
         </nav>
 
-        <Link to="/" className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-cyan-700 hover:underline sm:hidden">
+        <Link
+          to="/"
+          className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-cyan-700 hover:underline sm:hidden"
+        >
           <ChevronLeft className="h-3.5 w-3.5" /> Geri
         </Link>
 
@@ -62,7 +66,9 @@ function MainCategoryPage() {
           transition={{ duration: 0.4 }}
           className="mt-4 flex items-center gap-4"
         >
-          <div className={`grid h-16 w-16 place-items-center rounded-3xl bg-gradient-to-br ${main.gradient} text-3xl shadow-xl shadow-cyan-500/20`}>
+          <div
+            className={`grid h-16 w-16 place-items-center rounded-3xl bg-gradient-to-br ${main.gradient} text-3xl shadow-xl shadow-cyan-500/20`}
+          >
             {main.emoji}
           </div>
           <div>
@@ -71,9 +77,7 @@ function MainCategoryPage() {
           </div>
         </motion.div>
 
-        <div className="mt-2 text-xs font-semibold text-slate-500">
-          {subs.length} alt konu
-        </div>
+        <div className="mt-2 text-xs font-semibold text-slate-500">{subs.length} alt konu</div>
 
         <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {subs.map((c, i) => {
@@ -90,7 +94,9 @@ function MainCategoryPage() {
                   params={{ slug: c.slug }}
                   className="group relative flex h-full items-start gap-3 overflow-hidden rounded-3xl border border-cyan-100 bg-white/85 p-4 shadow-sm shadow-cyan-500/5 backdrop-blur transition-all hover:-translate-y-0.5 hover:border-cyan-300 hover:shadow-xl hover:shadow-cyan-500/20"
                 >
-                  <div className={`grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-gradient-to-br ${main.gradient} text-xl shadow-md shadow-cyan-500/20`}>
+                  <div
+                    className={`grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-gradient-to-br ${main.gradient} text-xl shadow-md shadow-cyan-500/20`}
+                  >
                     {c.emoji}
                   </div>
                   <div className="min-w-0 flex-1">
@@ -101,20 +107,26 @@ function MainCategoryPage() {
                       </span>
                     </div>
                     {c.description && (
-                      <div className="mt-0.5 line-clamp-2 text-[11px] text-slate-500">{c.description}</div>
+                      <div className="mt-0.5 line-clamp-2 text-[11px] text-slate-500">
+                        {c.description}
+                      </div>
                     )}
                     <div className="mt-2 flex items-center justify-between text-[11px] font-semibold">
                       {stat ? (
                         <>
                           <span className="text-cyan-700">En iyi %{stat.best}</span>
                           {stat.perfect && (
-                            <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-emerald-700">%100 ✓</span>
+                            <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-emerald-700">
+                              %100 ✓
+                            </span>
                           )}
                         </>
                       ) : (
                         <span className="text-slate-400">Henüz oynanmadı</span>
                       )}
-                      <span className="text-cyan-600 opacity-0 transition-opacity group-hover:opacity-100">Başla →</span>
+                      <span className="text-cyan-600 opacity-0 transition-opacity group-hover:opacity-100">
+                        Başla →
+                      </span>
                     </div>
                   </div>
                 </Link>

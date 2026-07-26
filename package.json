@@ -9,6 +9,8 @@
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "validate:content": "node scripts/validate-content.mjs",
     "format": "prettier --write ."
   },
   "dependencies": {

@@ -1,12 +1,28 @@
-import { memo, useMemo } from "react";
+import { useDroppable, type UniqueIdentifier } from "@dnd-kit/core";
+import { memo, useId, useMemo, type RefCallback } from "react";
 import provincesData from "@/data/turkey-provinces.json";
+import { PROVINCE_LABEL_LAYOUT } from "@/data/province-labels";
 import { MAP_W, MAP_H } from "@/lib/geo";
 import { REGION_OF, REGION_COLORS } from "@/lib/province-regions";
+import { normalizePlaceName } from "@/lib/place-name";
+import { PROVINCE_DROP_KIND } from "@/lib/province-drop-target";
 
 type ProvinceDef = { name: string; path: string };
 const provinces = (provincesData as { provinces: ProvinceDef[] }).provinces;
 
 export type MapVariant = "provinces" | "regions" | "muted";
+
+export type ProvinceDropTarget = {
+  provinceName: string;
+  dropId: UniqueIdentifier;
+  disabled?: boolean;
+};
+
+export type PlacedProvinceLabel = {
+  provinceName: string;
+  /** Defaults to provinceName when omitted. */
+  label?: string;
+};
 
 type Props = {
   className?: string;
@@ -20,21 +36,14 @@ type Props = {
   onProvinceClick?: (name: string) => void;
   /** Etkileşim modu — iller tıklanabilir. */
   interactive?: boolean;
+  /**
+   * Registers matching real province SVG paths as dnd-kit droppables.
+   * Names are matched with normalizePlaceName, including Afyonkarahisar/Afyon.
+   */
+  provinceDropTargets?: readonly ProvinceDropTarget[];
+  /** Labels rendered inside, and clipped by, their province's real SVG path. */
+  placedProvinceLabels?: readonly PlacedProvinceLabel[];
 };
-
-function norm(s: string): string {
-  return s
-    .toLocaleLowerCase("tr")
-    .replace(/ı/g, "i")
-    .replace(/İ/g, "i")
-    .replace(/ş/g, "s")
-    .replace(/ç/g, "c")
-    .replace(/ğ/g, "g")
-    .replace(/ü/g, "u")
-    .replace(/ö/g, "o")
-    .replace(/â/g, "a")
-    .replace(/[^a-z0-9]/g, "");
-}
 
 type ProvincePathProps = {
   name: string;
@@ -47,7 +56,13 @@ type ProvincePathProps = {
   showTitle: boolean;
 };
 
-const ProvincePath = memo(function ProvincePath({
+type ProvincePathMarkupProps = ProvincePathProps & {
+  nodeRef?: RefCallback<SVGPathElement>;
+  dropId?: string;
+  isDropOver?: boolean;
+};
+
+function ProvincePathMarkup({
   name,
   d,
   fill,
@@ -56,22 +71,33 @@ const ProvincePath = memo(function ProvincePath({
   clickable,
   onClick,
   showTitle,
-}: ProvincePathProps) {
-  const handler = clickable && onClick ? (e: React.PointerEvent<SVGPathElement>) => {
-    // Only primary button / touch / pen — prevent duplicate synthetic click
-    if (e.pointerType === "mouse" && e.button !== 0) return;
-    e.preventDefault();
-    onClick(name);
-  } : undefined;
+  nodeRef,
+  dropId,
+  isDropOver,
+}: ProvincePathMarkupProps) {
+  const handler =
+    clickable && onClick
+      ? (e: React.PointerEvent<SVGPathElement>) => {
+          // Only primary button / touch / pen — prevent duplicate synthetic click
+          if (e.pointerType === "mouse" && e.button !== 0) return;
+          e.preventDefault();
+          onClick(name);
+        }
+      : undefined;
+
   return (
     <>
       <path
+        ref={nodeRef}
         d={d}
         fill={fill}
-        stroke={stroke}
-        strokeWidth={strokeWidth}
+        stroke={isDropOver ? "rgba(8,145,178,0.95)" : stroke}
+        strokeWidth={isDropOver ? Math.max(strokeWidth, 2) : strokeWidth}
         strokeLinejoin="round"
-        pointerEvents="none"
+        pointerEvents={dropId ? "visibleFill" : "none"}
+        data-drop-kind={dropId ? PROVINCE_DROP_KIND : undefined}
+        data-drop-id={dropId}
+        data-province-name={dropId ? name : undefined}
       >
         {showTitle ? <title>{name}</title> : null}
       </path>
@@ -79,17 +105,62 @@ const ProvincePath = memo(function ProvincePath({
         <path
           d={d}
           fill="transparent"
-          stroke="transparent"
-          strokeWidth={12}
+          stroke="none"
+          strokeWidth={0}
           strokeLinejoin="round"
           onPointerUp={handler}
           style={{ cursor: "pointer", touchAction: "manipulation" }}
-          pointerEvents="all"
+          pointerEvents="visibleFill"
         />
       ) : null}
     </>
   );
+}
+
+const ProvincePath = memo(function ProvincePath(props: ProvincePathProps) {
+  return <ProvincePathMarkup {...props} />;
 });
+
+type DroppableProvincePathProps = ProvincePathProps & {
+  dropId: UniqueIdentifier;
+  dropDisabled: boolean;
+};
+
+const DroppableProvincePath = memo(function DroppableProvincePath({
+  dropId,
+  dropDisabled,
+  ...pathProps
+}: DroppableProvincePathProps) {
+  const data = useMemo(
+    () => ({ kind: "province" as const, provinceName: pathProps.name }),
+    [pathProps.name],
+  );
+  const { isOver, setNodeRef } = useDroppable({
+    id: dropId,
+    disabled: dropDisabled,
+    data,
+    // Exact collision uses the real SVG fill under the pointer. The 81
+    // bundled paths are static, so rectangular resize measurements are unused.
+    resizeObserverConfig: { disabled: true },
+  });
+  const svgRef = setNodeRef as unknown as RefCallback<SVGPathElement>;
+
+  return (
+    <ProvincePathMarkup
+      {...pathProps}
+      nodeRef={svgRef}
+      dropId={dropDisabled ? undefined : String(dropId)}
+      isDropOver={!dropDisabled && isOver}
+    />
+  );
+});
+
+type RenderedProvinceLabel = {
+  key: string;
+  label: string;
+  path: string;
+  layout: (typeof PROVINCE_LABEL_LAYOUT)[string];
+};
 
 export function TurkeyMap({
   className,
@@ -99,20 +170,50 @@ export function TurkeyMap({
   wrongProvinces,
   onProvinceClick,
   interactive,
+  provinceDropTargets,
+  placedProvinceLabels,
 }: Props) {
+  const instanceId = `turkey-map-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
+  const fillGradientId = `${instanceId}-fill`;
+  const seaGradientId = `${instanceId}-sea`;
   const highlightKey = (highlightedProvinces ?? []).join("|");
   const wrongKey = (wrongProvinces ?? []).join("|");
 
   const highlightSet = useMemo(
-    () => new Set((highlightedProvinces ?? []).map(norm)),
+    () => new Set((highlightedProvinces ?? []).map(normalizePlaceName)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [highlightKey],
   );
   const wrongSet = useMemo(
-    () => new Set((wrongProvinces ?? []).map(norm)),
+    () => new Set((wrongProvinces ?? []).map(normalizePlaceName)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [wrongKey],
   );
+  const dropTargetMap = useMemo(
+    () =>
+      new Map(
+        (provinceDropTargets ?? []).map((target) => [
+          normalizePlaceName(target.provinceName),
+          target,
+        ]),
+      ),
+    [provinceDropTargets],
+  );
+  const renderedLabels = useMemo<RenderedProvinceLabel[]>(() => {
+    const labelMap = new Map(
+      (placedProvinceLabels ?? []).map((entry) => [
+        normalizePlaceName(entry.provinceName),
+        entry.label ?? entry.provinceName,
+      ]),
+    );
+
+    return provinces.flatMap((province) => {
+      const key = normalizePlaceName(province.name);
+      const label = labelMap.get(key);
+      const layout = PROVINCE_LABEL_LAYOUT[province.name];
+      return label && layout ? [{ key, label, path: province.path, layout }] : [];
+    });
+  }, [placedProvinceLabels]);
 
   return (
     <svg
@@ -121,24 +222,34 @@ export function TurkeyMap({
       preserveAspectRatio="xMidYMid meet"
     >
       <defs>
-        <linearGradient id="tr-fill" x1="0" y1="0" x2="1" y2="1">
+        <linearGradient id={fillGradientId} x1="0" y1="0" x2="1" y2="1">
           <stop offset="0%" stopColor="#e6f7fb" />
           <stop offset="60%" stopColor="#c9eef1" />
           <stop offset="100%" stopColor="#a6e5df" />
         </linearGradient>
-        <linearGradient id="tr-sea" x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id={seaGradientId} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#f2fbff" />
           <stop offset="100%" stopColor="#e2f4ff" />
         </linearGradient>
+        {renderedLabels.map((entry) => (
+          <clipPath
+            key={entry.key}
+            id={`${instanceId}-clip-${entry.key}`}
+            clipPathUnits="userSpaceOnUse"
+          >
+            <path d={entry.path} />
+          </clipPath>
+        ))}
       </defs>
-      <rect width={MAP_W} height={MAP_H} fill="url(#tr-sea)" />
+      <rect width={MAP_W} height={MAP_H} fill={`url(#${seaGradientId})`} />
       <g>
         {provinces.map((p) => {
-          const key = norm(p.name);
+          const key = normalizePlaceName(p.name);
           const isHighlighted = highlightSet.has(key);
           const isWrong = wrongSet.has(key);
           const isLocked = isHighlighted || isWrong;
-          let fill: string = "url(#tr-fill)";
+          const dropTarget = dropTargetMap.get(key);
+          let fill: string = `url(#${fillGradientId})`;
           let stroke = "rgba(15,118,155,0.45)";
           let strokeWidth = 0.6;
 
@@ -164,18 +275,54 @@ export function TurkeyMap({
 
           const clickable = !!interactive && !isLocked && !!onProvinceClick;
 
-          return (
-            <ProvincePath
+          const pathProps: ProvincePathProps = {
+            name: p.name,
+            d: p.path,
+            fill,
+            stroke,
+            strokeWidth,
+            clickable,
+            onClick: onProvinceClick,
+            showTitle: !!interactive || !!dropTarget,
+          };
+
+          return dropTarget ? (
+            <DroppableProvincePath
               key={p.name}
-              name={p.name}
-              d={p.path}
-              fill={fill}
-              stroke={stroke}
-              strokeWidth={strokeWidth}
-              clickable={clickable}
-              onClick={onProvinceClick}
-              showTitle={!!interactive}
+              {...pathProps}
+              dropId={dropTarget.dropId}
+              dropDisabled={!!dropTarget.disabled}
             />
+          ) : (
+            <ProvincePath key={p.name} {...pathProps} />
+          );
+        })}
+      </g>
+      <g pointerEvents="none" aria-hidden="true">
+        {renderedLabels.map((entry) => {
+          const estimatedWidth = entry.label.length * entry.layout.fontSize * 0.58;
+          const needsCompression = estimatedWidth > entry.layout.maxWidth;
+
+          return (
+            <text
+              key={entry.key}
+              x={entry.layout.x}
+              y={entry.layout.y}
+              textAnchor="middle"
+              dominantBaseline="central"
+              clipPath={`url(#${instanceId}-clip-${entry.key})`}
+              fill="#064e3b"
+              stroke="rgba(255,255,255,0.9)"
+              strokeWidth={0.9}
+              paintOrder="stroke"
+              fontSize={entry.layout.fontSize}
+              fontWeight={800}
+              letterSpacing="-0.15"
+              textLength={needsCompression ? entry.layout.maxWidth : undefined}
+              lengthAdjust={needsCompression ? "spacingAndGlyphs" : undefined}
+            >
+              {entry.label}
+            </text>
           );
         })}
       </g>

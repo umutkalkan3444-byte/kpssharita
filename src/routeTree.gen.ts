@@ -9,21 +9,16 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as TekrarRouteImport } from './routes/tekrar'
-import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
-import { Route as IstatistikRouteImport } from './routes/istatistik'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as KonuMainSlugRouteImport } from './routes/konu.$mainSlug'
+import { Route as IstatistikRouteImport } from './routes/istatistik'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as TekrarRouteImport } from './routes/tekrar'
 import { Route as KategoriSlugRouteImport } from './routes/kategori.$slug'
+import { Route as KonuMainSlugRouteImport } from './routes/konu.$mainSlug'
 
-const TekrarRoute = TekrarRouteImport.update({
-  id: '/tekrar',
-  path: '/tekrar',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
-  id: '/sitemap.xml',
-  path: '/sitemap.xml',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IstatistikRoute = IstatistikRouteImport.update({
@@ -31,19 +26,24 @@ const IstatistikRoute = IstatistikRouteImport.update({
   path: '/istatistik',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
-const KonuMainSlugRoute = KonuMainSlugRouteImport.update({
-  id: '/konu/$mainSlug',
-  path: '/konu/$mainSlug',
+const TekrarRoute = TekrarRouteImport.update({
+  id: '/tekrar',
+  path: '/tekrar',
   getParentRoute: () => rootRouteImport,
 } as any)
 const KategoriSlugRoute = KategoriSlugRouteImport.update({
   id: '/kategori/$slug',
   path: '/kategori/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const KonuMainSlugRoute = KonuMainSlugRouteImport.update({
+  id: '/konu/$mainSlug',
+  path: '/konu/$mainSlug',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -110,18 +110,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/tekrar': {
-      id: '/tekrar'
-      path: '/tekrar'
-      fullPath: '/tekrar'
-      preLoaderRoute: typeof TekrarRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/sitemap.xml': {
-      id: '/sitemap.xml'
-      path: '/sitemap.xml'
-      fullPath: '/sitemap.xml'
-      preLoaderRoute: typeof SitemapDotxmlRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/istatistik': {
@@ -131,18 +124,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IstatistikRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/konu/$mainSlug': {
-      id: '/konu/$mainSlug'
-      path: '/konu/$mainSlug'
-      fullPath: '/konu/$mainSlug'
-      preLoaderRoute: typeof KonuMainSlugRouteImport
+    '/tekrar': {
+      id: '/tekrar'
+      path: '/tekrar'
+      fullPath: '/tekrar'
+      preLoaderRoute: typeof TekrarRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/kategori/$slug': {
@@ -150,6 +143,13 @@ declare module '@tanstack/react-router' {
       path: '/kategori/$slug'
       fullPath: '/kategori/$slug'
       preLoaderRoute: typeof KategoriSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/konu/$mainSlug': {
+      id: '/konu/$mainSlug'
+      path: '/konu/$mainSlug'
+      fullPath: '/konu/$mainSlug'
+      preLoaderRoute: typeof KonuMainSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -166,3 +166,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

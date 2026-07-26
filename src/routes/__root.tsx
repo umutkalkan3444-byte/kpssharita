@@ -8,9 +8,11 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
+import { MotionConfig } from "framer-motion";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { ArenaAmbient } from "@/components/ArenaMode";
 
 function NotFoundComponent() {
   return (
@@ -78,16 +80,34 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Harita Ustası — Türkiye Coğrafya Haritada Öğren" },
-      { name: "description", content: "Türkiye coğrafyasını harita üzerinde sürükle-bırak oyunlarıyla öğren. Bölgeler, iller, dağlar, göller, akarsular ve daha fazlası." },
+      {
+        name: "description",
+        content:
+          "Türkiye coğrafyasını harita üzerinde sürükle-bırak oyunlarıyla öğren. Bölgeler, iller, dağlar, göller, akarsular ve daha fazlası.",
+      },
       { name: "author", content: "Harita Ustası" },
       { property: "og:title", content: "Harita Ustası — Türkiye Coğrafya Haritada Öğren" },
-      { property: "og:description", content: "Türkiye coğrafyasını harita üzerinde sürükle-bırak oyunlarıyla öğren." },
+      {
+        property: "og:description",
+        content: "Türkiye coğrafyasını harita üzerinde sürükle-bırak oyunlarıyla öğren.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: "Harita Ustası — Türkiye Coğrafya Haritada Öğren" },
-      { name: "twitter:description", content: "Türkiye coğrafyasını harita üzerinde sürükle-bırak oyunlarıyla öğren." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/55fcf84f-a552-4fd4-b2fd-1c38074a5e4b/id-preview-4149840d--e4c3c4ca-6215-4785-8d7a-b6ea7a323b0a.lovable.app-1784109408531.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/55fcf84f-a552-4fd4-b2fd-1c38074a5e4b/id-preview-4149840d--e4c3c4ca-6215-4785-8d7a-b6ea7a323b0a.lovable.app-1784109408531.png" },
+      {
+        name: "twitter:description",
+        content: "Türkiye coğrafyasını harita üzerinde sürükle-bırak oyunlarıyla öğren.",
+      },
+      {
+        property: "og:image",
+        content:
+          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/55fcf84f-a552-4fd4-b2fd-1c38074a5e4b/id-preview-4149840d--e4c3c4ca-6215-4785-8d7a-b6ea7a323b0a.lovable.app-1784109408531.png",
+      },
+      {
+        name: "twitter:image",
+        content:
+          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/55fcf84f-a552-4fd4-b2fd-1c38074a5e4b/id-preview-4149840d--e4c3c4ca-6215-4785-8d7a-b6ea7a323b0a.lovable.app-1784109408531.png",
+      },
     ],
     links: [
       {
@@ -104,7 +124,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="tr">
       <head>
         <HeadContent />
       </head>
@@ -121,8 +141,11 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      <MotionConfig reducedMotion="user">
+        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+        <Outlet />
+        <ArenaAmbient />
+      </MotionConfig>
     </QueryClientProvider>
   );
 }
