@@ -1,3 +1,4 @@
+
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   DndContext,
@@ -670,7 +671,12 @@ export function GameBoard({ category }: { category: Category }) {
               <div className="mt-5 flex gap-2">
                 <Button className="flex-1" onClick={reset}>Tekrar oyna</Button>
                 <Button variant="outline" className="flex-1" asChild>
-                  <Link to="/">Ana sayfa</Link>
+                  <Link
+                    to="/konu/$mainSlug"
+                    params={{ mainSlug: category.mainSlug }}
+                  >
+                    Önceki ekrana dön
+                  </Link>
                 </Button>
               </div>
             </motion.div>
