@@ -24,9 +24,15 @@ export type PlacedProvinceLabel = {
   label?: string;
 };
 
+export type ProvinceClaim = {
+  provinceName: string;
+  tone: "red" | "blue";
+};
+
 type Props = {
   className?: string;
   children?: React.ReactNode;
+  viewBox?: string;
   variant?: MapVariant;
   /** İl adları — yeşil dolgu ile vurgulanır (doğru). */
   highlightedProvinces?: string[];
@@ -43,6 +49,8 @@ type Props = {
   provinceDropTargets?: readonly ProvinceDropTarget[];
   /** Labels rendered inside, and clipped by, their province's real SVG path. */
   placedProvinceLabels?: readonly PlacedProvinceLabel[];
+  /** Rekabet modunda doğru bilinen illerin oyuncu rengini gösterir. */
+  provinceClaims?: readonly ProvinceClaim[];
 };
 
 type ProvincePathProps = {
@@ -165,6 +173,7 @@ type RenderedProvinceLabel = {
 export function TurkeyMap({
   className,
   children,
+  viewBox = `0 0 ${MAP_W} ${MAP_H}`,
   variant = "provinces",
   highlightedProvinces,
   wrongProvinces,
@@ -172,6 +181,7 @@ export function TurkeyMap({
   interactive,
   provinceDropTargets,
   placedProvinceLabels,
+  provinceClaims,
 }: Props) {
   const instanceId = `turkey-map-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
   const fillGradientId = `${instanceId}-fill`;
@@ -199,6 +209,13 @@ export function TurkeyMap({
       ),
     [provinceDropTargets],
   );
+  const claimMap = useMemo(
+    () =>
+      new Map(
+        (provinceClaims ?? []).map((claim) => [normalizePlaceName(claim.provinceName), claim.tone]),
+      ),
+    [provinceClaims],
+  );
   const renderedLabels = useMemo<RenderedProvinceLabel[]>(() => {
     const labelMap = new Map(
       (placedProvinceLabels ?? []).map((entry) => [
@@ -216,11 +233,7 @@ export function TurkeyMap({
   }, [placedProvinceLabels]);
 
   return (
-    <svg
-      viewBox={`0 0 ${MAP_W} ${MAP_H}`}
-      className={className}
-      preserveAspectRatio="xMidYMid meet"
-    >
+    <svg viewBox={viewBox} className={className} preserveAspectRatio="xMidYMid meet">
       <defs>
         <linearGradient id={fillGradientId} x1="0" y1="0" x2="1" y2="1">
           <stop offset="0%" stopColor="#e6f7fb" />
@@ -247,7 +260,8 @@ export function TurkeyMap({
           const key = normalizePlaceName(p.name);
           const isHighlighted = highlightSet.has(key);
           const isWrong = wrongSet.has(key);
-          const isLocked = isHighlighted || isWrong;
+          const claimTone = claimMap.get(key);
+          const isLocked = isHighlighted || isWrong || !!claimTone;
           const dropTarget = dropTargetMap.get(key);
           let fill: string = `url(#${fillGradientId})`;
           let stroke = "rgba(15,118,155,0.45)";
@@ -263,7 +277,15 @@ export function TurkeyMap({
             stroke = "rgba(15,118,155,0.25)";
           }
 
-          if (isHighlighted) {
+          if (claimTone === "red") {
+            fill = "#fb7185";
+            stroke = "rgba(159,18,57,0.78)";
+            strokeWidth = 0.9;
+          } else if (claimTone === "blue") {
+            fill = "#60a5fa";
+            stroke = "rgba(30,64,175,0.78)";
+            strokeWidth = 0.9;
+          } else if (isHighlighted) {
             fill = "#10b981";
             stroke = "rgba(6,95,70,0.7)";
             strokeWidth = 0.8;

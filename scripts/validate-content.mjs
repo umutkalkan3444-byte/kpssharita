@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
 
 import { createServer } from "vite";
 
@@ -21,8 +22,14 @@ const duplicateValues = (values) => {
 
 const vite = await createServer({
   appType: "custom",
+  configFile: false,
   logLevel: "silent",
-  server: { middlewareMode: true },
+  resolve: {
+    alias: {
+      "@": fileURLToPath(new URL("../src", import.meta.url)),
+    },
+  },
+  server: { hmr: false, middlewareMode: true },
 });
 
 try {
@@ -30,11 +37,10 @@ try {
   const geo = await vite.ssrLoadModule("/src/lib/geo.ts");
   const labels = await vite.ssrLoadModule("/src/data/province-labels.ts");
   const names = await vite.ssrLoadModule("/src/lib/place-name.ts");
+  const cardLabels = await vite.ssrLoadModule("/src/lib/card-label.ts");
   const regions = await vite.ssrLoadModule("/src/lib/province-regions.ts");
-  const questions = await vite.ssrLoadModule("/src/data/study/questions.ts");
   const facts = await vite.ssrLoadModule("/src/data/study/facts.ts");
   const studySources = await vite.ssrLoadModule("/src/data/study/sources.ts");
-  const schemas = await vite.ssrLoadModule("/src/lib/study/schemas.ts");
   const studyPrompt = await vite.ssrLoadModule("/src/server/study-prompt.server.ts");
   const studyReview = await vite.ssrLoadModule("/src/lib/study/build-static-review.ts");
   const studyReviewServer = await vite.ssrLoadModule("/src/server/study-review.server.ts");
@@ -43,6 +49,11 @@ try {
   assert(
     duplicateValues(game.CATEGORIES.map((category) => category.slug)).length === 0,
     "Kategori slug değerleri benzersiz olmalı.",
+  );
+  assert(
+    cardLabels.hideLocationHint("Sümela Manastırı (Trabzon)") === "Sümela Manastırı" &&
+      cardLabels.hideLocationHint("Çukurova (Seyhan-Ceyhan)") === "Çukurova (Seyhan-Ceyhan)",
+    "Kart etiketi şehir ipucunu gizlerken coğrafi kavram açıklamasını korumalı.",
   );
 
   let itemCount = 0;
@@ -60,6 +71,15 @@ try {
     assert(
       duplicateNames.length === 0,
       `${category.slug}: yinelenen hedef adı (${duplicateNames.join(", ")}).`,
+    );
+    const safeCardLabels = cardLabels.buildCardLabels(category.items);
+    assert(
+      category.items.every((item) => safeCardLabels[item.id]?.trim()),
+      `${category.slug}: boş kart etiketi oluştu.`,
+    );
+    assert(
+      duplicateValues(category.items.map((item) => safeCardLabels[item.id])).length === 0,
+      `${category.slug}: konum ipucu gizlendikten sonra kart etiketleri ayırt edilemiyor.`,
     );
 
     for (const item of category.items) {
@@ -99,27 +119,7 @@ try {
       }
     }
 
-    const bank = questions.getWarmupQuestionBank(category.slug).slice(0, 3);
-    assert(bank.length === 3, `${category.slug}: oyun öncesinde tam 3 soru bulunmalı.`);
-    assert(
-      duplicateValues(bank.map((question) => `${question.prompt}|${question.choices.join("|")}`))
-        .length === 0,
-      `${category.slug}: ilk 3 soruda içerik tekrarı var.`,
-    );
-
     const factMap = facts.getStudyFactMap(category.slug);
-    for (const question of bank) {
-      const parsed = schemas.WarmupQuestionSchema.safeParse(question);
-      assert(parsed.success, `${category.slug}/${question.id}: soru şemaya uymuyor.`);
-      assert(
-        question.relatedFactIds.every((factId) => factMap.has(factId)),
-        `${category.slug}/${question.id}: doğrulanmış bilgi bağı eksik.`,
-      );
-      assert(
-        question.sourceRefs.every((sourceId) => Boolean(studySources.getStudySource(sourceId))),
-        `${category.slug}/${question.id}: kaynak meta verisi eksik.`,
-      );
-    }
     for (const fact of factMap.values()) {
       assert(
         fact.sourceRefs.every((sourceId) => Boolean(studySources.getStudySource(sourceId))),
@@ -138,16 +138,15 @@ try {
       wrongCount: syntheticMistakes.length,
       totalMs: 1_000,
       wrongAttempts: syntheticMistakes,
-      wrongWarmupQuestionIds: bank.slice(0, 3).map((question) => question.id),
     });
     const sentFactIds = new Set(trustedPayload.facts.map((fact) => fact.id));
     assert(
-      trustedPayload.facts.length <= 20,
-      `${category.slug}: AI bilgi paketi 20 sınırını aşıyor.`,
+      trustedPayload.facts.length <= 14,
+      `${category.slug}: AI bilgi paketi 14 sınırını aşıyor.`,
     );
     assert(
-      trustedPayload.mistakes.length <= 4,
-      `${category.slug}: AI yanlış bağlamı 4 sınırını aşıyor.`,
+      trustedPayload.mistakes.length <= 3,
+      `${category.slug}: AI yanlış bağlamı 3 sınırını aşıyor.`,
     );
     for (const mistake of trustedPayload.mistakes) {
       assert(
@@ -228,7 +227,6 @@ try {
       id: item.id,
       count: 1,
     })),
-    wrongWarmupQuestionIds: [],
   };
   const constraintPayload = studyPrompt.buildTrustedStudyPayload(constraintRequest);
   const firstMistake = constraintPayload.mistakes[0];
@@ -293,12 +291,12 @@ try {
     const aiResponse = await studyReviewServer.getStudyReviewOnServer(constraintRequest);
     assert(aiResponse.source === "ai", "Geçerli kapalı model planı AI yanıtına dönüşmeli.");
     assert(
-      capturedOpenAiBody?.model === "gpt-5-nano-2025-08-07" &&
+      capturedOpenAiBody?.model === "gpt-5-nano" &&
         capturedOpenAiBody?.store === false &&
         capturedOpenAiBody?.reasoning?.effort === "minimal" &&
         capturedOpenAiBody?.text?.verbosity === "low" &&
         capturedOpenAiBody?.text?.format?.type === "json_schema" &&
-        capturedOpenAiBody?.max_output_tokens === 480,
+        capturedOpenAiBody?.max_output_tokens === 360,
       "OpenAI isteği düşük maliyetli ve katı yapılandırmayı korumalı.",
     );
   } finally {

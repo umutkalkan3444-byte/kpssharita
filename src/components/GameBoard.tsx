@@ -13,7 +13,16 @@ import {
 } from "@dnd-kit/core";
 import { snapCenterToCursor } from "@dnd-kit/modifiers";
 import { motion, AnimatePresence } from "framer-motion";
-import { RotateCcw, Trophy, Smartphone, ArrowLeft, ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
+import {
+  RotateCcw,
+  Trophy,
+  Smartphone,
+  ArrowLeft,
+  ZoomIn,
+  ZoomOut,
+  Maximize2,
+  Flame,
+} from "lucide-react";
 import { Link, useRouter } from "@tanstack/react-router";
 import {
   TransformComponent,
@@ -33,12 +42,9 @@ import { cn } from "@/lib/utils";
 import { normalizePlaceName } from "@/lib/place-name";
 import { getCompetitiveMode } from "@/lib/competitive-mode";
 import { findProvinceDropIdAtPoint } from "@/lib/province-drop-target";
-import {
-  mistakeKey,
-  type StudyMistake,
-  type StudyReviewRequest,
-  type WarmupCompletion,
-} from "@/lib/study/schemas";
+import { mistakeKey, type StudyMistake, type StudyReviewRequest } from "@/lib/study/schemas";
+import { buildCardLabels } from "@/lib/card-label";
+import { needsProvinceDragMagnifier } from "@/lib/drag-magnifier";
 
 const PostGameStudy = lazy(() =>
   import("@/components/study/PostGameStudy").then((module) => ({
@@ -91,7 +97,7 @@ type ArenaPlayerId = "red" | "blue";
 type ArenaPlayer = { correct: number; wrong: number; elapsedMs: number };
 type ArenaPlayers = Record<ArenaPlayerId, ArenaPlayer>;
 type ArenaPlaced = Record<ArenaPlayerId, Placed>;
-type ArenaCards = Record<ArenaPlayerId, Category["items"]>;
+type ArenaCards = Category["items"];
 type ArenaWrongProvinces = Record<ArenaPlayerId, string[]>;
 
 function emptyArenaPlayers(): ArenaPlayers {
@@ -106,7 +112,7 @@ function emptyArenaPlaced(): ArenaPlaced {
 }
 
 function initialArenaCards(items: Category["items"]): ArenaCards {
-  return { red: shuffle(items), blue: shuffle(items) };
+  return shuffle(items);
 }
 
 function emptyArenaWrongProvinces(): ArenaWrongProvinces {
@@ -114,16 +120,27 @@ function emptyArenaWrongProvinces(): ArenaWrongProvinces {
 }
 
 function arenaScore(player: ArenaPlayer): number {
-  const attempts = player.correct + player.wrong;
-  const accuracyScore = attempts > 0 ? Math.round((player.correct / attempts) * 10_000) : 0;
-  // Her oyuncu aynı görevlerin tamamını çözer; bu nedenle doğruluk oranı ve
-  // yalnız kendi aktif süresi adil karşılaştırmadır. İki saat 14.400 puan
-  // götürür ve kusursuz ama aşırı yavaş oyun otomatik galibiyet olmaz.
-  return accuracyScore - Math.floor(player.elapsedMs / 1000) * 2;
+  // Ortak havuzda daha çok doğru kart almak ana avantajdır; yanlış ve aktif
+  // süre küçük ama hissedilir cezalarla eşitliği bozar.
+  return player.correct * 1_000 - player.wrong * 350 - Math.floor(player.elapsedMs / 1000) * 2;
 }
 
 function perfNow(): number {
   return typeof performance === "undefined" ? Date.now() : performance.now();
+}
+
+function pointerFromActivatorEvent(event: Event): { x: number; y: number } | null {
+  if ("clientX" in event && "clientY" in event) {
+    return {
+      x: Number((event as MouseEvent).clientX),
+      y: Number((event as MouseEvent).clientY),
+    };
+  }
+  if ("touches" in event) {
+    const touch = (event as TouchEvent).touches[0] ?? (event as TouchEvent).changedTouches[0];
+    return touch ? { x: touch.clientX, y: touch.clientY } : null;
+  }
+  return null;
 }
 
 const exactProvinceCollision: CollisionDetection = ({
@@ -167,14 +184,16 @@ function CompetitionHUD({
   turnStartedAt,
   done,
   paused,
-  tasksPerPlayer,
+  poolRemaining,
+  totalItems,
 }: {
   turn: ArenaPlayerId;
   players: ArenaPlayers;
   turnStartedAt: number;
   done: boolean;
   paused: boolean;
-  tasksPerPlayer: number;
+  poolRemaining: number;
+  totalItems: number;
 }) {
   // Yalnızca küçük sayaç bileşeni saniyede bir yeniden çizilir; harita etkilenmez.
   const [now, setNow] = useState(() => perfNow());
@@ -190,50 +209,54 @@ function CompetitionHUD({
     (!done && !paused && turn === id ? Math.max(0, now - turnStartedAt) : 0);
 
   return (
-    <section
-      aria-label="Rekabet skoru"
-      className="mb-2 grid grid-cols-[1fr_auto_1fr] items-stretch gap-2 max-lg:landscape:mb-1"
-    >
-      {(["red", "blue"] as const).map((id, index) => {
-        const isActive = !done && turn === id;
-        const isRed = id === "red";
-        return (
-          <div key={id} className="contents">
-            {index === 1 ? (
-              <div className="grid place-items-center text-[10px] font-black uppercase tracking-[0.18em] text-orange-600">
-                VS
-              </div>
-            ) : null}
-            <div
-              className={cn(
-                "rounded-2xl border px-3 py-2 transition-all",
-                isRed
-                  ? "border-rose-200 bg-gradient-to-r from-rose-100 to-white text-rose-950"
-                  : "border-blue-200 bg-gradient-to-l from-blue-100 to-white text-blue-950",
-                isActive &&
-                  (isRed
-                    ? "ring-2 ring-rose-500 shadow-lg shadow-rose-500/20"
-                    : "ring-2 ring-blue-500 shadow-lg shadow-blue-500/20"),
-              )}
-            >
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-black">
-                  {isRed ? "Kırmızı" : "Mavi"} {isActive ? "· Sıra sende" : ""}
-                </span>
-                <span className="font-mono text-xs font-black">{formatMs(elapsedFor(id))}</span>
-              </div>
-              <div className="mt-0.5 text-[10px] font-bold opacity-70">
-                ✓ {players[id].correct}/{tasksPerPlayer} · ✗ {players[id].wrong} ·{" "}
-                {arenaScore({
-                  ...players[id],
-                  elapsedMs: elapsedFor(id),
-                })}{" "}
-                puan
+    <section aria-label="Rekabet skoru" className="mb-2 max-lg:landscape:mb-1">
+      <div className="mb-1.5 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-[0.16em] text-orange-700">
+        <Flame className="h-3.5 w-3.5" />
+        Ortak havuz · {poolRemaining}/{totalItems} kart kaldı
+        <Flame className="h-3.5 w-3.5" />
+      </div>
+      <div className="grid grid-cols-[1fr_auto_1fr] items-stretch gap-2">
+        {(["red", "blue"] as const).map((id, index) => {
+          const isActive = !done && turn === id;
+          const isRed = id === "red";
+          return (
+            <div key={id} className="contents">
+              {index === 1 ? (
+                <div className="grid place-items-center text-[10px] font-black uppercase tracking-[0.18em] text-orange-600">
+                  VS
+                </div>
+              ) : null}
+              <div
+                className={cn(
+                  "rounded-2xl border px-3 py-2 transition-all",
+                  isRed
+                    ? "border-rose-200 bg-gradient-to-r from-rose-100 to-white text-rose-950"
+                    : "border-blue-200 bg-gradient-to-l from-blue-100 to-white text-blue-950",
+                  isActive &&
+                    (isRed
+                      ? "ring-2 ring-rose-500 shadow-lg shadow-rose-500/20"
+                      : "ring-2 ring-blue-500 shadow-lg shadow-blue-500/20"),
+                )}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-black">
+                    {isRed ? "Kırmızı" : "Mavi"} {isActive ? "· Sıra sende" : ""}
+                  </span>
+                  <span className="font-mono text-xs font-black">{formatMs(elapsedFor(id))}</span>
+                </div>
+                <div className="mt-0.5 text-[10px] font-bold opacity-70">
+                  ✓ {players[id].correct} · ✗ {players[id].wrong} ·{" "}
+                  {arenaScore({
+                    ...players[id],
+                    elapsedMs: elapsedFor(id),
+                  })}{" "}
+                  puan
+                </div>
               </div>
             </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </section>
   );
 }
@@ -273,8 +296,26 @@ const DropDot = memo(function DropDot({
     >
       {placed ? (
         <>
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 ring-1 ring-white shadow" />
-          <span className="whitespace-nowrap rounded-sm bg-white/85 px-1 text-[8px] font-semibold leading-tight text-emerald-800 shadow-sm sm:text-[9px]">
+          <span
+            className={cn(
+              "h-1.5 w-1.5 rounded-full ring-1 ring-white shadow",
+              claimTone === "red"
+                ? "bg-rose-500"
+                : claimTone === "blue"
+                  ? "bg-blue-500"
+                  : "bg-emerald-500",
+            )}
+          />
+          <span
+            className={cn(
+              "whitespace-nowrap rounded-sm bg-white/85 px-1 text-[8px] font-semibold leading-tight shadow-sm sm:text-[9px]",
+              claimTone === "red"
+                ? "text-rose-800"
+                : claimTone === "blue"
+                  ? "text-blue-800"
+                  : "text-emerald-800",
+            )}
+          >
             {t.name}
           </span>
         </>
@@ -448,6 +489,83 @@ function ZoomControls() {
   );
 }
 
+function DragMagnifier({
+  pointer,
+  mapSurface,
+}: {
+  pointer: { x: number; y: number };
+  mapSurface: HTMLDivElement | null;
+}) {
+  if (!mapSurface || typeof window === "undefined") return null;
+  const rect = mapSurface.getBoundingClientRect();
+  const inside =
+    pointer.x >= rect.left &&
+    pointer.x <= rect.right &&
+    pointer.y >= rect.top &&
+    pointer.y <= rect.bottom;
+  if (!inside || rect.width <= 0 || rect.height <= 0) return null;
+
+  const mapX = Math.max(0, Math.min(MAP_W, ((pointer.x - rect.left) / rect.width) * MAP_W));
+  const mapY = Math.max(0, Math.min(MAP_H, ((pointer.y - rect.top) / rect.height) * MAP_H));
+  const viewSize = 74;
+  const viewX = Math.max(0, Math.min(MAP_W - viewSize, mapX - viewSize / 2));
+  const viewY = Math.max(0, Math.min(MAP_H - viewSize, mapY - viewSize / 2));
+  const size = 176;
+  const left = Math.max(8, Math.min(window.innerWidth - size - 8, pointer.x + 24));
+  const top = Math.max(8, Math.min(window.innerHeight - size - 8, pointer.y - size - 24));
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.7 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className="pointer-events-none fixed z-[90] overflow-hidden rounded-full border-4 border-white bg-sky-50 shadow-[0_18px_50px_rgba(8,145,178,0.45)] ring-4 ring-cyan-400/70"
+      style={{ width: size, height: size, left, top }}
+      aria-hidden="true"
+    >
+      <TurkeyMap
+        className="h-full w-full"
+        variant="provinces"
+        viewBox={`${viewX} ${viewY} ${viewSize} ${viewSize}`}
+      />
+      <span className="absolute left-1/2 top-3 bottom-3 w-px -translate-x-1/2 bg-rose-500/75" />
+      <span className="absolute top-1/2 left-3 right-3 h-px -translate-y-1/2 bg-rose-500/75" />
+      <span className="absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-rose-600 bg-white/70" />
+      <span className="absolute inset-x-0 bottom-2 text-center text-[9px] font-black uppercase tracking-widest text-cyan-900">
+        Hassas bırakma
+      </span>
+    </motion.div>
+  );
+}
+
+function ArenaPressure({ remaining, total }: { remaining: number; total: number }) {
+  const threshold = Math.max(3, Math.ceil(total * 0.3));
+  if (remaining <= 0 || remaining > threshold) return null;
+  const critical = remaining <= Math.max(2, Math.ceil(total * 0.12));
+
+  return (
+    <motion.div
+      aria-hidden="true"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="pointer-events-none fixed inset-0 z-[32] overflow-hidden"
+    >
+      <motion.div
+        animate={{ opacity: critical ? [0.18, 0.42, 0.18] : [0.1, 0.24, 0.1] }}
+        transition={{ duration: critical ? 0.65 : 1.4, repeat: Infinity }}
+        className="absolute inset-0 shadow-[inset_0_0_95px_rgba(239,68,68,0.8)]"
+      />
+      <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-orange-600/30 via-rose-500/10 to-transparent" />
+      <motion.div
+        animate={critical ? { scale: [1, 1.08, 1], y: [0, -3, 0] } : { y: [0, -2, 0] }}
+        transition={{ duration: critical ? 0.6 : 1.2, repeat: Infinity }}
+        className="absolute inset-x-0 bottom-16 mx-auto w-fit rounded-full border border-orange-300/70 bg-slate-950/80 px-4 py-2 text-center text-xs font-black uppercase tracking-[0.2em] text-orange-200 shadow-2xl backdrop-blur"
+      >
+        🔥 Son {remaining} kart · {critical ? "Ateş hattı!" : "Rekabet kızışıyor"}
+      </motion.div>
+    </motion.div>
+  );
+}
+
 function useIsPortraitMobile() {
   const [portrait, setPortrait] = useState(false);
   useEffect(() => {
@@ -466,15 +584,7 @@ function useIsPortraitMobile() {
   return portrait;
 }
 
-export function GameBoard({
-  category,
-  warmupCompletion,
-  onRestartJourney,
-}: {
-  category: Category;
-  warmupCompletion?: WarmupCompletion;
-  onRestartJourney?: () => void;
-}) {
+export function GameBoard({ category }: { category: Category }) {
   // SSR sırasında localStorage okunamaz. İlk istemci effect'inde gerçek tercih
   // bir kez alınır ve oyun boyunca kilitlenir; başka sekmedeki değişiklik devam
   // eden solo/arena state'lerini birbirine karıştıramaz.
@@ -505,6 +615,7 @@ export function GameBoard({
   const [correctCount, setCorrectCount] = useState(0);
   const [wrongCount, setWrongCount] = useState(0);
   const [studyMistakes, setStudyMistakes] = useState<StudyMistake[]>([]);
+  const cardLabels = useMemo(() => buildCardLabels(category.items), [category.items]);
   // Click-mode: yanlış tıklanan il adları (kırmızıya boyanır, tekrar tıklanamaz)
   const [wrongProvinces, setWrongProvinces] = useState<string[]>([]);
   const startedAtRef = useRef(Date.now());
@@ -553,8 +664,7 @@ export function GameBoard({
         },
       };
       const otherPlayer: ArenaPlayerId = playerId === "red" ? "blue" : "red";
-      const nextTurn: ArenaPlayerId =
-        arenaCardsRef.current[otherPlayer].length > 0 ? otherPlayer : playerId;
+      const nextTurn: ArenaPlayerId = otherPlayer;
       arenaPlayersRef.current = next;
       arenaTurnRef.current = nextTurn;
       arenaTurnStartedAtRef.current = now;
@@ -583,7 +693,7 @@ export function GameBoard({
     category.slug === "iller-81" ||
     category.slug === "buyuksehirler" ||
     isClickMode;
-  const displayedPlaced = isCompetitive ? arenaPlaced[arenaTurn] : placed;
+  const displayedPlaced = placed;
   const displayedWrongProvinces = isCompetitive ? arenaWrongProvinces[arenaTurn] : wrongProvinces;
   const highlightedProvinces = useMemo(
     () => (isIlleri ? Object.values(displayedPlaced).map((p) => p.name) : []),
@@ -595,10 +705,10 @@ export function GameBoard({
         ? targets.map((target) => ({
             provinceName: target.name,
             dropId: target.id,
-            disabled: isCompetitive ? !!arenaPlaced[arenaTurn][target.id] : !!placed[target.id],
+            disabled: !!placed[target.id],
           }))
         : undefined,
-    [arenaPlaced, arenaTurn, isAllProvinces, isCompetitive, placed, targets],
+    [isAllProvinces, placed, targets],
   );
   const placedProvinceLabels = useMemo(
     () =>
@@ -609,6 +719,24 @@ export function GameBoard({
           }))
         : undefined,
     [displayedPlaced, isAllProvinces],
+  );
+  const arenaClaimsById = useMemo(() => {
+    const claims: Record<string, ArenaPlayerId> = {};
+    for (const id of Object.keys(arenaPlaced.red)) claims[id] = "red";
+    for (const id of Object.keys(arenaPlaced.blue)) claims[id] = "blue";
+    return claims;
+  }, [arenaPlaced]);
+  const provinceClaims = useMemo(
+    () =>
+      isCompetitive
+        ? (["red", "blue"] as const).flatMap((tone) =>
+            Object.values(arenaPlaced[tone]).map((target) => ({
+              provinceName: target.name,
+              tone,
+            })),
+          )
+        : undefined,
+    [arenaPlaced, isCompetitive],
   );
 
   // Otomatik odak (bölge oyunları için)
@@ -621,8 +749,11 @@ export function GameBoard({
   const isFocused = !!focus;
 
   const mapWrapRef = useRef<HTMLDivElement>(null);
+  const mapSurfaceRef = useRef<HTMLDivElement>(null);
   const zoomRef = useRef<ReactZoomPanPinchRef | null>(null);
   const [containerW, setContainerW] = useState(0);
+  const [dragPointer, setDragPointer] = useState<{ x: number; y: number } | null>(null);
+  const [showDragMagnifier, setShowDragMagnifier] = useState(false);
 
   useEffect(() => {
     const el = mapWrapRef.current;
@@ -647,8 +778,8 @@ export function GameBoard({
   }, [focus, focusScale, containerW, category.slug]);
 
   const total = category.items.length;
-  const gameTotal = isCompetitive ? total * 2 : total;
-  const visibleCards = isCompetitive ? arenaCards[arenaTurn] : cards;
+  const gameTotal = total;
+  const visibleCards = isCompetitive ? arenaCards : cards;
 
   // Event handler'ları aynı frame içindeki ikinci touch/pointer olayında da
   // güncel değeri görsün; React effect turunu beklemiyoruz.
@@ -674,6 +805,14 @@ export function GameBoard({
   correctCountRef.current = correctCount;
   wrongCountRef.current = wrongCount;
   wrongIdsRef.current = wrongIds;
+
+  useEffect(() => {
+    if (!showDragMagnifier) return;
+    const updatePointer = (event: PointerEvent) =>
+      setDragPointer({ x: event.clientX, y: event.clientY });
+    window.addEventListener("pointermove", updatePointer, { capture: true });
+    return () => window.removeEventListener("pointermove", updatePointer, { capture: true });
+  }, [showDragMagnifier]);
 
   useEffect(() => {
     if (!isCompetitive || done) return;
@@ -713,7 +852,7 @@ export function GameBoard({
   const commitCorrectTarget = (cardId: string, target: TargetPoint) => {
     if (isCompetitive) {
       const playerId = arenaTurnRef.current;
-      if (arenaPlacedRef.current[playerId][cardId]) return null;
+      if (placedRef.current[cardId]) return null;
       const nextArenaPlaced: ArenaPlaced = {
         ...arenaPlacedRef.current,
         [playerId]: {
@@ -724,19 +863,13 @@ export function GameBoard({
       arenaPlacedRef.current = nextArenaPlaced;
       setArenaPlaced(nextArenaPlaced);
 
-      const nextArenaCards: ArenaCards = {
-        ...arenaCardsRef.current,
-        [playerId]: arenaCardsRef.current[playerId].filter((card) => card.id !== cardId),
-      };
+      const nextArenaCards: ArenaCards = arenaCardsRef.current.filter((card) => card.id !== cardId);
       arenaCardsRef.current = nextArenaCards;
       setArenaCards(nextArenaCards);
 
-      const otherPlayer: ArenaPlayerId = playerId === "red" ? "blue" : "red";
-      if (nextArenaPlaced[otherPlayer][cardId]) {
-        const nextPlaced = { ...placedRef.current, [cardId]: target };
-        placedRef.current = nextPlaced;
-        setPlaced(nextPlaced);
-      }
+      const nextPlaced = { ...placedRef.current, [cardId]: target };
+      placedRef.current = nextPlaced;
+      setPlaced(nextPlaced);
     } else {
       if (placedRef.current[cardId]) return null;
       const nextPlaced = { ...placedRef.current, [cardId]: target };
@@ -762,6 +895,8 @@ export function GameBoard({
 
   const onDragEnd = (e: DragEndEvent) => {
     setActiveId(null);
+    setShowDragMagnifier(false);
+    setDragPointer(null);
     const dragSession = activeDragRef.current;
     activeDragRef.current = null;
     if (
@@ -927,6 +1062,8 @@ export function GameBoard({
     shakeTimeoutRef.current = null;
     winTimeoutRef.current = null;
     setActiveId(null);
+    setShowDragMagnifier(false);
+    setDragPointer(null);
     setShakeTarget(null);
     runGenerationRef.current += 1;
     activeDragRef.current = null;
@@ -1010,9 +1147,8 @@ export function GameBoard({
       wrongCount: Math.min(5_000, summary.wrong),
       totalMs: Math.min(24 * 60 * 60 * 1000, summary.totalMs),
       wrongAttempts: studyMistakes,
-      wrongWarmupQuestionIds: warmupCompletion?.wrongQuestionIds ?? [],
     };
-  }, [category.items.length, category.slug, studyMistakes, summary, warmupCompletion]);
+  }, [category.items.length, category.slug, studyMistakes, summary]);
 
   if (!modeReady) {
     return (
@@ -1090,7 +1226,8 @@ export function GameBoard({
           turnStartedAt={arenaTurnStartedAt}
           done={done}
           paused={arenaPaused}
-          tasksPerPlayer={total}
+          poolRemaining={arenaCards.length}
+          totalItems={total}
         />
       ) : null}
 
@@ -1150,15 +1287,25 @@ export function GameBoard({
           collisionDetection={isAllProvinces ? exactProvinceCollision : pointerWithin}
           modifiers={[snapCenterToCursor]}
           onDragStart={(e) => {
+            const cardId = String(e.active.id);
+            const card = category.items.find((item) => item.id === cardId);
+            const needsMagnifier =
+              !!card && needsProvinceDragMagnifier(category.slug, category.mainSlug, card.name);
             activeDragRef.current = {
               generation: runGenerationRef.current,
               owner: isCompetitive ? arenaTurnRef.current : null,
             };
-            setActiveId(String(e.active.id));
+            setActiveId(cardId);
+            setShowDragMagnifier(needsMagnifier);
+            setDragPointer(
+              needsMagnifier ? pointerFromActivatorEvent(e.activatorEvent as Event) : null,
+            );
           }}
           onDragCancel={() => {
             activeDragRef.current = null;
             setActiveId(null);
+            setShowDragMagnifier(false);
+            setDragPointer(null);
           }}
           onDragEnd={onDragEnd}
         >
@@ -1189,13 +1336,18 @@ export function GameBoard({
                     wrapperClass="!w-full !h-full !overflow-hidden !rounded-2xl !border !border-cyan-200 !bg-gradient-to-br !from-white !via-sky-50 !to-cyan-50 !shadow-xl !shadow-cyan-500/10"
                     contentClass="!w-full"
                   >
-                    <div className="relative w-full" style={{ aspectRatio: `${MAP_W} / ${MAP_H}` }}>
+                    <div
+                      ref={mapSurfaceRef}
+                      className="relative w-full"
+                      style={{ aspectRatio: `${MAP_W} / ${MAP_H}` }}
+                    >
                       <TurkeyMap
                         className="absolute inset-0 h-full w-full"
                         variant={category.mapVariant}
                         highlightedProvinces={highlightedProvinces}
                         provinceDropTargets={provinceDropTargets}
                         placedProvinceLabels={placedProvinceLabels}
+                        provinceClaims={provinceClaims}
                       />
                       <ShapeLayer
                         targets={targets}
@@ -1208,7 +1360,12 @@ export function GameBoard({
                       <div className="absolute inset-0">
                         {!isAllProvinces
                           ? targets.map((t) => (
-                              <DropDot key={t.id} t={t} placed={!!displayedPlaced[t.id]} />
+                              <DropDot
+                                key={t.id}
+                                t={t}
+                                placed={!!displayedPlaced[t.id]}
+                                claimTone={arenaClaimsById[t.id]}
+                              />
                             ))
                           : null}
                       </div>
@@ -1239,7 +1396,7 @@ export function GameBoard({
                     <div key={c.id} className="max-lg:landscape:w-full">
                       <Card
                         id={c.id}
-                        name={c.name}
+                        name={cardLabels[c.id] ?? c.name}
                         shake={
                           shakeTarget?.id === c.id &&
                           shakeTarget.owner === (isCompetitive ? arenaTurn : null)
@@ -1258,12 +1415,20 @@ export function GameBoard({
           <DragOverlay dropAnimation={null}>
             {activeId ? (
               <div className="pointer-events-none min-h-[40px] w-[150px] whitespace-normal break-words rounded-xl border border-cyan-400 bg-white px-3 py-2 text-center text-xs font-semibold text-slate-800 shadow-2xl shadow-cyan-500/40 sm:w-[170px] sm:text-sm">
-                {category.items.find((i) => i.id === activeId)?.name}
+                {cardLabels[activeId] ?? category.items.find((i) => i.id === activeId)?.name}
               </div>
             ) : null}
           </DragOverlay>
         </DndContext>
       )}
+
+      <AnimatePresence>
+        {showDragMagnifier && dragPointer ? (
+          <DragMagnifier pointer={dragPointer} mapSurface={mapSurfaceRef.current} />
+        ) : null}
+      </AnimatePresence>
+
+      {isCompetitive ? <ArenaPressure remaining={arenaCards.length} total={total} /> : null}
 
       {/* Sabit çıkış butonu — mobil yatayda gizli (üstteki X kullanılır) */}
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-rose-200 bg-white/95 px-3 py-2 shadow-[0_-8px_20px_-10px_rgba(0,0,0,0.15)] backdrop-blur max-lg:landscape:hidden">
@@ -1337,7 +1502,7 @@ export function GameBoard({
                   </div>
                   <div className="min-w-0">
                     <div className="text-[10px] font-semibold uppercase tracking-wide text-cyan-600">
-                      2. aşama tamamlandı · {arenaOutcome ? "arena sonucu" : "harita sonucu"}
+                      Oyun tamamlandı · {arenaOutcome ? "arena sonucu" : "harita sonucu"}
                     </div>
                     <div className="truncate text-lg font-black text-slate-900">
                       {arenaOutcome
@@ -1365,7 +1530,7 @@ export function GameBoard({
                       tone="blue"
                     />
                     <p className="col-span-2 text-[10px] font-semibold leading-relaxed text-slate-500">
-                      Skor: doğruluk (10.000) − aktif saniye × 2
+                      Skor: doğru kart × 1.000 − yanlış × 350 − aktif saniye × 2
                     </p>
                   </div>
                 ) : (
@@ -1386,11 +1551,7 @@ export function GameBoard({
                   </div>
                 }
               >
-                <PostGameStudy
-                  result={studyResult}
-                  onReplay={onRestartJourney ?? reset}
-                  onExit={goBack}
-                />
+                <PostGameStudy result={studyResult} onReplay={reset} onExit={goBack} />
               </Suspense>
             </motion.div>
           </motion.div>

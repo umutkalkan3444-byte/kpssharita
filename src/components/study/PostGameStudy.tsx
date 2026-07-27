@@ -27,7 +27,6 @@ export type PostGameStudyProps = {
 
 const REASON_LABELS: Record<ReviewReason, string> = {
   repeated_error: "Tekrarlanan karışıklık",
-  warmup_gap: "Isınma sorusu açığı",
   exam_high_yield: "Sınavda ayırt edici bilgi",
   prerequisite: "Önce oturtulacak temel",
 };
@@ -66,8 +65,7 @@ export function PostGameStudy({ result, onReplay, onExit }: PostGameStudyProps) 
 
     const cached = readStudyReviewCache(request);
     setResponse(cached ?? fallback);
-    const hasMistake =
-      request.wrongAttempts.length > 0 || request.wrongWarmupQuestionIds.length > 0;
+    const hasMistake = request.wrongAttempts.length > 0;
     if (cached || !hasMistake) {
       setLoading(false);
       return;
@@ -120,7 +118,7 @@ export function PostGameStudy({ result, onReplay, onExit }: PostGameStudyProps) 
             </div>
             <div className="min-w-0">
               <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/80">
-                3. aşama · mini çalışma
+                Oyun sonu · kişisel konu anlatımı
               </p>
               <h2 className="truncate text-lg font-black sm:text-xl">{review.title}</h2>
             </div>
@@ -134,7 +132,7 @@ export function PostGameStudy({ result, onReplay, onExit }: PostGameStudyProps) 
             ) : personalized ? (
               <>
                 <Sparkles className="h-3.5 w-3.5" />
-                Kişisel sıra
+                Yapay zekâ ile kişisel
               </>
             ) : (
               <>

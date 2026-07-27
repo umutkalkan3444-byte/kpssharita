@@ -17,6 +17,7 @@ import { TurkeyMap } from "@/components/TurkeyMap";
 import { loadState, xpProgress, type GameState } from "@/lib/storage";
 import { kpssCountdown } from "@/lib/kpss-date";
 import { ArenaToggleCard } from "@/components/ArenaMode";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -118,7 +119,8 @@ function Home() {
               <CalendarClock className="h-4 w-4" />
             </div>
             <div className="min-w-0 flex-1 text-xs font-semibold text-slate-600">Sınava kalan</div>
-            <div className="flex items-baseline gap-1.5">
+            <div className="flex items-center gap-1.5">
+              <CountdownMood days={countdown.totalDays} />
               <span className="text-2xl font-black leading-none text-orange-600 sm:text-3xl">
                 {countdown.totalDays}
               </span>
@@ -147,9 +149,6 @@ function Home() {
               </div>
               <div className="flex items-center gap-1.5 rounded-2xl border border-orange-200 bg-white/80 px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm backdrop-blur">
                 <Flame className="h-4 w-4 text-orange-500" /> Seri: {state.streak} gün
-              </div>
-              <div className="rounded-2xl border border-emerald-200 bg-white/80 px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm backdrop-blur">
-                🏅 {state.badges.length} rozet
               </div>
             </motion.div>
           )}
@@ -251,6 +250,63 @@ function Home() {
         </div>
       </footer>
     </div>
+  );
+}
+
+function CountdownMood({ days }: { days: number }) {
+  const emoji =
+    days <= 7
+      ? "😭"
+      : days <= 14
+        ? "😢"
+        : days <= 30
+          ? "😰"
+          : days <= 60
+            ? "😟"
+            : days <= 90
+              ? "😬"
+              : days <= 180
+                ? "🙂"
+                : "😎";
+  const urgent = days <= 7;
+
+  return (
+    <motion.span
+      role="img"
+      aria-label={urgent ? "Sınav çok yakın, yoğun biçimde ağlayan yüz" : "Sınav yaklaşma duygusu"}
+      animate={
+        urgent
+          ? { rotate: [-8, 8, -6, 6, 0], y: [0, -3, 0], scale: [1, 1.16, 1] }
+          : days <= 30
+            ? { y: [0, -2, 0] }
+            : { scale: [1, 1.04, 1] }
+      }
+      transition={{ duration: urgent ? 0.75 : 2.2, repeat: Infinity }}
+      className={cn(
+        "relative inline-grid h-9 w-9 shrink-0 place-items-center text-2xl",
+        urgent && "rounded-full bg-sky-100 shadow-[0_0_18px_rgba(56,189,248,0.55)]",
+      )}
+    >
+      {emoji}
+      {urgent ? (
+        <>
+          <motion.span
+            animate={{ y: [0, 13], opacity: [0, 1, 0] }}
+            transition={{ duration: 0.7, repeat: Infinity }}
+            className="absolute left-1 bottom-0 text-[10px]"
+          >
+            💧
+          </motion.span>
+          <motion.span
+            animate={{ y: [0, 14], opacity: [0, 1, 0] }}
+            transition={{ duration: 0.7, repeat: Infinity, delay: 0.25 }}
+            className="absolute right-0 bottom-0 text-[10px]"
+          >
+            💧
+          </motion.span>
+        </>
+      ) : null}
+    </motion.span>
   );
 }
 

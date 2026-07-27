@@ -9,7 +9,6 @@ import {
   type StudyReviewRequest,
   type StudyReviewResponse,
 } from "@/lib/study/schemas";
-import { getWarmupQuestionBank } from "@/data/study/questions";
 import { STUDY_CONTENT_VERSION } from "@/data/study/version";
 import {
   buildTrustedStudyPayload,
@@ -17,7 +16,7 @@ import {
   STUDY_REVIEW_PLAN_JSON_SCHEMA,
 } from "./study-prompt.server";
 
-const DEFAULT_MODEL = "gpt-5-nano-2025-08-07";
+const DEFAULT_MODEL = "gpt-5-nano";
 const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
 const REQUEST_TIMEOUT_MS = 7_000;
 const RATE_WINDOW_MS = 60 * 60 * 1000;
@@ -89,12 +88,6 @@ function validateClosedRequest(requestInput: StudyReviewRequest): StudyReviewReq
     }
   }
 
-  const questionIds = new Set(
-    getWarmupQuestionBank(request.categorySlug).map((question) => question.id),
-  );
-  if (request.wrongWarmupQuestionIds.some((questionId) => !questionIds.has(questionId))) {
-    throw new Error("Geçersiz ısınma sorusu kimliği");
-  }
   return request;
 }
 
@@ -170,7 +163,6 @@ function serverCacheKey(request: StudyReviewRequest): string {
       mistake.droppedOnId ?? null,
       mistake.count,
     ]),
-    warmup: request.wrongWarmupQuestionIds,
   });
 }
 
@@ -242,7 +234,7 @@ async function requestAiReview(request: StudyReviewRequest): Promise<StudyReview
         reasoning: { effort: "minimal" },
         instructions: STUDY_REVIEW_INSTRUCTIONS,
         input: JSON.stringify(trustedPayload),
-        max_output_tokens: 480,
+        max_output_tokens: 360,
         text: {
           verbosity: "low",
           format: {
@@ -300,7 +292,7 @@ export async function getStudyReviewOnServer(
     contentVersion: STUDY_CONTENT_VERSION,
     review: buildStaticReview(request),
   };
-  const hasMistake = request.wrongAttempts.length > 0 || request.wrongWarmupQuestionIds.length > 0;
+  const hasMistake = request.wrongAttempts.length > 0;
   if (!hasMistake) return fallback;
 
   const incoming = currentRequest();
