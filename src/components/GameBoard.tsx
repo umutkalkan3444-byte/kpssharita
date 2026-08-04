@@ -128,20 +128,6 @@ function perfNow(): number {
   return typeof performance === "undefined" ? Date.now() : performance.now();
 }
 
-function pointerFromActivatorEvent(event: Event): { x: number; y: number } | null {
-  if ("clientX" in event && "clientY" in event) {
-    return {
-      x: Number((event as MouseEvent).clientX),
-      y: Number((event as MouseEvent).clientY),
-    };
-  }
-  if ("touches" in event) {
-    const touch = (event as TouchEvent).touches[0] ?? (event as TouchEvent).changedTouches[0];
-    return touch ? { x: touch.clientX, y: touch.clientY } : null;
-  }
-  return null;
-}
-
 const exactProvinceCollision: CollisionDetection = ({
   pointerCoordinates,
   droppableContainers,
@@ -1234,8 +1220,6 @@ export function GameBoard({ category }: { category: Category }) {
           onDragCancel={() => {
             activeDragRef.current = null;
             setActiveId(null);
-            setShowDragMagnifier(false);
-            setDragPointer(null);
           }}
           onDragEnd={onDragEnd}
         >
