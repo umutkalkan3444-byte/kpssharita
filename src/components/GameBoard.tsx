@@ -32,6 +32,9 @@ import {
   ZoomOut,
   Maximize2,
   Flame,
+  Eye,
+  EyeOff,
+  Lightbulb,
 } from "lucide-react";
 import { Link, useRouter } from "@tanstack/react-router";
 import {
