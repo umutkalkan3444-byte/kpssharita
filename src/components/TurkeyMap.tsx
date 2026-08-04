@@ -179,6 +179,7 @@ export function TurkeyMap({
   variant = "provinces",
   highlightedProvinces,
   wrongProvinces,
+  hintProvinces,
   onProvinceClick,
   interactive,
   provinceDropTargets,
@@ -190,6 +191,7 @@ export function TurkeyMap({
   const seaGradientId = `${instanceId}-sea`;
   const highlightKey = (highlightedProvinces ?? []).join("|");
   const wrongKey = (wrongProvinces ?? []).join("|");
+  const hintKey = (hintProvinces ?? []).join("|");
 
   const highlightSet = useMemo(
     () => new Set((highlightedProvinces ?? []).map(normalizePlaceName)),
@@ -200,6 +202,11 @@ export function TurkeyMap({
     () => new Set((wrongProvinces ?? []).map(normalizePlaceName)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [wrongKey],
+  );
+  const hintSet = useMemo(
+    () => new Set((hintProvinces ?? []).map(normalizePlaceName)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [hintKey],
   );
   const dropTargetMap = useMemo(
     () =>
