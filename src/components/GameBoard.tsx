@@ -1,4 +1,14 @@
-import { lazy, memo, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  lazy,
+  memo,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type RefCallback,
+} from "react";
 import {
   DndContext,
   DragOverlay,
@@ -22,6 +32,9 @@ import {
   ZoomOut,
   Maximize2,
   Flame,
+  Eye,
+  EyeOff,
+  Lightbulb,
 } from "lucide-react";
 import { Link, useRouter } from "@tanstack/react-router";
 import {
@@ -40,8 +53,9 @@ import { Button } from "@/components/ui/button";
 
 import { cn } from "@/lib/utils";
 import { normalizePlaceName } from "@/lib/place-name";
+import { allNamesAreProvinces } from "@/lib/province-names";
 import { getCompetitiveMode } from "@/lib/competitive-mode";
-import { findProvinceDropIdAtPoint } from "@/lib/province-drop-target";
+import { findProvinceDropIdAtPoint, PROVINCE_DROP_KIND } from "@/lib/province-drop-target";
 import { mistakeKey, type StudyMistake, type StudyReviewRequest } from "@/lib/study/schemas";
 import { buildCardLabels } from "@/lib/card-label";
 
@@ -145,6 +159,12 @@ const exactProvinceCollision: CollisionDetection = ({
       data: { droppableContainer: container, value: 1 },
     },
   ];
+};
+
+const hybridCollision: CollisionDetection = (args) => {
+  const exact = exactProvinceCollision(args);
+  if (exact.length > 0) return exact;
+  return pointerWithin(args);
 };
 
 async function fireConfetti(options: Parameters<typeof import("canvas-confetti")>[0]) {
@@ -372,15 +392,64 @@ function TargetGuideLayer({ targets, placed }: { targets: TargetPoint[]; placed:
   );
 }
 
-/** Doğru yerleştirilen öğelerin gerçek coğrafi şekillerini çizen SVG katmanı. */
+const ShapeDropPath = memo(function ShapeDropPath({
+  id,
+  d,
+  isLine,
+}: {
+  id: string;
+  d: string;
+  isLine: boolean;
+}) {
+  const { isOver, setNodeRef } = useDroppable({
+    id,
+    resizeObserverConfig: { disabled: true },
+  });
+  const ref = setNodeRef as unknown as RefCallback<SVGPathElement>;
+  return (
+    <>
+      {isOver ? (
+        <path
+          d={d}
+          fill={isLine ? "none" : "rgba(8,145,178,0.28)"}
+          stroke="rgba(8,145,178,0.95)"
+          strokeWidth={isLine ? 3.4 : 1.8}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          pointerEvents="none"
+        />
+      ) : null}
+      <path
+        ref={ref}
+        d={d}
+        fill={isLine ? "none" : "transparent"}
+        stroke="transparent"
+        strokeWidth={isLine ? 9 : 6}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        pointerEvents={isLine ? "stroke" : "all"}
+        data-drop-kind={PROVINCE_DROP_KIND}
+        data-drop-id={id}
+      />
+    </>
+  );
+});
+
+/**
+ * Coğrafi şekiller oyunun başında soluk hatlarla verilir (nereden başlayıp
+ * nerede bittiği görünür), doğru yerleştirilince gerçek rengine kavuşur.
+ * Yerleştirilmemiş şekiller aynı zamanda sürükleme hedefidir.
+ */
 function ShapeLayer({
   targets,
   placed,
   categorySlug,
+  interactive,
 }: {
   targets: TargetPoint[];
   placed: Record<string, TargetPoint>;
   categorySlug: string;
+  interactive?: boolean;
 }) {
   const stroke =
     categorySlug === "akarsular"
@@ -399,28 +468,44 @@ function ShapeLayer({
   return (
     <svg
       viewBox={`0 0 ${MAP_W} ${MAP_H}`}
-      className="pointer-events-none absolute inset-0 h-full w-full"
+      className={cn("absolute inset-0 h-full w-full", !interactive && "pointer-events-none")}
       preserveAspectRatio="xMidYMid meet"
     >
       {targets.map((t) => {
-        if (!t.shape || !placed[t.id]) return null;
+        if (!t.shape) return null;
         const isLine = t.shape.type === "polyline";
+        const isPlaced = !!placed[t.id];
         return (
           <path
             key={t.id}
             d={t.shape.d}
-            fill={isLine ? "none" : fill}
-            stroke={stroke}
-            strokeWidth={isLine ? 2.2 : 1.2}
+            fill={isLine ? "none" : isPlaced ? fill : "rgba(100,116,139,0.18)"}
+            stroke={isPlaced ? stroke : "rgba(71,85,105,0.7)"}
+            strokeWidth={isLine ? (isPlaced ? 2.2 : 1.6) : 1.2}
+            strokeDasharray={isPlaced ? undefined : isLine ? "4 3" : "2 2"}
             strokeLinecap="round"
             strokeLinejoin="round"
-            opacity={0.95}
+            opacity={isPlaced ? 0.95 : 0.85}
+            pointerEvents="none"
           />
         );
       })}
+      {interactive
+        ? targets.map((t) =>
+            t.shape && !placed[t.id] ? (
+              <ShapeDropPath
+                key={`drop-${t.id}`}
+                id={t.id}
+                d={t.shape.d}
+                isLine={t.shape.type === "polyline"}
+              />
+            ) : null,
+          )
+        : null}
     </svg>
   );
 }
+
 
 const Card = memo(function Card({ id, name, shake }: { id: string; name: string; shake: boolean }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id });
@@ -442,37 +527,42 @@ const Card = memo(function Card({ id, name, shake }: { id: string; name: string;
   );
 });
 
-function ZoomControls() {
+function ZoomControls({
+  revealAll,
+  onToggleRevealAll,
+}: {
+  revealAll?: boolean;
+  onToggleRevealAll?: () => void;
+}) {
   const { zoomIn, zoomOut, resetTransform } = useControls();
+  const btn =
+    "grid h-8 w-8 place-items-center rounded-lg border border-cyan-200 bg-white/90 text-slate-700 shadow-md backdrop-blur transition hover:bg-white";
   return (
     <div className="absolute right-2 top-2 z-10 flex flex-col gap-1">
-      <button
-        type="button"
-        onClick={() => zoomIn()}
-        aria-label="Yakınlaştır"
-        className="grid h-8 w-8 place-items-center rounded-lg border border-cyan-200 bg-white/90 text-slate-700 shadow-md backdrop-blur transition hover:bg-white"
-      >
+      <button type="button" onClick={() => zoomIn()} aria-label="Yakınlaştır" className={btn}>
         <ZoomIn className="h-3.5 w-3.5" />
       </button>
-      <button
-        type="button"
-        onClick={() => zoomOut()}
-        aria-label="Uzaklaştır"
-        className="grid h-8 w-8 place-items-center rounded-lg border border-cyan-200 bg-white/90 text-slate-700 shadow-md backdrop-blur transition hover:bg-white"
-      >
+      <button type="button" onClick={() => zoomOut()} aria-label="Uzaklaştır" className={btn}>
         <ZoomOut className="h-3.5 w-3.5" />
       </button>
-      <button
-        type="button"
-        onClick={() => resetTransform()}
-        aria-label="Sıfırla"
-        className="grid h-8 w-8 place-items-center rounded-lg border border-cyan-200 bg-white/90 text-slate-700 shadow-md backdrop-blur transition hover:bg-white"
-      >
+      <button type="button" onClick={() => resetTransform()} aria-label="Sıfırla" className={btn}>
         <Maximize2 className="h-3.5 w-3.5" />
       </button>
+      {onToggleRevealAll ? (
+        <button
+          type="button"
+          onClick={onToggleRevealAll}
+          aria-label={revealAll ? "Cevapları gizle" : "Tüm cevapları göster"}
+          title={revealAll ? "Cevapları gizle" : "Tüm cevapları göster (öğrenme modu)"}
+          className={cn(btn, revealAll && "border-amber-400 bg-amber-100 text-amber-800")}
+        >
+          {revealAll ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+        </button>
+      ) : null}
     </div>
   );
 }
+
 
 function ArenaPressure({ remaining, total }: { remaining: number; total: number }) {
   const threshold = Math.max(3, Math.ceil(total * 0.3));
@@ -537,9 +627,16 @@ export function GameBoard({ category }: { category: Category }) {
   // Tarım & Hayvancılık → "il tıklama" modu (sürükleme yok, harita büyük).
   // "Tüm ..." alt kategorileri (item adları ürün adı olan) klasik sürükleme modunda kalır.
   const isClickMode =
-    (category.mainSlug === "tarim" || category.mainSlug === "hayvancilik") &&
-    !category.slug.startsWith("tum-");
+    ((category.mainSlug === "tarim" || category.mainSlug === "hayvancilik") &&
+      !category.slug.startsWith("tum-")) ||
+    category.slug === "buyuksehirler";
   const isAllProvinces = category.slug === "iller-81";
+  // Tüm kart adları gerçek il adıysa sürükleme hedefi ilin kendi sınırıdır
+  // (beyaz nokta yok; sınır çerçevesi vurgulanır).
+  const isProvinceDrag = useMemo(
+    () => !isClickMode && allNamesAreProvinces(category.items),
+    [category.items, isClickMode],
+  );
 
   const [cards, setCards] = useState(() => shuffle(category.items));
   const [placed, setPlaced] = useState<Placed>({});
@@ -555,6 +652,10 @@ export function GameBoard({ category }: { category: Category }) {
   const cardLabels = useMemo(() => buildCardLabels(category.items), [category.items]);
   // Click-mode: yanlış tıklanan il adları (kırmızıya boyanır, tekrar tıklanamaz)
   const [wrongProvinces, setWrongProvinces] = useState<string[]>([]);
+  // Joker ile açılan iller (sarı gösterilir)
+  const [hintProvinces, setHintProvinces] = useState<string[]>([]);
+  // Öğrenme modu: tüm cevapları geçici olarak haritada göster
+  const [revealAll, setRevealAll] = useState(false);
   const startedAtRef = useRef(Date.now());
   const [arenaTurn, setArenaTurn] = useState<ArenaPlayerId>("red");
   const arenaTurnRef = useRef<ArenaPlayerId>("red");
@@ -630,7 +731,11 @@ export function GameBoard({ category }: { category: Category }) {
     category.slug === "iller-81" ||
     category.slug === "buyuksehirler" ||
     isClickMode;
-  const displayedPlaced = placed;
+  const allPlacedPreview = useMemo(
+    () => Object.fromEntries(targets.map((t) => [t.id, t])) as Placed,
+    [targets],
+  );
+  const displayedPlaced = revealAll ? allPlacedPreview : placed;
   const displayedWrongProvinces = isCompetitive ? arenaWrongProvinces[arenaTurn] : wrongProvinces;
   const highlightedProvinces = useMemo(
     () => (isIlleri ? Object.values(displayedPlaced).map((p) => p.name) : []),
@@ -638,24 +743,24 @@ export function GameBoard({ category }: { category: Category }) {
   );
   const provinceDropTargets = useMemo(
     () =>
-      isAllProvinces
+      isProvinceDrag
         ? targets.map((target) => ({
             provinceName: target.name,
             dropId: target.id,
             disabled: !!placed[target.id],
           }))
         : undefined,
-    [isAllProvinces, placed, targets],
+    [isProvinceDrag, placed, targets],
   );
   const placedProvinceLabels = useMemo(
     () =>
-      isAllProvinces
+      isProvinceDrag
         ? Object.values(displayedPlaced).map((target) => ({
             provinceName: target.name,
             label: target.name,
           }))
         : undefined,
-    [displayedPlaced, isAllProvinces],
+    [displayedPlaced, isProvinceDrag],
   );
   const arenaClaimsById = useMemo(() => {
     const claims: Record<string, ArenaPlayerId> = {};
@@ -682,8 +787,7 @@ export function GameBoard({ category }: { category: Category }) {
     [category.items, category.slug],
   );
   // Daha geniş bir genel görünüm için odak ölçeğine padding uygula (0.72 → %28 daha geriden bak)
-  const focusScale = focus ? Math.min(MAP_W / focus.w, MAP_H / focus.h) * 0.72 : 1;
-  const isFocused = !!focus;
+  const focusScale = focus ? Math.max(1, Math.min(MAP_W / focus.w, MAP_H / focus.h) * 0.62) : 1;
 
   const mapWrapRef = useRef<HTMLDivElement>(null);
   const mapSurfaceRef = useRef<HTMLDivElement>(null);
@@ -951,6 +1055,30 @@ export function GameBoard({ category }: { category: Category }) {
     }
   };
 
+  const takeJoker = () => {
+    if (!isClickMode || doneRef.current) return;
+    const takenNames = new Set(
+      [...Object.values(placedRef.current).map((t) => t.name), ...hintProvinces].map(
+        normalizePlaceName,
+      ),
+    );
+    const remaining = targets.filter(
+      (t) => !placedRef.current[t.id] && !takenNames.has(normalizePlaceName(t.name)),
+    );
+    if (remaining.length === 0) return;
+    const pick = remaining[Math.floor(Math.random() * remaining.length)];
+    setHintProvinces((current) => [...current, pick.name]);
+    const committed = commitCorrectTarget(pick.id, pick);
+    if (committed?.nextCorrect === gameTotal) {
+      finalize(
+        committed.nextCorrect,
+        wrongCountRef.current,
+        wrongIdsRef.current,
+        committed.arenaSnapshot,
+      );
+    }
+  };
+
   const finalize = (
     correct: number,
     wrong: number,
@@ -1007,6 +1135,8 @@ export function GameBoard({ category }: { category: Category }) {
     wrongIdsRef.current = [];
     setWrongProvinces([]);
     wrongProvincesRef.current = [];
+    setHintProvinces([]);
+    setRevealAll(false);
     setStudyMistakes([]);
     setCorrectCount(0);
     correctCountRef.current = 0;
@@ -1120,7 +1250,7 @@ export function GameBoard({ category }: { category: Category }) {
             <>
               <span className="text-emerald-700">{category.title}</span>
               <span className="ml-1 text-slate-500 font-semibold text-xs sm:text-sm max-lg:landscape:text-[10px]">
-                — üretim illerini bul
+                {category.slug === "buyuksehirler" ? "— doğru illere tıkla" : "— üretim illerini bul"}
               </span>
             </>
           ) : (
@@ -1168,23 +1298,26 @@ export function GameBoard({ category }: { category: Category }) {
 
       {isClickMode ? (
         // Click-mode: harita tam genişlik, kart paneli yok
-        <div className="flex flex-1 min-h-0 flex-col">
+        <div className="flex flex-1 min-h-0 flex-row gap-2">
           <div className="relative flex-1 min-h-0" ref={mapWrapRef}>
             <TransformWrapper
               key={category.slug + (containerW > 0 ? "-ready" : "-init")}
               ref={zoomRef}
               initialScale={focusScale}
-              minScale={focusScale}
-              maxScale={isFocused ? focusScale : 5}
+              minScale={0.9}
+              maxScale={8}
               doubleClick={{ disabled: true }}
-              wheel={{ disabled: isFocused, step: 0.15 }}
-              pinch={{ disabled: isFocused, step: 5 }}
-              panning={{ disabled: isFocused, velocityDisabled: true }}
+              wheel={{ step: 0.15 }}
+              pinch={{ step: 5 }}
+              panning={{ velocityDisabled: true }}
               limitToBounds={true}
               centerOnInit={!focus}
             >
               <>
-                {!isFocused && <ZoomControls />}
+                <ZoomControls
+                  revealAll={revealAll}
+                  onToggleRevealAll={() => setRevealAll((v) => !v)}
+                />
                 <TransformComponent
                   wrapperClass="!w-full !h-full !overflow-hidden !rounded-2xl !border !border-cyan-200 !bg-gradient-to-br !from-white !via-sky-50 !to-cyan-50 !shadow-xl !shadow-cyan-500/10"
                   contentClass="!w-full"
@@ -1195,6 +1328,7 @@ export function GameBoard({ category }: { category: Category }) {
                       variant={category.mapVariant}
                       highlightedProvinces={highlightedProvinces}
                       wrongProvinces={displayedWrongProvinces}
+                      hintProvinces={hintProvinces}
                       onProvinceClick={onProvinceClick}
                       interactive
                     />
@@ -1203,11 +1337,28 @@ export function GameBoard({ category }: { category: Category }) {
               </>
             </TransformWrapper>
           </div>
+          <div className="w-[104px] shrink-0 sm:w-[140px]">
+            <button
+              type="button"
+              onClick={takeJoker}
+              disabled={done || correctCount >= gameTotal}
+              className="flex w-full flex-col items-center gap-1 rounded-2xl border border-amber-300 bg-gradient-to-b from-amber-100 to-amber-50 px-2 py-3 text-center text-[11px] font-black text-amber-800 shadow-md transition active:scale-95 disabled:opacity-40 sm:text-xs"
+            >
+              <Lightbulb className="h-5 w-5" />
+              Joker
+              <span className="text-[9px] font-semibold leading-tight text-amber-700/80">
+                Bir doğru cevabı sarı göster
+              </span>
+            </button>
+            <div className="mt-2 rounded-2xl bg-white/60 p-2 text-[10px] font-semibold leading-tight text-slate-500 ring-1 ring-cyan-100">
+              Joker ile açılan iller <span className="text-amber-600">sarı</span> renkte kalır.
+            </div>
+          </div>
         </div>
       ) : (
         <DndContext
           sensors={sensors}
-          collisionDetection={isAllProvinces ? exactProvinceCollision : pointerWithin}
+          collisionDetection={hybridCollision}
           modifiers={[snapCenterToCursor]}
           onDragStart={(e) => {
             const cardId = String(e.active.id);
@@ -1227,7 +1378,7 @@ export function GameBoard({ category }: { category: Category }) {
           <div
             className={cn(
               "flex flex-1 min-h-0 flex-col gap-3 max-lg:landscape:flex-row max-lg:landscape:gap-2",
-              isAllProvinces && "lg:flex-row",
+              isProvinceDrag && "lg:flex-row",
             )}
           >
             <div className="relative flex-1 min-h-0" ref={mapWrapRef}>
@@ -1235,17 +1386,20 @@ export function GameBoard({ category }: { category: Category }) {
                 key={category.slug + (containerW > 0 ? "-ready" : "-init")}
                 ref={zoomRef}
                 initialScale={focusScale}
-                minScale={focusScale}
-                maxScale={isFocused ? focusScale : 5}
-                doubleClick={{ disabled: isFocused, mode: "toggle", step: 1.5 }}
-                wheel={{ disabled: isFocused, step: 0.15 }}
-                pinch={{ disabled: isFocused, step: 5 }}
-                panning={{ disabled: isFocused, velocityDisabled: true }}
+                minScale={0.9}
+                maxScale={8}
+                doubleClick={{ mode: "toggle", step: 1.5 }}
+                wheel={{ step: 0.15 }}
+                pinch={{ step: 5 }}
+                panning={{ velocityDisabled: true }}
                 limitToBounds={true}
                 centerOnInit={!focus}
               >
                 <>
-                  {!isFocused && <ZoomControls />}
+                  <ZoomControls
+                    revealAll={revealAll}
+                    onToggleRevealAll={() => setRevealAll((v) => !v)}
+                  />
                   <TransformComponent
                     wrapperClass="!w-full !h-full !overflow-hidden !rounded-2xl !border !border-cyan-200 !bg-gradient-to-br !from-white !via-sky-50 !to-cyan-50 !shadow-xl !shadow-cyan-500/10"
                     contentClass="!w-full"
@@ -1267,20 +1421,25 @@ export function GameBoard({ category }: { category: Category }) {
                         targets={targets}
                         placed={displayedPlaced}
                         categorySlug={category.slug}
+                        interactive={!revealAll}
                       />
-                      {!isAllProvinces ? (
+                      {!isProvinceDrag ? (
                         <TargetGuideLayer targets={targets} placed={displayedPlaced} />
                       ) : null}
                       <div className="absolute inset-0">
-                        {!isAllProvinces
-                          ? targets.map((t) => (
-                              <DropDot
-                                key={t.id}
-                                t={t}
-                                placed={!!displayedPlaced[t.id]}
-                                claimTone={arenaClaimsById[t.id]}
-                              />
-                            ))
+                        {!isProvinceDrag
+                          ? targets.map((t) =>
+                              // Şekli olan hedeflerin kendisi sürükleme alanıdır;
+                              // yerleşmeden beyaz nokta gösterilmez.
+                              t.shape && !displayedPlaced[t.id] ? null : (
+                                <DropDot
+                                  key={t.id}
+                                  t={t}
+                                  placed={!!displayedPlaced[t.id]}
+                                  claimTone={arenaClaimsById[t.id]}
+                                />
+                              ),
+                            )
                           : null}
                       </div>
                     </div>
@@ -1293,7 +1452,7 @@ export function GameBoard({ category }: { category: Category }) {
             <div
               className={cn(
                 "max-lg:landscape:w-[200px] max-lg:landscape:flex-shrink-0",
-                isAllProvinces && "lg:w-[220px] lg:flex-shrink-0",
+                isProvinceDrag && "lg:w-[220px] lg:flex-shrink-0",
               )}
             >
               <div className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500 max-lg:landscape:hidden">
@@ -1302,7 +1461,7 @@ export function GameBoard({ category }: { category: Category }) {
               <div
                 className={cn(
                   "max-h-[32vh] overflow-y-auto rounded-2xl bg-white/50 p-2 ring-1 ring-cyan-100 max-lg:landscape:max-h-full max-lg:landscape:h-full",
-                  isAllProvinces && "lg:max-h-[68vh]",
+                  isProvinceDrag && "lg:max-h-[68vh]",
                 )}
               >
                 <div className="flex flex-wrap items-start justify-start gap-1.5 max-lg:landscape:flex-col max-lg:landscape:flex-nowrap">

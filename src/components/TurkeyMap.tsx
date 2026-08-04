@@ -38,6 +38,8 @@ type Props = {
   highlightedProvinces?: string[];
   /** İl adları — kırmızı dolgu ile vurgulanır (yanlış). */
   wrongProvinces?: string[];
+  /** İl adları — sarı dolgu ile vurgulanır (joker ile açıldı). */
+  hintProvinces?: string[];
   /** Tıklama callback'i. */
   onProvinceClick?: (name: string) => void;
   /** Etkileşim modu — iller tıklanabilir. */
@@ -177,6 +179,7 @@ export function TurkeyMap({
   variant = "provinces",
   highlightedProvinces,
   wrongProvinces,
+  hintProvinces,
   onProvinceClick,
   interactive,
   provinceDropTargets,
@@ -188,6 +191,7 @@ export function TurkeyMap({
   const seaGradientId = `${instanceId}-sea`;
   const highlightKey = (highlightedProvinces ?? []).join("|");
   const wrongKey = (wrongProvinces ?? []).join("|");
+  const hintKey = (hintProvinces ?? []).join("|");
 
   const highlightSet = useMemo(
     () => new Set((highlightedProvinces ?? []).map(normalizePlaceName)),
@@ -198,6 +202,11 @@ export function TurkeyMap({
     () => new Set((wrongProvinces ?? []).map(normalizePlaceName)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [wrongKey],
+  );
+  const hintSet = useMemo(
+    () => new Set((hintProvinces ?? []).map(normalizePlaceName)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [hintKey],
   );
   const dropTargetMap = useMemo(
     () =>
@@ -258,10 +267,11 @@ export function TurkeyMap({
       <g>
         {provinces.map((p) => {
           const key = normalizePlaceName(p.name);
-          const isHighlighted = highlightSet.has(key);
+          const isHint = hintSet.has(key);
+          const isHighlighted = highlightSet.has(key) && !isHint;
           const isWrong = wrongSet.has(key);
           const claimTone = claimMap.get(key);
-          const isLocked = isHighlighted || isWrong || !!claimTone;
+          const isLocked = isHighlighted || isWrong || isHint || !!claimTone;
           const dropTarget = dropTargetMap.get(key);
           let fill: string = `url(#${fillGradientId})`;
           let stroke = "rgba(15,118,155,0.45)";
@@ -284,6 +294,10 @@ export function TurkeyMap({
           } else if (claimTone === "blue") {
             fill = "#60a5fa";
             stroke = "rgba(30,64,175,0.78)";
+            strokeWidth = 0.9;
+          } else if (isHint) {
+            fill = "#facc15";
+            stroke = "rgba(133,77,14,0.75)";
             strokeWidth = 0.9;
           } else if (isHighlighted) {
             fill = "#10b981";
