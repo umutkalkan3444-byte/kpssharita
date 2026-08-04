@@ -1055,7 +1055,7 @@ export function GameBoard({ category }: { category: Category }) {
     }
   };
 
-  const useJoker = () => {
+  const takeJoker = () => {
     if (!isClickMode || doneRef.current) return;
     const takenNames = new Set(
       [...Object.values(placedRef.current).map((t) => t.name), ...hintProvinces].map(
@@ -1340,7 +1340,7 @@ export function GameBoard({ category }: { category: Category }) {
           <div className="w-[104px] shrink-0 sm:w-[140px]">
             <button
               type="button"
-              onClick={useJoker}
+              onClick={takeJoker}
               disabled={done || correctCount >= gameTotal}
               className="flex w-full flex-col items-center gap-1 rounded-2xl border border-amber-300 bg-gradient-to-b from-amber-100 to-amber-50 px-2 py-3 text-center text-[11px] font-black text-amber-800 shadow-md transition active:scale-95 disabled:opacity-40 sm:text-xs"
             >
