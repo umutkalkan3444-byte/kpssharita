@@ -1,4 +1,14 @@
-import { lazy, memo, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  lazy,
+  memo,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type RefCallback,
+} from "react";
 import {
   DndContext,
   DragOverlay,
@@ -41,7 +51,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { normalizePlaceName } from "@/lib/place-name";
 import { getCompetitiveMode } from "@/lib/competitive-mode";
-import { findProvinceDropIdAtPoint } from "@/lib/province-drop-target";
+import { findProvinceDropIdAtPoint, PROVINCE_DROP_KIND } from "@/lib/province-drop-target";
 import { mistakeKey, type StudyMistake, type StudyReviewRequest } from "@/lib/study/schemas";
 import { buildCardLabels } from "@/lib/card-label";
 
