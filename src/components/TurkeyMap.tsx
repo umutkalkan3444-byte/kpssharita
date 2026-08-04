@@ -38,6 +38,8 @@ type Props = {
   highlightedProvinces?: string[];
   /** İl adları — kırmızı dolgu ile vurgulanır (yanlış). */
   wrongProvinces?: string[];
+  /** İl adları — sarı dolgu ile vurgulanır (joker ile açıldı). */
+  hintProvinces?: string[];
   /** Tıklama callback'i. */
   onProvinceClick?: (name: string) => void;
   /** Etkileşim modu — iller tıklanabilir. */
