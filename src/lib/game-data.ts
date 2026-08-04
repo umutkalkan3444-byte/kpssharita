@@ -67,8 +67,6 @@ export type TargetPoint = {
   shape?: { type: "polyline" | "polygon"; d: string };
 };
 
-const MIN_DROP_DISTANCE = 42;
-const DROP_EDGE_MARGIN = 22;
 const SHAPE_CATEGORY_SLUGS = new Set([
   "akarsular",
   "tektonik-goller",
@@ -83,102 +81,6 @@ const SHAPE_CATEGORY_SLUGS = new Set([
   "volkanik-daglar",
   "delta-ovalari",
 ]);
-
-/**
- * Aynı şehirde ya da birbirine çok yakın olan hedefleri görünür biçimde
- * yelpazeler. Coğrafi konum değişmez; UI hedefi ile gerçek nokta arasındaki
- * kılavuz çizgisini GameBoard çizer.
- */
-function separateCloseDropAnchors(points: TargetPoint[]): TargetPoint[] {
-  const visited = new Set<number>();
-  const result = points.map((point) => ({ ...point }));
-
-  for (let start = 0; start < points.length; start++) {
-    if (visited.has(start)) continue;
-    const cluster: number[] = [];
-    const queue = [start];
-    visited.add(start);
-
-    while (queue.length > 0) {
-      const index = queue.shift()!;
-      cluster.push(index);
-      for (let candidate = 0; candidate < points.length; candidate++) {
-        if (visited.has(candidate)) continue;
-        const distance = Math.hypot(
-          points[index].geoX - points[candidate].geoX,
-          points[index].geoY - points[candidate].geoY,
-        );
-        if (distance < MIN_DROP_DISTANCE) {
-          visited.add(candidate);
-          queue.push(candidate);
-        }
-      }
-    }
-
-    if (cluster.length < 2) continue;
-    const centerX = cluster.reduce((sum, index) => sum + points[index].geoX, 0) / cluster.length;
-    const centerY = cluster.reduce((sum, index) => sum + points[index].geoY, 0) / cluster.length;
-    const radius = Math.max(19, cluster.length * 9);
-
-    cluster
-      .slice()
-      .sort((a, b) => points[a].name.localeCompare(points[b].name, "tr"))
-      .forEach((pointIndex, order) => {
-        const angle = -Math.PI / 2 + (order / cluster.length) * Math.PI * 2;
-        result[pointIndex].x = Math.min(
-          MAP_W - DROP_EDGE_MARGIN,
-          Math.max(DROP_EDGE_MARGIN, centerX + Math.cos(angle) * radius),
-        );
-        result[pointIndex].y = Math.min(
-          MAP_H - DROP_EDGE_MARGIN,
-          Math.max(DROP_EDGE_MARGIN, centerY + Math.sin(angle) * radius),
-        );
-      });
-  }
-
-  // Yelpaze başka bir bağımsız hedefe yaklaşmışsa küçük ve deterministik bir
-  // itme turuyla tüm görünür butonlar arasında aynı asgari mesafeyi koru.
-  for (let iteration = 0; iteration < 48; iteration++) {
-    let changed = false;
-    for (let first = 0; first < result.length; first++) {
-      for (let second = first + 1; second < result.length; second++) {
-        let dx = result[second].x - result[first].x;
-        let dy = result[second].y - result[first].y;
-        let distance = Math.hypot(dx, dy);
-        if (distance >= MIN_DROP_DISTANCE) continue;
-        if (distance < 0.001) {
-          const angle = ((first + 1) * 2.399_963_229_7) % (Math.PI * 2);
-          dx = Math.cos(angle);
-          dy = Math.sin(angle);
-          distance = 1;
-        }
-        const push = (MIN_DROP_DISTANCE - distance) / 2 + 0.05;
-        const ux = dx / distance;
-        const uy = dy / distance;
-        result[first].x = Math.min(
-          MAP_W - DROP_EDGE_MARGIN,
-          Math.max(DROP_EDGE_MARGIN, result[first].x - ux * push),
-        );
-        result[first].y = Math.min(
-          MAP_H - DROP_EDGE_MARGIN,
-          Math.max(DROP_EDGE_MARGIN, result[first].y - uy * push),
-        );
-        result[second].x = Math.min(
-          MAP_W - DROP_EDGE_MARGIN,
-          Math.max(DROP_EDGE_MARGIN, result[second].x + ux * push),
-        );
-        result[second].y = Math.min(
-          MAP_H - DROP_EDGE_MARGIN,
-          Math.max(DROP_EDGE_MARGIN, result[second].y + uy * push),
-        );
-        changed = true;
-      }
-    }
-    if (!changed) break;
-  }
-
-  return result;
-}
 
 export function targetsFor(category: Category): TargetPoint[] {
   const targets = category.items.map((it) => {
@@ -204,7 +106,7 @@ export function targetsFor(category: Category): TargetPoint[] {
     }
     return { id: it.id, name: it.name, x, y, geoX: x, geoY: y };
   });
-  return category.slug === "iller-81" ? targets : separateCloseDropAnchors(targets);
+  return targets;
 }
 
 export function categoriesForMain(mainSlug: string): Category[] {

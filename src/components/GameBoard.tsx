@@ -44,7 +44,6 @@ import { getCompetitiveMode } from "@/lib/competitive-mode";
 import { findProvinceDropIdAtPoint } from "@/lib/province-drop-target";
 import { mistakeKey, type StudyMistake, type StudyReviewRequest } from "@/lib/study/schemas";
 import { buildCardLabels } from "@/lib/card-label";
-import { needsProvinceDragMagnifier } from "@/lib/drag-magnifier";
 
 const PostGameStudy = lazy(() =>
   import("@/components/study/PostGameStudy").then((module) => ({
@@ -489,54 +488,6 @@ function ZoomControls() {
   );
 }
 
-function DragMagnifier({
-  pointer,
-  mapSurface,
-}: {
-  pointer: { x: number; y: number };
-  mapSurface: HTMLDivElement | null;
-}) {
-  if (!mapSurface || typeof window === "undefined") return null;
-  const rect = mapSurface.getBoundingClientRect();
-  const inside =
-    pointer.x >= rect.left &&
-    pointer.x <= rect.right &&
-    pointer.y >= rect.top &&
-    pointer.y <= rect.bottom;
-  if (!inside || rect.width <= 0 || rect.height <= 0) return null;
-
-  const mapX = Math.max(0, Math.min(MAP_W, ((pointer.x - rect.left) / rect.width) * MAP_W));
-  const mapY = Math.max(0, Math.min(MAP_H, ((pointer.y - rect.top) / rect.height) * MAP_H));
-  const viewSize = 74;
-  const viewX = Math.max(0, Math.min(MAP_W - viewSize, mapX - viewSize / 2));
-  const viewY = Math.max(0, Math.min(MAP_H - viewSize, mapY - viewSize / 2));
-  const size = 176;
-  const left = Math.max(8, Math.min(window.innerWidth - size - 8, pointer.x + 24));
-  const top = Math.max(8, Math.min(window.innerHeight - size - 8, pointer.y - size - 24));
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.7 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className="pointer-events-none fixed z-[90] overflow-hidden rounded-full border-4 border-white bg-sky-50 shadow-[0_18px_50px_rgba(8,145,178,0.45)] ring-4 ring-cyan-400/70"
-      style={{ width: size, height: size, left, top }}
-      aria-hidden="true"
-    >
-      <TurkeyMap
-        className="h-full w-full"
-        variant="provinces"
-        viewBox={`${viewX} ${viewY} ${viewSize} ${viewSize}`}
-      />
-      <span className="absolute left-1/2 top-3 bottom-3 w-px -translate-x-1/2 bg-rose-500/75" />
-      <span className="absolute top-1/2 left-3 right-3 h-px -translate-y-1/2 bg-rose-500/75" />
-      <span className="absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-rose-600 bg-white/70" />
-      <span className="absolute inset-x-0 bottom-2 text-center text-[9px] font-black uppercase tracking-widest text-cyan-900">
-        Hassas bırakma
-      </span>
-    </motion.div>
-  );
-}
-
 function ArenaPressure({ remaining, total }: { remaining: number; total: number }) {
   const threshold = Math.max(3, Math.ceil(total * 0.3));
   if (remaining <= 0 || remaining > threshold) return null;
@@ -752,8 +703,6 @@ export function GameBoard({ category }: { category: Category }) {
   const mapSurfaceRef = useRef<HTMLDivElement>(null);
   const zoomRef = useRef<ReactZoomPanPinchRef | null>(null);
   const [containerW, setContainerW] = useState(0);
-  const [dragPointer, setDragPointer] = useState<{ x: number; y: number } | null>(null);
-  const [showDragMagnifier, setShowDragMagnifier] = useState(false);
 
   useEffect(() => {
     const el = mapWrapRef.current;
@@ -805,14 +754,6 @@ export function GameBoard({ category }: { category: Category }) {
   correctCountRef.current = correctCount;
   wrongCountRef.current = wrongCount;
   wrongIdsRef.current = wrongIds;
-
-  useEffect(() => {
-    if (!showDragMagnifier) return;
-    const updatePointer = (event: PointerEvent) =>
-      setDragPointer({ x: event.clientX, y: event.clientY });
-    window.addEventListener("pointermove", updatePointer, { capture: true });
-    return () => window.removeEventListener("pointermove", updatePointer, { capture: true });
-  }, [showDragMagnifier]);
 
   useEffect(() => {
     if (!isCompetitive || done) return;
@@ -895,8 +836,6 @@ export function GameBoard({ category }: { category: Category }) {
 
   const onDragEnd = (e: DragEndEvent) => {
     setActiveId(null);
-    setShowDragMagnifier(false);
-    setDragPointer(null);
     const dragSession = activeDragRef.current;
     activeDragRef.current = null;
     if (
@@ -1062,8 +1001,6 @@ export function GameBoard({ category }: { category: Category }) {
     shakeTimeoutRef.current = null;
     winTimeoutRef.current = null;
     setActiveId(null);
-    setShowDragMagnifier(false);
-    setDragPointer(null);
     setShakeTarget(null);
     runGenerationRef.current += 1;
     activeDragRef.current = null;
@@ -1288,18 +1225,11 @@ export function GameBoard({ category }: { category: Category }) {
           modifiers={[snapCenterToCursor]}
           onDragStart={(e) => {
             const cardId = String(e.active.id);
-            const card = category.items.find((item) => item.id === cardId);
-            const needsMagnifier =
-              !!card && needsProvinceDragMagnifier(category.slug, category.mainSlug, card.name);
             activeDragRef.current = {
               generation: runGenerationRef.current,
               owner: isCompetitive ? arenaTurnRef.current : null,
             };
             setActiveId(cardId);
-            setShowDragMagnifier(needsMagnifier);
-            setDragPointer(
-              needsMagnifier ? pointerFromActivatorEvent(e.activatorEvent as Event) : null,
-            );
           }}
           onDragCancel={() => {
             activeDragRef.current = null;
@@ -1421,12 +1351,6 @@ export function GameBoard({ category }: { category: Category }) {
           </DragOverlay>
         </DndContext>
       )}
-
-      <AnimatePresence>
-        {showDragMagnifier && dragPointer ? (
-          <DragMagnifier pointer={dragPointer} mapSurface={mapSurfaceRef.current} />
-        ) : null}
-      </AnimatePresence>
 
       {isCompetitive ? <ArenaPressure remaining={arenaCards.length} total={total} /> : null}
 
