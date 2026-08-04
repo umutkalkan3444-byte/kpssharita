@@ -53,6 +53,7 @@ import { Button } from "@/components/ui/button";
 
 import { cn } from "@/lib/utils";
 import { normalizePlaceName } from "@/lib/place-name";
+import { allNamesAreProvinces } from "@/lib/province-names";
 import { getCompetitiveMode } from "@/lib/competitive-mode";
 import { findProvinceDropIdAtPoint, PROVINCE_DROP_KIND } from "@/lib/province-drop-target";
 import { mistakeKey, type StudyMistake, type StudyReviewRequest } from "@/lib/study/schemas";
@@ -158,6 +159,12 @@ const exactProvinceCollision: CollisionDetection = ({
       data: { droppableContainer: container, value: 1 },
     },
   ];
+};
+
+const hybridCollision: CollisionDetection = (args) => {
+  const exact = exactProvinceCollision(args);
+  if (exact.length > 0) return exact;
+  return pointerWithin(args);
 };
 
 async function fireConfetti(options: Parameters<typeof import("canvas-confetti")>[0]) {
@@ -620,9 +627,16 @@ export function GameBoard({ category }: { category: Category }) {
   // Tarım & Hayvancılık → "il tıklama" modu (sürükleme yok, harita büyük).
   // "Tüm ..." alt kategorileri (item adları ürün adı olan) klasik sürükleme modunda kalır.
   const isClickMode =
-    (category.mainSlug === "tarim" || category.mainSlug === "hayvancilik") &&
-    !category.slug.startsWith("tum-");
+    ((category.mainSlug === "tarim" || category.mainSlug === "hayvancilik") &&
+      !category.slug.startsWith("tum-")) ||
+    category.slug === "buyuksehirler";
   const isAllProvinces = category.slug === "iller-81";
+  // Tüm kart adları gerçek il adıysa sürükleme hedefi ilin kendi sınırıdır
+  // (beyaz nokta yok; sınır çerçevesi vurgulanır).
+  const isProvinceDrag = useMemo(
+    () => !isClickMode && allNamesAreProvinces(category.items),
+    [category.items, isClickMode],
+  );
 
   const [cards, setCards] = useState(() => shuffle(category.items));
   const [placed, setPlaced] = useState<Placed>({});
@@ -638,6 +652,10 @@ export function GameBoard({ category }: { category: Category }) {
   const cardLabels = useMemo(() => buildCardLabels(category.items), [category.items]);
   // Click-mode: yanlış tıklanan il adları (kırmızıya boyanır, tekrar tıklanamaz)
   const [wrongProvinces, setWrongProvinces] = useState<string[]>([]);
+  // Joker ile açılan iller (sarı gösterilir)
+  const [hintProvinces, setHintProvinces] = useState<string[]>([]);
+  // Öğrenme modu: tüm cevapları geçici olarak haritada göster
+  const [revealAll, setRevealAll] = useState(false);
   const startedAtRef = useRef(Date.now());
   const [arenaTurn, setArenaTurn] = useState<ArenaPlayerId>("red");
   const arenaTurnRef = useRef<ArenaPlayerId>("red");
@@ -713,7 +731,11 @@ export function GameBoard({ category }: { category: Category }) {
     category.slug === "iller-81" ||
     category.slug === "buyuksehirler" ||
     isClickMode;
-  const displayedPlaced = placed;
+  const allPlacedPreview = useMemo(
+    () => Object.fromEntries(targets.map((t) => [t.id, t])) as Placed,
+    [targets],
+  );
+  const displayedPlaced = revealAll ? allPlacedPreview : placed;
   const displayedWrongProvinces = isCompetitive ? arenaWrongProvinces[arenaTurn] : wrongProvinces;
   const highlightedProvinces = useMemo(
     () => (isIlleri ? Object.values(displayedPlaced).map((p) => p.name) : []),
@@ -721,24 +743,24 @@ export function GameBoard({ category }: { category: Category }) {
   );
   const provinceDropTargets = useMemo(
     () =>
-      isAllProvinces
+      isProvinceDrag
         ? targets.map((target) => ({
             provinceName: target.name,
             dropId: target.id,
             disabled: !!placed[target.id],
           }))
         : undefined,
-    [isAllProvinces, placed, targets],
+    [isProvinceDrag, placed, targets],
   );
   const placedProvinceLabels = useMemo(
     () =>
-      isAllProvinces
+      isProvinceDrag
         ? Object.values(displayedPlaced).map((target) => ({
             provinceName: target.name,
             label: target.name,
           }))
         : undefined,
-    [displayedPlaced, isAllProvinces],
+    [displayedPlaced, isProvinceDrag],
   );
   const arenaClaimsById = useMemo(() => {
     const claims: Record<string, ArenaPlayerId> = {};
@@ -765,8 +787,7 @@ export function GameBoard({ category }: { category: Category }) {
     [category.items, category.slug],
   );
   // Daha geniş bir genel görünüm için odak ölçeğine padding uygula (0.72 → %28 daha geriden bak)
-  const focusScale = focus ? Math.min(MAP_W / focus.w, MAP_H / focus.h) * 0.72 : 1;
-  const isFocused = !!focus;
+  const focusScale = focus ? Math.max(1, Math.min(MAP_W / focus.w, MAP_H / focus.h) * 0.62) : 1;
 
   const mapWrapRef = useRef<HTMLDivElement>(null);
   const mapSurfaceRef = useRef<HTMLDivElement>(null);
