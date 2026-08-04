@@ -372,15 +372,64 @@ function TargetGuideLayer({ targets, placed }: { targets: TargetPoint[]; placed:
   );
 }
 
-/** Doğru yerleştirilen öğelerin gerçek coğrafi şekillerini çizen SVG katmanı. */
+const ShapeDropPath = memo(function ShapeDropPath({
+  id,
+  d,
+  isLine,
+}: {
+  id: string;
+  d: string;
+  isLine: boolean;
+}) {
+  const { isOver, setNodeRef } = useDroppable({
+    id,
+    resizeObserverConfig: { disabled: true },
+  });
+  const ref = setNodeRef as unknown as RefCallback<SVGPathElement>;
+  return (
+    <>
+      {isOver ? (
+        <path
+          d={d}
+          fill={isLine ? "none" : "rgba(8,145,178,0.28)"}
+          stroke="rgba(8,145,178,0.95)"
+          strokeWidth={isLine ? 3.4 : 1.8}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          pointerEvents="none"
+        />
+      ) : null}
+      <path
+        ref={ref}
+        d={d}
+        fill={isLine ? "none" : "transparent"}
+        stroke="transparent"
+        strokeWidth={isLine ? 9 : 6}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        pointerEvents={isLine ? "stroke" : "all"}
+        data-drop-kind={PROVINCE_DROP_KIND}
+        data-drop-id={id}
+      />
+    </>
+  );
+});
+
+/**
+ * Coğrafi şekiller oyunun başında soluk hatlarla verilir (nereden başlayıp
+ * nerede bittiği görünür), doğru yerleştirilince gerçek rengine kavuşur.
+ * Yerleştirilmemiş şekiller aynı zamanda sürükleme hedefidir.
+ */
 function ShapeLayer({
   targets,
   placed,
   categorySlug,
+  interactive,
 }: {
   targets: TargetPoint[];
   placed: Record<string, TargetPoint>;
   categorySlug: string;
+  interactive?: boolean;
 }) {
   const stroke =
     categorySlug === "akarsular"
@@ -399,28 +448,44 @@ function ShapeLayer({
   return (
     <svg
       viewBox={`0 0 ${MAP_W} ${MAP_H}`}
-      className="pointer-events-none absolute inset-0 h-full w-full"
+      className={cn("absolute inset-0 h-full w-full", !interactive && "pointer-events-none")}
       preserveAspectRatio="xMidYMid meet"
     >
       {targets.map((t) => {
-        if (!t.shape || !placed[t.id]) return null;
+        if (!t.shape) return null;
         const isLine = t.shape.type === "polyline";
+        const isPlaced = !!placed[t.id];
         return (
           <path
             key={t.id}
             d={t.shape.d}
-            fill={isLine ? "none" : fill}
-            stroke={stroke}
-            strokeWidth={isLine ? 2.2 : 1.2}
+            fill={isLine ? "none" : isPlaced ? fill : "rgba(100,116,139,0.18)"}
+            stroke={isPlaced ? stroke : "rgba(71,85,105,0.7)"}
+            strokeWidth={isLine ? (isPlaced ? 2.2 : 1.6) : 1.2}
+            strokeDasharray={isPlaced ? undefined : isLine ? "4 3" : "2 2"}
             strokeLinecap="round"
             strokeLinejoin="round"
-            opacity={0.95}
+            opacity={isPlaced ? 0.95 : 0.85}
+            pointerEvents="none"
           />
         );
       })}
+      {interactive
+        ? targets.map((t) =>
+            t.shape && !placed[t.id] ? (
+              <ShapeDropPath
+                key={`drop-${t.id}`}
+                id={t.id}
+                d={t.shape.d}
+                isLine={t.shape.type === "polyline"}
+              />
+            ) : null,
+          )
+        : null}
     </svg>
   );
 }
+
 
 const Card = memo(function Card({ id, name, shake }: { id: string; name: string; shake: boolean }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id });
