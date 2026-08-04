@@ -1278,17 +1278,20 @@ export function GameBoard({ category }: { category: Category }) {
               key={category.slug + (containerW > 0 ? "-ready" : "-init")}
               ref={zoomRef}
               initialScale={focusScale}
-              minScale={focusScale}
-              maxScale={isFocused ? focusScale : 5}
+              minScale={0.9}
+              maxScale={8}
               doubleClick={{ disabled: true }}
-              wheel={{ disabled: isFocused, step: 0.15 }}
-              pinch={{ disabled: isFocused, step: 5 }}
-              panning={{ disabled: isFocused, velocityDisabled: true }}
+              wheel={{ step: 0.15 }}
+              pinch={{ step: 5 }}
+              panning={{ velocityDisabled: true }}
               limitToBounds={true}
               centerOnInit={!focus}
             >
               <>
-                {!isFocused && <ZoomControls />}
+                <ZoomControls
+                  revealAll={revealAll}
+                  onToggleRevealAll={() => setRevealAll((v) => !v)}
+                />
                 <TransformComponent
                   wrapperClass="!w-full !h-full !overflow-hidden !rounded-2xl !border !border-cyan-200 !bg-gradient-to-br !from-white !via-sky-50 !to-cyan-50 !shadow-xl !shadow-cyan-500/10"
                   contentClass="!w-full"
@@ -1339,17 +1342,20 @@ export function GameBoard({ category }: { category: Category }) {
                 key={category.slug + (containerW > 0 ? "-ready" : "-init")}
                 ref={zoomRef}
                 initialScale={focusScale}
-                minScale={focusScale}
-                maxScale={isFocused ? focusScale : 5}
-                doubleClick={{ disabled: isFocused, mode: "toggle", step: 1.5 }}
-                wheel={{ disabled: isFocused, step: 0.15 }}
-                pinch={{ disabled: isFocused, step: 5 }}
-                panning={{ disabled: isFocused, velocityDisabled: true }}
+                minScale={0.9}
+                maxScale={8}
+                doubleClick={{ mode: "toggle", step: 1.5 }}
+                wheel={{ step: 0.15 }}
+                pinch={{ step: 5 }}
+                panning={{ velocityDisabled: true }}
                 limitToBounds={true}
                 centerOnInit={!focus}
               >
                 <>
-                  {!isFocused && <ZoomControls />}
+                  <ZoomControls
+                    revealAll={revealAll}
+                    onToggleRevealAll={() => setRevealAll((v) => !v)}
+                  />
                   <TransformComponent
                     wrapperClass="!w-full !h-full !overflow-hidden !rounded-2xl !border !border-cyan-200 !bg-gradient-to-br !from-white !via-sky-50 !to-cyan-50 !shadow-xl !shadow-cyan-500/10"
                     contentClass="!w-full"
