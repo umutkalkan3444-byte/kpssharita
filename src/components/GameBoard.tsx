@@ -517,37 +517,42 @@ const Card = memo(function Card({ id, name, shake }: { id: string; name: string;
   );
 });
 
-function ZoomControls() {
+function ZoomControls({
+  revealAll,
+  onToggleRevealAll,
+}: {
+  revealAll?: boolean;
+  onToggleRevealAll?: () => void;
+}) {
   const { zoomIn, zoomOut, resetTransform } = useControls();
+  const btn =
+    "grid h-8 w-8 place-items-center rounded-lg border border-cyan-200 bg-white/90 text-slate-700 shadow-md backdrop-blur transition hover:bg-white";
   return (
     <div className="absolute right-2 top-2 z-10 flex flex-col gap-1">
-      <button
-        type="button"
-        onClick={() => zoomIn()}
-        aria-label="Yakınlaştır"
-        className="grid h-8 w-8 place-items-center rounded-lg border border-cyan-200 bg-white/90 text-slate-700 shadow-md backdrop-blur transition hover:bg-white"
-      >
+      <button type="button" onClick={() => zoomIn()} aria-label="Yakınlaştır" className={btn}>
         <ZoomIn className="h-3.5 w-3.5" />
       </button>
-      <button
-        type="button"
-        onClick={() => zoomOut()}
-        aria-label="Uzaklaştır"
-        className="grid h-8 w-8 place-items-center rounded-lg border border-cyan-200 bg-white/90 text-slate-700 shadow-md backdrop-blur transition hover:bg-white"
-      >
+      <button type="button" onClick={() => zoomOut()} aria-label="Uzaklaştır" className={btn}>
         <ZoomOut className="h-3.5 w-3.5" />
       </button>
-      <button
-        type="button"
-        onClick={() => resetTransform()}
-        aria-label="Sıfırla"
-        className="grid h-8 w-8 place-items-center rounded-lg border border-cyan-200 bg-white/90 text-slate-700 shadow-md backdrop-blur transition hover:bg-white"
-      >
+      <button type="button" onClick={() => resetTransform()} aria-label="Sıfırla" className={btn}>
         <Maximize2 className="h-3.5 w-3.5" />
       </button>
+      {onToggleRevealAll ? (
+        <button
+          type="button"
+          onClick={onToggleRevealAll}
+          aria-label={revealAll ? "Cevapları gizle" : "Tüm cevapları göster"}
+          title={revealAll ? "Cevapları gizle" : "Tüm cevapları göster (öğrenme modu)"}
+          className={cn(btn, revealAll && "border-amber-400 bg-amber-100 text-amber-800")}
+        >
+          {revealAll ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+        </button>
+      ) : null}
     </div>
   );
 }
+
 
 function ArenaPressure({ remaining, total }: { remaining: number; total: number }) {
   const threshold = Math.max(3, Math.ceil(total * 0.3));
