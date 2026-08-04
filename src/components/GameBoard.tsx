@@ -1250,7 +1250,7 @@ export function GameBoard({ category }: { category: Category }) {
             <>
               <span className="text-emerald-700">{category.title}</span>
               <span className="ml-1 text-slate-500 font-semibold text-xs sm:text-sm max-lg:landscape:text-[10px]">
-                — üretim illerini bul
+                {category.slug === "buyuksehirler" ? "— doğru illere tıkla" : "— üretim illerini bul"}
               </span>
             </>
           ) : (
