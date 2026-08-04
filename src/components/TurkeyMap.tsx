@@ -267,10 +267,11 @@ export function TurkeyMap({
       <g>
         {provinces.map((p) => {
           const key = normalizePlaceName(p.name);
-          const isHighlighted = highlightSet.has(key);
+          const isHint = hintSet.has(key);
+          const isHighlighted = highlightSet.has(key) && !isHint;
           const isWrong = wrongSet.has(key);
           const claimTone = claimMap.get(key);
-          const isLocked = isHighlighted || isWrong || !!claimTone;
+          const isLocked = isHighlighted || isWrong || isHint || !!claimTone;
           const dropTarget = dropTargetMap.get(key);
           let fill: string = `url(#${fillGradientId})`;
           let stroke = "rgba(15,118,155,0.45)";
@@ -293,6 +294,10 @@ export function TurkeyMap({
           } else if (claimTone === "blue") {
             fill = "#60a5fa";
             stroke = "rgba(30,64,175,0.78)";
+            strokeWidth = 0.9;
+          } else if (isHint) {
+            fill = "#facc15";
+            stroke = "rgba(133,77,14,0.75)";
             strokeWidth = 0.9;
           } else if (isHighlighted) {
             fill = "#10b981";
