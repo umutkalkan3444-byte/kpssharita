@@ -1055,6 +1055,30 @@ export function GameBoard({ category }: { category: Category }) {
     }
   };
 
+  const useJoker = () => {
+    if (!isClickMode || doneRef.current) return;
+    const takenNames = new Set(
+      [...Object.values(placedRef.current).map((t) => t.name), ...hintProvinces].map(
+        normalizePlaceName,
+      ),
+    );
+    const remaining = targets.filter(
+      (t) => !placedRef.current[t.id] && !takenNames.has(normalizePlaceName(t.name)),
+    );
+    if (remaining.length === 0) return;
+    const pick = remaining[Math.floor(Math.random() * remaining.length)];
+    setHintProvinces((current) => [...current, pick.name]);
+    const committed = commitCorrectTarget(pick.id, pick);
+    if (committed?.nextCorrect === gameTotal) {
+      finalize(
+        committed.nextCorrect,
+        wrongCountRef.current,
+        wrongIdsRef.current,
+        committed.arenaSnapshot,
+      );
+    }
+  };
+
   const finalize = (
     correct: number,
     wrong: number,
@@ -1111,6 +1135,8 @@ export function GameBoard({ category }: { category: Category }) {
     wrongIdsRef.current = [];
     setWrongProvinces([]);
     wrongProvincesRef.current = [];
+    setHintProvinces([]);
+    setRevealAll(false);
     setStudyMistakes([]);
     setCorrectCount(0);
     correctCountRef.current = 0;
@@ -1272,7 +1298,7 @@ export function GameBoard({ category }: { category: Category }) {
 
       {isClickMode ? (
         // Click-mode: harita tam genişlik, kart paneli yok
-        <div className="flex flex-1 min-h-0 flex-col">
+        <div className="flex flex-1 min-h-0 flex-row gap-2">
           <div className="relative flex-1 min-h-0" ref={mapWrapRef}>
             <TransformWrapper
               key={category.slug + (containerW > 0 ? "-ready" : "-init")}
@@ -1302,6 +1328,7 @@ export function GameBoard({ category }: { category: Category }) {
                       variant={category.mapVariant}
                       highlightedProvinces={highlightedProvinces}
                       wrongProvinces={displayedWrongProvinces}
+                      hintProvinces={hintProvinces}
                       onProvinceClick={onProvinceClick}
                       interactive
                     />
@@ -1310,11 +1337,28 @@ export function GameBoard({ category }: { category: Category }) {
               </>
             </TransformWrapper>
           </div>
+          <div className="w-[104px] shrink-0 sm:w-[140px]">
+            <button
+              type="button"
+              onClick={useJoker}
+              disabled={done || correctCount >= gameTotal}
+              className="flex w-full flex-col items-center gap-1 rounded-2xl border border-amber-300 bg-gradient-to-b from-amber-100 to-amber-50 px-2 py-3 text-center text-[11px] font-black text-amber-800 shadow-md transition active:scale-95 disabled:opacity-40 sm:text-xs"
+            >
+              <Lightbulb className="h-5 w-5" />
+              Joker
+              <span className="text-[9px] font-semibold leading-tight text-amber-700/80">
+                Bir doğru cevabı sarı göster
+              </span>
+            </button>
+            <div className="mt-2 rounded-2xl bg-white/60 p-2 text-[10px] font-semibold leading-tight text-slate-500 ring-1 ring-cyan-100">
+              Joker ile açılan iller <span className="text-amber-600">sarı</span> renkte kalır.
+            </div>
+          </div>
         </div>
       ) : (
         <DndContext
           sensors={sensors}
-          collisionDetection={isAllProvinces ? exactProvinceCollision : pointerWithin}
+          collisionDetection={hybridCollision}
           modifiers={[snapCenterToCursor]}
           onDragStart={(e) => {
             const cardId = String(e.active.id);
@@ -1334,7 +1378,7 @@ export function GameBoard({ category }: { category: Category }) {
           <div
             className={cn(
               "flex flex-1 min-h-0 flex-col gap-3 max-lg:landscape:flex-row max-lg:landscape:gap-2",
-              isAllProvinces && "lg:flex-row",
+              isProvinceDrag && "lg:flex-row",
             )}
           >
             <div className="relative flex-1 min-h-0" ref={mapWrapRef}>
@@ -1377,20 +1421,25 @@ export function GameBoard({ category }: { category: Category }) {
                         targets={targets}
                         placed={displayedPlaced}
                         categorySlug={category.slug}
+                        interactive={!revealAll}
                       />
-                      {!isAllProvinces ? (
+                      {!isProvinceDrag ? (
                         <TargetGuideLayer targets={targets} placed={displayedPlaced} />
                       ) : null}
                       <div className="absolute inset-0">
-                        {!isAllProvinces
-                          ? targets.map((t) => (
-                              <DropDot
-                                key={t.id}
-                                t={t}
-                                placed={!!displayedPlaced[t.id]}
-                                claimTone={arenaClaimsById[t.id]}
-                              />
-                            ))
+                        {!isProvinceDrag
+                          ? targets.map((t) =>
+                              // Şekli olan hedeflerin kendisi sürükleme alanıdır;
+                              // yerleşmeden beyaz nokta gösterilmez.
+                              t.shape && !displayedPlaced[t.id] ? null : (
+                                <DropDot
+                                  key={t.id}
+                                  t={t}
+                                  placed={!!displayedPlaced[t.id]}
+                                  claimTone={arenaClaimsById[t.id]}
+                                />
+                              ),
+                            )
                           : null}
                       </div>
                     </div>
@@ -1403,7 +1452,7 @@ export function GameBoard({ category }: { category: Category }) {
             <div
               className={cn(
                 "max-lg:landscape:w-[200px] max-lg:landscape:flex-shrink-0",
-                isAllProvinces && "lg:w-[220px] lg:flex-shrink-0",
+                isProvinceDrag && "lg:w-[220px] lg:flex-shrink-0",
               )}
             >
               <div className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500 max-lg:landscape:hidden">
@@ -1412,7 +1461,7 @@ export function GameBoard({ category }: { category: Category }) {
               <div
                 className={cn(
                   "max-h-[32vh] overflow-y-auto rounded-2xl bg-white/50 p-2 ring-1 ring-cyan-100 max-lg:landscape:max-h-full max-lg:landscape:h-full",
-                  isAllProvinces && "lg:max-h-[68vh]",
+                  isProvinceDrag && "lg:max-h-[68vh]",
                 )}
               >
                 <div className="flex flex-wrap items-start justify-start gap-1.5 max-lg:landscape:flex-col max-lg:landscape:flex-nowrap">
