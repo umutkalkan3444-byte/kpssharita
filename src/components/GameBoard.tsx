@@ -35,6 +35,8 @@ import {
   Eye,
   EyeOff,
   Lightbulb,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 import { Link, useRouter } from "@tanstack/react-router";
 import {
