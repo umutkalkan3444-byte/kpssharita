@@ -455,26 +455,58 @@ function ShapeLayer({
   categorySlug: string;
   interactive?: boolean;
 }) {
-  const stroke =
-    categorySlug === "akarsular"
-      ? "#0284c7"
-      : categorySlug.includes("dag") ||
-          categorySlug === "kivrim-daglari" ||
-          categorySlug === "kirik-daglari"
-        ? "#78350f"
-        : "#065f46";
+  const isWind = categorySlug === "ruzgarlar";
+  const isRoad = categorySlug === "otoyollar";
+  const stroke = isWind
+    ? "#0f766e"
+    : isRoad
+      ? "#1e3a8a"
+      : categorySlug === "akarsular"
+        ? "#0284c7"
+        : categorySlug.includes("dag") ||
+            categorySlug === "kivrim-daglari" ||
+            categorySlug === "kirik-daglari"
+          ? "#78350f"
+          : "#065f46";
   const fill =
     categorySlug === "akarsular"
       ? "none"
       : categorySlug === "delta-ovalari"
         ? "rgba(16,185,129,0.55)"
         : "rgba(14,165,233,0.55)";
+  const ghostStroke = "rgba(71,85,105,0.7)";
   return (
     <svg
       viewBox={`0 0 ${MAP_W} ${MAP_H}`}
       className={cn("absolute inset-0 h-full w-full", !interactive && "pointer-events-none")}
       preserveAspectRatio="xMidYMid meet"
     >
+      {isWind ? (
+        <defs>
+          <marker
+            id="wind-arrow-ghost"
+            viewBox="0 0 10 10"
+            refX="8"
+            refY="5"
+            markerWidth="5"
+            markerHeight="5"
+            orient="auto-start-reverse"
+          >
+            <path d="M0,0 L10,5 L0,10 z" fill={ghostStroke} />
+          </marker>
+          <marker
+            id="wind-arrow-placed"
+            viewBox="0 0 10 10"
+            refX="8"
+            refY="5"
+            markerWidth="5"
+            markerHeight="5"
+            orient="auto-start-reverse"
+          >
+            <path d="M0,0 L10,5 L0,10 z" fill={stroke} />
+          </marker>
+        </defs>
+      ) : null}
       {targets.map((t) => {
         if (!t.shape) return null;
         const isLine = t.shape.type === "polyline";
@@ -484,12 +516,17 @@ function ShapeLayer({
             key={t.id}
             d={t.shape.d}
             fill={isLine ? "none" : isPlaced ? fill : "rgba(100,116,139,0.18)"}
-            stroke={isPlaced ? stroke : "rgba(71,85,105,0.7)"}
+            stroke={isPlaced ? stroke : ghostStroke}
             strokeWidth={isLine ? (isPlaced ? 2.2 : 1.6) : 1.2}
             strokeDasharray={isPlaced ? undefined : isLine ? "4 3" : "2 2"}
             strokeLinecap="round"
             strokeLinejoin="round"
             opacity={isPlaced ? 0.95 : 0.85}
+            markerEnd={
+              isWind && isLine
+                ? `url(#${isPlaced ? "wind-arrow-placed" : "wind-arrow-ghost"})`
+                : undefined
+            }
             pointerEvents="none"
           />
         );
@@ -506,6 +543,48 @@ function ShapeLayer({
             ) : null,
           )
         : null}
+    </svg>
+  );
+}
+
+/** Sınır kapıları oyununda komşu ülke sınırlarını gösterir. */
+function NeighborBorderLayer() {
+  return (
+    <svg
+      viewBox={`0 0 ${MAP_W} ${MAP_H}`}
+      className="pointer-events-none absolute inset-0 h-full w-full"
+      preserveAspectRatio="xMidYMid meet"
+      aria-hidden="true"
+    >
+      {NEIGHBOR_BORDERS.map((border) => {
+        const label = borderLabelPoint(border);
+        return (
+          <g key={border.country}>
+            <path
+              d={borderPath(border)}
+              fill="none"
+              stroke={border.color}
+              strokeWidth={2.6}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              opacity={0.85}
+            />
+            <text
+              x={label.x}
+              y={label.y - 5}
+              textAnchor="middle"
+              fill={border.color}
+              stroke="rgba(255,255,255,0.95)"
+              strokeWidth={1.1}
+              paintOrder="stroke"
+              fontSize={9}
+              fontWeight={800}
+            >
+              {border.country}
+            </text>
+          </g>
+        );
+      })}
     </svg>
   );
 }
