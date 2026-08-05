@@ -1518,22 +1518,27 @@ export function GameBoard({ category }: { category: Category }) {
                         className="absolute inset-0 h-full w-full"
                         variant={category.mapVariant}
                         highlightedProvinces={highlightedProvinces}
+                        wrongProvinces={displayedWrongProvinces}
+                        hintProvinces={hintProvinces}
                         provinceDropTargets={provinceDropTargets}
                         placedProvinceLabels={placedProvinceLabels}
                         provinceClaims={provinceClaims}
+                        onProvinceClick={hasClick ? onProvinceClick : undefined}
+                        interactive={hasClick}
                       />
+                      {showNeighbors ? <NeighborBorderLayer /> : null}
                       <ShapeLayer
-                        targets={targets}
+                        targets={dragTargets}
                         placed={displayedPlaced}
                         categorySlug={category.slug}
                         interactive={!revealAll}
                       />
                       {!isProvinceDrag ? (
-                        <TargetGuideLayer targets={targets} placed={displayedPlaced} />
+                        <TargetGuideLayer targets={dragTargets} placed={displayedPlaced} />
                       ) : null}
                       <div className="absolute inset-0">
                         {!isProvinceDrag
-                          ? targets.map((t) =>
+                          ? dragTargets.map((t) =>
                               // Şekli olan hedeflerin kendisi sürükleme alanıdır;
                               // yerleşmeden beyaz nokta gösterilmez.
                               t.shape && !displayedPlaced[t.id] ? null : (
