@@ -35,6 +35,8 @@ import {
   Eye,
   EyeOff,
   Lightbulb,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 import { Link, useRouter } from "@tanstack/react-router";
 import {
@@ -58,6 +60,8 @@ import { getCompetitiveMode } from "@/lib/competitive-mode";
 import { findProvinceDropIdAtPoint, PROVINCE_DROP_KIND } from "@/lib/province-drop-target";
 import { mistakeKey, type StudyMistake, type StudyReviewRequest } from "@/lib/study/schemas";
 import { buildCardLabels } from "@/lib/card-label";
+import { splitGameItems, gameModeLabel } from "@/lib/game-mode";
+import { NEIGHBOR_BORDERS, borderPath, borderLabelPoint } from "@/data/neighbors";
 
 const PostGameStudy = lazy(() =>
   import("@/components/study/PostGameStudy").then((module) => ({
@@ -451,26 +455,58 @@ function ShapeLayer({
   categorySlug: string;
   interactive?: boolean;
 }) {
-  const stroke =
-    categorySlug === "akarsular"
-      ? "#0284c7"
-      : categorySlug.includes("dag") ||
-          categorySlug === "kivrim-daglari" ||
-          categorySlug === "kirik-daglari"
-        ? "#78350f"
-        : "#065f46";
+  const isWind = categorySlug === "ruzgarlar";
+  const isRoad = categorySlug === "otoyollar";
+  const stroke = isWind
+    ? "#0f766e"
+    : isRoad
+      ? "#1e3a8a"
+      : categorySlug === "akarsular"
+        ? "#0284c7"
+        : categorySlug.includes("dag") ||
+            categorySlug === "kivrim-daglari" ||
+            categorySlug === "kirik-daglari"
+          ? "#78350f"
+          : "#065f46";
   const fill =
     categorySlug === "akarsular"
       ? "none"
       : categorySlug === "delta-ovalari"
         ? "rgba(16,185,129,0.55)"
         : "rgba(14,165,233,0.55)";
+  const ghostStroke = "rgba(71,85,105,0.7)";
   return (
     <svg
       viewBox={`0 0 ${MAP_W} ${MAP_H}`}
       className={cn("absolute inset-0 h-full w-full", !interactive && "pointer-events-none")}
       preserveAspectRatio="xMidYMid meet"
     >
+      {isWind ? (
+        <defs>
+          <marker
+            id="wind-arrow-ghost"
+            viewBox="0 0 10 10"
+            refX="8"
+            refY="5"
+            markerWidth="5"
+            markerHeight="5"
+            orient="auto-start-reverse"
+          >
+            <path d="M0,0 L10,5 L0,10 z" fill={ghostStroke} />
+          </marker>
+          <marker
+            id="wind-arrow-placed"
+            viewBox="0 0 10 10"
+            refX="8"
+            refY="5"
+            markerWidth="5"
+            markerHeight="5"
+            orient="auto-start-reverse"
+          >
+            <path d="M0,0 L10,5 L0,10 z" fill={stroke} />
+          </marker>
+        </defs>
+      ) : null}
       {targets.map((t) => {
         if (!t.shape) return null;
         const isLine = t.shape.type === "polyline";
@@ -480,12 +516,17 @@ function ShapeLayer({
             key={t.id}
             d={t.shape.d}
             fill={isLine ? "none" : isPlaced ? fill : "rgba(100,116,139,0.18)"}
-            stroke={isPlaced ? stroke : "rgba(71,85,105,0.7)"}
+            stroke={isPlaced ? stroke : ghostStroke}
             strokeWidth={isLine ? (isPlaced ? 2.2 : 1.6) : 1.2}
             strokeDasharray={isPlaced ? undefined : isLine ? "4 3" : "2 2"}
             strokeLinecap="round"
             strokeLinejoin="round"
             opacity={isPlaced ? 0.95 : 0.85}
+            markerEnd={
+              isWind && isLine
+                ? `url(#${isPlaced ? "wind-arrow-placed" : "wind-arrow-ghost"})`
+                : undefined
+            }
             pointerEvents="none"
           />
         );
@@ -502,6 +543,48 @@ function ShapeLayer({
             ) : null,
           )
         : null}
+    </svg>
+  );
+}
+
+/** Sınır kapıları oyununda komşu ülke sınırlarını gösterir. */
+function NeighborBorderLayer() {
+  return (
+    <svg
+      viewBox={`0 0 ${MAP_W} ${MAP_H}`}
+      className="pointer-events-none absolute inset-0 h-full w-full"
+      preserveAspectRatio="xMidYMid meet"
+      aria-hidden="true"
+    >
+      {NEIGHBOR_BORDERS.map((border) => {
+        const label = borderLabelPoint(border);
+        return (
+          <g key={border.country}>
+            <path
+              d={borderPath(border)}
+              fill="none"
+              stroke={border.color}
+              strokeWidth={2.6}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              opacity={0.85}
+            />
+            <text
+              x={label.x}
+              y={label.y - 5}
+              textAnchor="middle"
+              fill={border.color}
+              stroke="rgba(255,255,255,0.95)"
+              strokeWidth={1.1}
+              paintOrder="stroke"
+              fontSize={9}
+              fontWeight={800}
+            >
+              {border.country}
+            </text>
+          </g>
+        );
+      })}
     </svg>
   );
 }
@@ -624,21 +707,31 @@ export function GameBoard({ category }: { category: Category }) {
   const targets = useMemo(() => targetsFor(category), [category]);
   const targetById = useMemo(() => Object.fromEntries(targets.map((t) => [t.id, t])), [targets]);
 
-  // Tarım & Hayvancılık → "il tıklama" modu (sürükleme yok, harita büyük).
-  // "Tüm ..." alt kategorileri (item adları ürün adı olan) klasik sürükleme modunda kalır.
-  const isClickMode =
-    ((category.mainSlug === "tarim" || category.mainSlug === "hayvancilik") &&
-      !category.slug.startsWith("tum-")) ||
-    category.slug === "buyuksehirler";
+  // Kart "dümdüz il seçimi" ise tıklamalı, tesis/şekil ise sürüklemelidir.
+  // İkisi de varsa oyun karma çalışır.
+  const { clickItems, dragItems } = useMemo(
+    () => splitGameItems(category.slug, category.items),
+    [category.items, category.slug],
+  );
+  const hasClick = clickItems.length > 0;
+  const hasDrag = dragItems.length > 0;
+  const isClickMode = hasClick && !hasDrag;
+  const modeBadge = gameModeLabel(hasClick, hasDrag);
+  const clickIds = useMemo(() => new Set(clickItems.map((item) => item.id)), [clickItems]);
+  const dragTargets = useMemo(
+    () => targets.filter((target) => !clickIds.has(target.id)),
+    [clickIds, targets],
+  );
   const isAllProvinces = category.slug === "iller-81";
+  const showNeighbors = category.slug === "sinir-kapilari";
   // Tüm kart adları gerçek il adıysa sürükleme hedefi ilin kendi sınırıdır
   // (beyaz nokta yok; sınır çerçevesi vurgulanır).
   const isProvinceDrag = useMemo(
-    () => !isClickMode && allNamesAreProvinces(category.items),
-    [category.items, isClickMode],
+    () => hasDrag && allNamesAreProvinces(dragItems),
+    [dragItems, hasDrag],
   );
 
-  const [cards, setCards] = useState(() => shuffle(category.items));
+  const [cards, setCards] = useState(() => shuffle(dragItems));
   const [placed, setPlaced] = useState<Placed>({});
   const [wrongIds, setWrongIds] = useState<string[]>([]);
   const [shakeTarget, setShakeTarget] = useState<{
@@ -661,7 +754,7 @@ export function GameBoard({ category }: { category: Category }) {
   const arenaTurnRef = useRef<ArenaPlayerId>("red");
   const [arenaPlayers, setArenaPlayers] = useState<ArenaPlayers>(emptyArenaPlayers);
   const arenaPlayersRef = useRef<ArenaPlayers>(emptyArenaPlayers());
-  const [arenaCards, setArenaCards] = useState<ArenaCards>(() => initialArenaCards(category.items));
+  const [arenaCards, setArenaCards] = useState<ArenaCards>(() => initialArenaCards(dragItems));
   const arenaCardsRef = useRef<ArenaCards>(arenaCards);
   const [arenaPlaced, setArenaPlaced] = useState<ArenaPlaced>(emptyArenaPlaced);
   const arenaPlacedRef = useRef<ArenaPlaced>(emptyArenaPlaced());
@@ -738,19 +831,22 @@ export function GameBoard({ category }: { category: Category }) {
   const displayedPlaced = revealAll ? allPlacedPreview : placed;
   const displayedWrongProvinces = isCompetitive ? arenaWrongProvinces[arenaTurn] : wrongProvinces;
   const highlightedProvinces = useMemo(
-    () => (isIlleri ? Object.values(displayedPlaced).map((p) => p.name) : []),
-    [displayedPlaced, isIlleri],
+    () =>
+      Object.values(displayedPlaced)
+        .filter((p) => isIlleri || clickIds.has(p.id))
+        .map((p) => p.name),
+    [clickIds, displayedPlaced, isIlleri],
   );
   const provinceDropTargets = useMemo(
     () =>
       isProvinceDrag
-        ? targets.map((target) => ({
+        ? dragTargets.map((target) => ({
             provinceName: target.name,
             dropId: target.id,
             disabled: !!placed[target.id],
           }))
         : undefined,
-    [isProvinceDrag, placed, targets],
+    [dragTargets, isProvinceDrag, placed],
   );
   const placedProvinceLabels = useMemo(
     () =>
@@ -791,6 +887,12 @@ export function GameBoard({ category }: { category: Category }) {
 
   const mapWrapRef = useRef<HTMLDivElement>(null);
   const mapSurfaceRef = useRef<HTMLDivElement>(null);
+  const cardScrollRef = useRef<HTMLDivElement>(null);
+  const scrollCards = useCallback((direction: -1 | 1) => {
+    const el = cardScrollRef.current;
+    if (!el) return;
+    el.scrollBy({ top: direction * Math.max(120, el.clientHeight * 0.7), behavior: "smooth" });
+  }, []);
   const zoomRef = useRef<ReactZoomPanPinchRef | null>(null);
   const [containerW, setContainerW] = useState(0);
 
@@ -994,17 +1096,19 @@ export function GameBoard({ category }: { category: Category }) {
     }
   };
 
-  // Click-mode: il tıklama akışı (sadece tarım/hayvancılık)
+  // Tıklamalı akış: kart "dümdüz il" olan hedefler haritadan tıklanarak bulunur.
+  const clickTargets = useMemo(
+    () => targets.filter((target) => clickIds.has(target.id)),
+    [clickIds, targets],
+  );
   const answerMap = useMemo(() => {
     const m = new Map<string, TargetPoint>();
-    if (isClickMode) {
-      for (const t of targets) m.set(normalizePlaceName(t.name), t);
-    }
+    for (const t of clickTargets) m.set(normalizePlaceName(t.name), t);
     return m;
-  }, [targets, isClickMode]);
+  }, [clickTargets]);
 
   const handleProvinceClick = (provinceName: string) => {
-    if (!isClickMode || doneRef.current) return;
+    if (!hasClick || doneRef.current) return;
     const key = normalizePlaceName(provinceName);
     const playerId = arenaTurnRef.current;
     const currentPlaced = isCompetitive ? arenaPlacedRef.current[playerId] : placedRef.current;
@@ -1056,13 +1160,13 @@ export function GameBoard({ category }: { category: Category }) {
   };
 
   const takeJoker = () => {
-    if (!isClickMode || doneRef.current) return;
+    if (!hasClick || doneRef.current) return;
     const takenNames = new Set(
       [...Object.values(placedRef.current).map((t) => t.name), ...hintProvinces].map(
         normalizePlaceName,
       ),
     );
-    const remaining = targets.filter(
+    const remaining = clickTargets.filter(
       (t) => !placedRef.current[t.id] && !takenNames.has(normalizePlaceName(t.name)),
     );
     if (remaining.length === 0) return;
@@ -1118,8 +1222,8 @@ export function GameBoard({ category }: { category: Category }) {
     setShakeTarget(null);
     runGenerationRef.current += 1;
     activeDragRef.current = null;
-    const nextCards = shuffle(category.items);
-    const nextArenaCards = initialArenaCards(category.items);
+    const nextCards = shuffle(dragItems);
+    const nextArenaCards = initialArenaCards(dragItems);
     const nextArenaPlaced = emptyArenaPlaced();
     const nextArenaWrong = emptyArenaWrongProvinces();
     setCards(nextCards);
@@ -1246,16 +1350,17 @@ export function GameBoard({ category }: { category: Category }) {
 
         <h1 className="min-w-0 truncate text-base font-black tracking-tight text-slate-900 sm:text-2xl max-lg:landscape:text-sm">
           <span className="mr-2">{category.emoji}</span>
+          <span className={isClickMode ? "text-emerald-700" : undefined}>{category.title}</span>
+          {modeBadge ? (
+            <span className="ml-1 font-semibold text-xs text-cyan-700 sm:text-sm max-lg:landscape:text-[10px]">
+              ({modeBadge})
+            </span>
+          ) : null}
           {isClickMode ? (
-            <>
-              <span className="text-emerald-700">{category.title}</span>
-              <span className="ml-1 text-slate-500 font-semibold text-xs sm:text-sm max-lg:landscape:text-[10px]">
-                {category.slug === "buyuksehirler" ? "— doğru illere tıkla" : "— üretim illerini bul"}
-              </span>
-            </>
-          ) : (
-            category.title
-          )}
+            <span className="ml-1 text-slate-500 font-semibold text-xs sm:text-sm max-lg:landscape:text-[10px]">
+              {category.slug === "buyuksehirler" ? "— doğru illere tıkla" : "— doğru illere tıkla"}
+            </span>
+          ) : null}
         </h1>
 
         <div className="flex items-center justify-end gap-1.5 text-sm text-slate-700 sm:gap-2">
@@ -1413,22 +1518,27 @@ export function GameBoard({ category }: { category: Category }) {
                         className="absolute inset-0 h-full w-full"
                         variant={category.mapVariant}
                         highlightedProvinces={highlightedProvinces}
+                        wrongProvinces={displayedWrongProvinces}
+                        hintProvinces={hintProvinces}
                         provinceDropTargets={provinceDropTargets}
                         placedProvinceLabels={placedProvinceLabels}
                         provinceClaims={provinceClaims}
+                        onProvinceClick={hasClick ? onProvinceClick : undefined}
+                        interactive={hasClick}
                       />
+                      {showNeighbors ? <NeighborBorderLayer /> : null}
                       <ShapeLayer
-                        targets={targets}
+                        targets={dragTargets}
                         placed={displayedPlaced}
                         categorySlug={category.slug}
                         interactive={!revealAll}
                       />
                       {!isProvinceDrag ? (
-                        <TargetGuideLayer targets={targets} placed={displayedPlaced} />
+                        <TargetGuideLayer targets={dragTargets} placed={displayedPlaced} />
                       ) : null}
                       <div className="absolute inset-0">
                         {!isProvinceDrag
-                          ? targets.map((t) =>
+                          ? dragTargets.map((t) =>
                               // Şekli olan hedeflerin kendisi sürükleme alanıdır;
                               // yerleşmeden beyaz nokta gösterilmez.
                               t.shape && !displayedPlaced[t.id] ? null : (
@@ -1455,10 +1565,42 @@ export function GameBoard({ category }: { category: Category }) {
                 isProvinceDrag && "lg:w-[220px] lg:flex-shrink-0",
               )}
             >
-              <div className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500 max-lg:landscape:hidden">
-                Kartları haritaya sürükle
+              <div className="mb-1 flex items-center justify-between gap-2">
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                  Kartları haritaya sürükle
+                </span>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    aria-label="Kartlarda yukarı kaydır"
+                    onClick={() => scrollCards(-1)}
+                    className="grid h-7 w-7 place-items-center rounded-full bg-white text-slate-600 shadow ring-1 ring-cyan-200 transition active:scale-95"
+                  >
+                    <ChevronUp className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Kartlarda aşağı kaydır"
+                    onClick={() => scrollCards(1)}
+                    className="grid h-7 w-7 place-items-center rounded-full bg-white text-slate-600 shadow ring-1 ring-cyan-200 transition active:scale-95"
+                  >
+                    <ChevronDown className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
+              {hasClick ? (
+                <button
+                  type="button"
+                  onClick={takeJoker}
+                  disabled={done || correctCount >= gameTotal}
+                  className="mb-2 flex w-full items-center justify-center gap-1.5 rounded-xl border border-amber-300 bg-gradient-to-b from-amber-100 to-amber-50 px-2 py-2 text-[11px] font-black text-amber-800 shadow-sm transition active:scale-95 disabled:opacity-40"
+                >
+                  <Lightbulb className="h-4 w-4" />
+                  Joker (il aç)
+                </button>
+              ) : null}
               <div
+                ref={cardScrollRef}
                 className={cn(
                   "max-h-[32vh] overflow-y-auto rounded-2xl bg-white/50 p-2 ring-1 ring-cyan-100 max-lg:landscape:max-h-full max-lg:landscape:h-full",
                   isProvinceDrag && "lg:max-h-[68vh]",

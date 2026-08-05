@@ -514,6 +514,196 @@ export const SHAPES: Record<string, ShapeDef> = {
       [36.32, 33.85],
     ],
   },
+
+  // ============ RÜZGARLAR (esiş yönü oku: kuyruk → uç) ============
+  "Poyraz (KD)": {
+    type: "polyline",
+    coords: [
+      [41.9, 34.6],
+      [41.2, 33.8],
+      [40.5, 33.0],
+    ],
+  },
+  "Yıldız (K)": {
+    type: "polyline",
+    coords: [
+      [42.05, 30.6],
+      [41.2, 30.5],
+      [40.4, 30.4],
+    ],
+  },
+  "Karayel (KB)": {
+    type: "polyline",
+    coords: [
+      [42.0, 27.2],
+      [41.3, 28.0],
+      [40.6, 28.8],
+    ],
+  },
+  "Lodos (GB)": {
+    type: "polyline",
+    coords: [
+      [38.6, 26.2],
+      [39.4, 27.2],
+      [40.1, 28.2],
+    ],
+  },
+  "Kıble (G)": {
+    type: "polyline",
+    coords: [
+      [36.1, 31.2],
+      [36.9, 31.1],
+      [37.7, 31.0],
+    ],
+  },
+  "Samyeli (GD)": {
+    type: "polyline",
+    coords: [
+      [36.6, 40.2],
+      [37.2, 39.4],
+      [37.8, 38.6],
+    ],
+  },
+
+  // ============ OTOYOLLAR (güzergâh) ============
+  "O-1 İstanbul 1. Çevre": {
+    type: "polyline",
+    coords: [
+      [41.0, 28.83],
+      [41.06, 28.95],
+      [41.03, 29.05],
+    ],
+  },
+  "O-2 İstanbul 2. Çevre": {
+    type: "polyline",
+    coords: [
+      [41.07, 28.68],
+      [41.12, 28.95],
+      [41.02, 29.28],
+    ],
+  },
+  "O-3 Edirne-İstanbul (TEM)": {
+    type: "polyline",
+    coords: [
+      [41.68, 26.6],
+      [41.5, 27.2],
+      [41.3, 27.8],
+      [41.15, 28.4],
+      [41.07, 28.68],
+    ],
+  },
+  "O-4 İstanbul-Ankara": {
+    type: "polyline",
+    coords: [
+      [41.0, 29.3],
+      [40.78, 30.0],
+      [40.6, 30.6],
+      [40.35, 31.4],
+      [40.15, 32.2],
+      [39.95, 32.85],
+    ],
+  },
+  "O-5 Gebze-Orhangazi-İzmir": {
+    type: "polyline",
+    coords: [
+      [40.8, 29.4],
+      [40.45, 29.3],
+      [40.2, 28.9],
+      [39.9, 28.4],
+      [39.4, 27.9],
+      [38.9, 27.5],
+      [38.45, 27.2],
+    ],
+  },
+  "O-7 Kuzey Marmara": {
+    type: "polyline",
+    coords: [
+      [41.25, 28.1],
+      [41.3, 28.8],
+      [41.2, 29.6],
+      [40.95, 30.1],
+    ],
+  },
+  "O-20 Ankara Çevre": {
+    type: "polyline",
+    coords: [
+      [39.83, 32.62],
+      [40.05, 32.72],
+      [40.03, 33.05],
+      [39.82, 33.05],
+      [39.83, 32.62],
+    ],
+  },
+  "O-21 Ankara-Niğde": {
+    type: "polyline",
+    coords: [
+      [39.82, 33.0],
+      [39.4, 33.3],
+      [38.9, 33.7],
+      [38.4, 34.2],
+      [37.97, 34.68],
+    ],
+  },
+  "O-30 İzmir Çevre": {
+    type: "polyline",
+    coords: [
+      [38.52, 27.05],
+      [38.45, 27.32],
+      [38.3, 27.22],
+    ],
+  },
+  "O-31 İzmir-Aydın-Denizli": {
+    type: "polyline",
+    coords: [
+      [38.35, 27.2],
+      [38.0, 27.6],
+      [37.85, 28.2],
+      [37.8, 28.7],
+      [37.78, 29.05],
+    ],
+  },
+  "O-32 İzmir-Çeşme": {
+    type: "polyline",
+    coords: [
+      [38.4, 27.1],
+      [38.35, 26.8],
+      [38.32, 26.4],
+    ],
+  },
+  "O-33 Menemen-Aliağa-Çandarlı": {
+    type: "polyline",
+    coords: [
+      [38.6, 27.07],
+      [38.8, 27.0],
+      [38.95, 26.93],
+    ],
+  },
+  "O-51 Mersin-Tarsus": {
+    type: "polyline",
+    coords: [
+      [36.8, 34.63],
+      [36.9, 34.9],
+      [37.0, 35.32],
+    ],
+  },
+  "O-52 Adana-Şanlıurfa": {
+    type: "polyline",
+    coords: [
+      [37.0, 35.32],
+      [37.05, 36.2],
+      [37.1, 37.0],
+      [37.15, 38.0],
+      [37.16, 38.79],
+    ],
+  },
+  "O-53 Ceyhan-İskenderun": {
+    type: "polyline",
+    coords: [
+      [37.02, 35.82],
+      [36.8, 36.0],
+      [36.6, 36.17],
+    ],
+  },
 };
 
 export function projectShapePath(def: ShapeDef): string {

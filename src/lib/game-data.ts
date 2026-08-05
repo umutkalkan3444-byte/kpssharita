@@ -80,6 +80,8 @@ const SHAPE_CATEGORY_SLUGS = new Set([
   "kirik-daglari",
   "volkanik-daglar",
   "delta-ovalari",
+  "ruzgarlar",
+  "otoyollar",
 ]);
 
 export function targetsFor(category: Category): TargetPoint[] {

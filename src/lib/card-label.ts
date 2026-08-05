@@ -30,6 +30,16 @@ const LOCATION_ALIASES = [
   "büyükçekmece",
   "küçükçekmece",
   "bergama",
+  // Sınır kapılarında komşu ülke adı ipucu vermemeli
+  "bulgaristan",
+  "yunanistan",
+  "gürcistan",
+  "ermenistan",
+  "nahçıvan",
+  "iran",
+  "irak",
+  "suriye",
+  "azerbaycan",
 ].map(normalizePlaceName);
 
 function isLocationHint(value: string): boolean {
