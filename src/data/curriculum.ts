@@ -1403,7 +1403,7 @@ export const MAIN_CATEGORIES: MainCategory[] = [
           at("Erzurum"),
           at("Elazig"),
           at("Malatya"),
-          at("Ankara", "Ankara-Etimesgut"),
+          at("Ankara"),
           at("Kutahya"),
           at("Van"),
           at("Erzincan"),
