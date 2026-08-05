@@ -1565,10 +1565,42 @@ export function GameBoard({ category }: { category: Category }) {
                 isProvinceDrag && "lg:w-[220px] lg:flex-shrink-0",
               )}
             >
-              <div className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500 max-lg:landscape:hidden">
-                Kartları haritaya sürükle
+              <div className="mb-1 flex items-center justify-between gap-2">
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                  Kartları haritaya sürükle
+                </span>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    aria-label="Kartlarda yukarı kaydır"
+                    onClick={() => scrollCards(-1)}
+                    className="grid h-7 w-7 place-items-center rounded-full bg-white text-slate-600 shadow ring-1 ring-cyan-200 transition active:scale-95"
+                  >
+                    <ChevronUp className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Kartlarda aşağı kaydır"
+                    onClick={() => scrollCards(1)}
+                    className="grid h-7 w-7 place-items-center rounded-full bg-white text-slate-600 shadow ring-1 ring-cyan-200 transition active:scale-95"
+                  >
+                    <ChevronDown className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
+              {hasClick ? (
+                <button
+                  type="button"
+                  onClick={takeJoker}
+                  disabled={done || correctCount >= gameTotal}
+                  className="mb-2 flex w-full items-center justify-center gap-1.5 rounded-xl border border-amber-300 bg-gradient-to-b from-amber-100 to-amber-50 px-2 py-2 text-[11px] font-black text-amber-800 shadow-sm transition active:scale-95 disabled:opacity-40"
+                >
+                  <Lightbulb className="h-4 w-4" />
+                  Joker (il aç)
+                </button>
+              ) : null}
               <div
+                ref={cardScrollRef}
                 className={cn(
                   "max-h-[32vh] overflow-y-auto rounded-2xl bg-white/50 p-2 ring-1 ring-cyan-100 max-lg:landscape:max-h-full max-lg:landscape:h-full",
                   isProvinceDrag && "lg:max-h-[68vh]",
