@@ -754,7 +754,7 @@ export function GameBoard({ category }: { category: Category }) {
   const arenaTurnRef = useRef<ArenaPlayerId>("red");
   const [arenaPlayers, setArenaPlayers] = useState<ArenaPlayers>(emptyArenaPlayers);
   const arenaPlayersRef = useRef<ArenaPlayers>(emptyArenaPlayers());
-  const [arenaCards, setArenaCards] = useState<ArenaCards>(() => initialArenaCards(category.items));
+  const [arenaCards, setArenaCards] = useState<ArenaCards>(() => initialArenaCards(dragItems));
   const arenaCardsRef = useRef<ArenaCards>(arenaCards);
   const [arenaPlaced, setArenaPlaced] = useState<ArenaPlaced>(emptyArenaPlaced);
   const arenaPlacedRef = useRef<ArenaPlaced>(emptyArenaPlaced());
