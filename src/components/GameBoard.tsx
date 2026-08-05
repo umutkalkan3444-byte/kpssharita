@@ -1154,13 +1154,13 @@ export function GameBoard({ category }: { category: Category }) {
   };
 
   const takeJoker = () => {
-    if (!isClickMode || doneRef.current) return;
+    if (!hasClick || doneRef.current) return;
     const takenNames = new Set(
       [...Object.values(placedRef.current).map((t) => t.name), ...hintProvinces].map(
         normalizePlaceName,
       ),
     );
-    const remaining = targets.filter(
+    const remaining = clickTargets.filter(
       (t) => !placedRef.current[t.id] && !takenNames.has(normalizePlaceName(t.name)),
     );
     if (remaining.length === 0) return;
