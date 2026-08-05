@@ -1824,8 +1824,8 @@ export const MAIN_CATEGORIES: MainCategory[] = [
           { name: "İzmir (Menemen)", lat: 38.6, lon: 27.07 },
           {
             name: "Batı Anadolu (Bergama-Aşağıkırıklar)",
-            lat: 39.0318,
-            lon: 27.013,
+            lat: 39.03812,
+            lon: 27.00718,
           },
           { name: "Denizli (Çardak)", lat: 37.79, lon: 29.7 },
           { name: "İstanbul İhtisas", lat: 40.98, lon: 28.82 },
@@ -1839,7 +1839,7 @@ export const MAIN_CATEGORIES: MainCategory[] = [
           { name: "Rize", lat: 41.02, lon: 40.52 },
           { name: "Samsun", lat: 41.29, lon: 36.33 },
           { name: "Gaziantep (Aktoprak)", lat: 37.1733, lon: 37.2951 },
-          { name: "Kayseri (Ambar)", lat: 38.7408, lon: 35.3339 },
+          { name: "Kayseri (Ambar)", lat: 38.74105, lon: 35.33376 },
         ],
       },
       {
