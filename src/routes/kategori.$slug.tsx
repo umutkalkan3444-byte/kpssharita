@@ -1,12 +1,6 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
-import { lazy, Suspense } from "react";
+import { GameBoard } from "@/components/GameBoard";
 import { CATEGORY_MAP } from "@/lib/game-data";
-
-const GameBoard = lazy(() =>
-  import("@/components/GameBoard").then((module) => ({
-    default: module.GameBoard,
-  })),
-);
 
 export const Route = createFileRoute("/kategori/$slug")({
   head: ({ params }) => {
@@ -38,15 +32,7 @@ function CategoryPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white via-sky-50 to-cyan-50">
-      <Suspense
-        fallback={
-          <div className="grid min-h-screen place-items-center text-sm font-bold text-cyan-700">
-            Harita hazırlanıyor…
-          </div>
-        }
-      >
-        <GameBoard category={category} />
-      </Suspense>
+      <GameBoard key={category.slug} category={category} />
     </div>
   );
 }

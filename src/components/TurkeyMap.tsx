@@ -24,14 +24,22 @@ export type PlacedProvinceLabel = {
   label?: string;
 };
 
+export type ProvinceClaim = {
+  provinceName: string;
+  tone: "red" | "blue";
+};
+
 type Props = {
   className?: string;
   children?: React.ReactNode;
+  viewBox?: string;
   variant?: MapVariant;
   /** İl adları — yeşil dolgu ile vurgulanır (doğru). */
   highlightedProvinces?: string[];
   /** İl adları — kırmızı dolgu ile vurgulanır (yanlış). */
   wrongProvinces?: string[];
+  /** İl adları — sarı dolgu ile vurgulanır (joker ile açıldı). */
+  hintProvinces?: string[];
   /** Tıklama callback'i. */
   onProvinceClick?: (name: string) => void;
   /** Etkileşim modu — iller tıklanabilir. */
@@ -43,6 +51,8 @@ type Props = {
   provinceDropTargets?: readonly ProvinceDropTarget[];
   /** Labels rendered inside, and clipped by, their province's real SVG path. */
   placedProvinceLabels?: readonly PlacedProvinceLabel[];
+  /** Rekabet modunda doğru bilinen illerin oyuncu rengini gösterir. */
+  provinceClaims?: readonly ProvinceClaim[];
 };
 
 type ProvincePathProps = {
@@ -165,19 +175,23 @@ type RenderedProvinceLabel = {
 export function TurkeyMap({
   className,
   children,
+  viewBox = `0 0 ${MAP_W} ${MAP_H}`,
   variant = "provinces",
   highlightedProvinces,
   wrongProvinces,
+  hintProvinces,
   onProvinceClick,
   interactive,
   provinceDropTargets,
   placedProvinceLabels,
+  provinceClaims,
 }: Props) {
   const instanceId = `turkey-map-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
   const fillGradientId = `${instanceId}-fill`;
   const seaGradientId = `${instanceId}-sea`;
   const highlightKey = (highlightedProvinces ?? []).join("|");
   const wrongKey = (wrongProvinces ?? []).join("|");
+  const hintKey = (hintProvinces ?? []).join("|");
 
   const highlightSet = useMemo(
     () => new Set((highlightedProvinces ?? []).map(normalizePlaceName)),
@@ -189,6 +203,11 @@ export function TurkeyMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [wrongKey],
   );
+  const hintSet = useMemo(
+    () => new Set((hintProvinces ?? []).map(normalizePlaceName)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [hintKey],
+  );
   const dropTargetMap = useMemo(
     () =>
       new Map(
@@ -198,6 +217,13 @@ export function TurkeyMap({
         ]),
       ),
     [provinceDropTargets],
+  );
+  const claimMap = useMemo(
+    () =>
+      new Map(
+        (provinceClaims ?? []).map((claim) => [normalizePlaceName(claim.provinceName), claim.tone]),
+      ),
+    [provinceClaims],
   );
   const renderedLabels = useMemo<RenderedProvinceLabel[]>(() => {
     const labelMap = new Map(
@@ -216,11 +242,7 @@ export function TurkeyMap({
   }, [placedProvinceLabels]);
 
   return (
-    <svg
-      viewBox={`0 0 ${MAP_W} ${MAP_H}`}
-      className={className}
-      preserveAspectRatio="xMidYMid meet"
-    >
+    <svg viewBox={viewBox} className={className} preserveAspectRatio="xMidYMid meet">
       <defs>
         <linearGradient id={fillGradientId} x1="0" y1="0" x2="1" y2="1">
           <stop offset="0%" stopColor="#e6f7fb" />
@@ -245,9 +267,11 @@ export function TurkeyMap({
       <g>
         {provinces.map((p) => {
           const key = normalizePlaceName(p.name);
-          const isHighlighted = highlightSet.has(key);
+          const isHint = hintSet.has(key);
+          const isHighlighted = highlightSet.has(key) && !isHint;
           const isWrong = wrongSet.has(key);
-          const isLocked = isHighlighted || isWrong;
+          const claimTone = claimMap.get(key);
+          const isLocked = isHighlighted || isWrong || isHint || !!claimTone;
           const dropTarget = dropTargetMap.get(key);
           let fill: string = `url(#${fillGradientId})`;
           let stroke = "rgba(15,118,155,0.45)";
@@ -263,7 +287,19 @@ export function TurkeyMap({
             stroke = "rgba(15,118,155,0.25)";
           }
 
-          if (isHighlighted) {
+          if (claimTone === "red") {
+            fill = "#fb7185";
+            stroke = "rgba(159,18,57,0.78)";
+            strokeWidth = 0.9;
+          } else if (claimTone === "blue") {
+            fill = "#60a5fa";
+            stroke = "rgba(30,64,175,0.78)";
+            strokeWidth = 0.9;
+          } else if (isHint) {
+            fill = "#facc15";
+            stroke = "rgba(133,77,14,0.75)";
+            strokeWidth = 0.9;
+          } else if (isHighlighted) {
             fill = "#10b981";
             stroke = "rgba(6,95,70,0.7)";
             strokeWidth = 0.8;

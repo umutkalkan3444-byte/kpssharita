@@ -1,8 +1,7 @@
 import { readFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
 
 import { createServer } from "vite";
-
-const MIN_VISIBLE_TARGET_DISTANCE = 63.5;
 
 const issues = [];
 const assert = (condition, message) => {
@@ -21,8 +20,14 @@ const duplicateValues = (values) => {
 
 const vite = await createServer({
   appType: "custom",
+  configFile: false,
   logLevel: "silent",
-  server: { middlewareMode: true },
+  resolve: {
+    alias: {
+      "@": fileURLToPath(new URL("../src", import.meta.url)),
+    },
+  },
+  server: { hmr: false, middlewareMode: true },
 });
 
 try {
@@ -30,12 +35,14 @@ try {
   const geo = await vite.ssrLoadModule("/src/lib/geo.ts");
   const labels = await vite.ssrLoadModule("/src/data/province-labels.ts");
   const names = await vite.ssrLoadModule("/src/lib/place-name.ts");
+  const cardLabels = await vite.ssrLoadModule("/src/lib/card-label.ts");
+  const gameModes = await vite.ssrLoadModule("/src/lib/game-mode.ts");
+  const provinceNames = await vite.ssrLoadModule("/src/lib/province-names.ts");
+  const neighbors = await vite.ssrLoadModule("/src/data/neighbors.ts");
   const regions = await vite.ssrLoadModule("/src/lib/province-regions.ts");
-  const questions = await vite.ssrLoadModule("/src/data/study/questions.ts");
   const facts = await vite.ssrLoadModule("/src/data/study/facts.ts");
   const studySources = await vite.ssrLoadModule("/src/data/study/sources.ts");
   const topicEssentials = await vite.ssrLoadModule("/src/data/topic-essentials.ts");
-  const schemas = await vite.ssrLoadModule("/src/lib/study/schemas.ts");
   const studyPrompt = await vite.ssrLoadModule("/src/server/study-prompt.server.ts");
   const studyReview = await vite.ssrLoadModule("/src/lib/study/build-static-review.ts");
   const studyReviewServer = await vite.ssrLoadModule("/src/server/study-review.server.ts");
@@ -44,6 +51,11 @@ try {
   assert(
     duplicateValues(game.CATEGORIES.map((category) => category.slug)).length === 0,
     "Kategori slug değerleri benzersiz olmalı.",
+  );
+  assert(
+    cardLabels.hideLocationHint("Sümela Manastırı (Trabzon)") === "Sümela Manastırı" &&
+      cardLabels.hideLocationHint("Çukurova (Seyhan-Ceyhan)") === "Çukurova (Seyhan-Ceyhan)",
+    "Kart etiketi şehir ipucunu gizlerken coğrafi kavram açıklamasını korumalı.",
   );
 
   const categorySlugs = new Set(game.CATEGORIES.map((category) => category.slug));
@@ -78,7 +90,6 @@ try {
   }
 
   let itemCount = 0;
-  let minimumDistance = Number.POSITIVE_INFINITY;
   for (const category of game.CATEGORIES) {
     itemCount += category.items.length;
     const duplicateIds = duplicateValues(category.items.map((item) => item.id));
@@ -92,6 +103,38 @@ try {
     assert(
       duplicateNames.length === 0,
       `${category.slug}: yinelenen hedef adı (${duplicateNames.join(", ")}).`,
+    );
+    const safeCardLabels = cardLabels.buildCardLabels(category.items);
+    assert(
+      category.items.every((item) => safeCardLabels[item.id]?.trim()),
+      `${category.slug}: boş kart etiketi oluştu.`,
+    );
+    assert(
+      duplicateValues(category.items.map((item) => safeCardLabels[item.id])).length === 0,
+      `${category.slug}: konum ipucu gizlendikten sonra kart etiketleri ayırt edilemiyor.`,
+    );
+    const modeItems = gameModes.splitGameItems(category.slug, category.items);
+    const partitionIds = [...modeItems.clickItems, ...modeItems.dragItems].map((item) => item.id);
+    assert(
+      partitionIds.length === category.items.length &&
+        duplicateValues(partitionIds).length === 0 &&
+        category.items.every((item) => partitionIds.includes(item.id)),
+      `${category.slug}: tıklama/sürükleme ayrımı hedefleri eksiksiz bölmeli.`,
+    );
+    assert(
+      modeItems.clickItems.every((item) => provinceNames.isProvinceName(item.name)),
+      `${category.slug}: tıklamalı hedefler yalnız gerçek il adlarından oluşmalı.`,
+    );
+    if (category.slug === "iller-81" || geo.REGION_ILLERI_SLUGS[category.slug]) {
+      assert(
+        modeItems.clickItems.length === 0,
+        `${category.slug}: il öğretim oyunları sürüklemeli kalmalı.`,
+      );
+    }
+    assert(
+      gameModes.gameModeLabel(modeItems.clickItems.length > 0, modeItems.dragItems.length > 0) !==
+        null,
+      `${category.slug}: oyun modu etiketi oluşturulamadı.`,
     );
 
     for (const item of category.items) {
@@ -107,6 +150,12 @@ try {
     }
 
     const targets = game.targetsFor(category);
+    for (const target of targets) {
+      assert(
+        target.x === target.geoX && target.y === target.geoY,
+        `${category.slug}/${target.name}: sürükleme hedefi gerçek harita konumundan kaydırılmış.`,
+      );
+    }
     const focus = geo.focusBoundsForSlug(category.slug, category.items);
     if (focus) {
       for (const item of category.items) {
@@ -120,50 +169,27 @@ try {
         );
       }
     }
-    if (category.slug !== "iller-81") {
-      for (let first = 0; first < targets.length; first += 1) {
-        for (let second = first + 1; second < targets.length; second += 1) {
-          minimumDistance = Math.min(
-            minimumDistance,
-            Math.hypot(targets[first].x - targets[second].x, targets[first].y - targets[second].y),
-          );
-        }
-      }
-    }
-
-    const bank = questions.getWarmupQuestionBank(category.slug).slice(0, 3);
-    assert(bank.length === 3, `${category.slug}: oyun öncesinde tam 3 soru bulunmalı.`);
-    assert(
-      duplicateValues(bank.map((question) => `${question.prompt}|${question.choices.join("|")}`))
-        .length === 0,
-      `${category.slug}: ilk 3 soruda içerik tekrarı var.`,
-    );
-    if (category.slug !== "ruzgarlar") {
-      assert(
-        bank.some((question) => question.statements?.length === 3),
-        `${category.slug}: birden fazla bilgiyi birlikte ölçen soru eksik.`,
-      );
-    }
-
     const factMap = facts.getStudyFactMap(category.slug);
-    for (const question of bank) {
-      const parsed = schemas.WarmupQuestionSchema.safeParse(question);
-      assert(parsed.success, `${category.slug}/${question.id}: soru şemaya uymuyor.`);
-      assert(
-        question.relatedFactIds.every((factId) => factMap.has(factId)),
-        `${category.slug}/${question.id}: doğrulanmış bilgi bağı eksik.`,
-      );
-      assert(
-        question.sourceRefs.every((sourceId) => Boolean(studySources.getStudySource(sourceId))),
-        `${category.slug}/${question.id}: kaynak meta verisi eksik.`,
-      );
-    }
     for (const fact of factMap.values()) {
       assert(
         fact.sourceRefs.every((sourceId) => Boolean(studySources.getStudySource(sourceId))),
         `${category.slug}/${fact.id}: bilgi kaynağı meta verisi eksik.`,
       );
     }
+
+    const noMistakeReview = studyReview.buildStaticReview({
+      categorySlug: category.slug,
+      correctCount: category.items.length,
+      wrongCount: 0,
+      totalMs: 1_000,
+      wrongAttempts: [],
+    });
+    const expectedEssentialCount = Math.min(3, factMap.size);
+    assert(
+      noMistakeReview.essentials.length >= expectedEssentialCount &&
+        noMistakeReview.focus.length === 0,
+      `${category.slug}: hatasız oyun sonu özeti mevcut temel bilgileri vermeli.`,
+    );
 
     const syntheticMistakes = category.items.slice(0, 8).map((item) => ({
       kind: "target",
@@ -176,16 +202,26 @@ try {
       wrongCount: syntheticMistakes.length,
       totalMs: 1_000,
       wrongAttempts: syntheticMistakes,
-      wrongWarmupQuestionIds: bank.slice(0, 3).map((question) => question.id),
     });
+    const mistakeReview = studyReview.buildStaticReview({
+      categorySlug: category.slug,
+      correctCount: 0,
+      wrongCount: syntheticMistakes.length,
+      totalMs: 1_000,
+      wrongAttempts: syntheticMistakes,
+    });
+    assert(
+      mistakeReview.essentials.length >= expectedEssentialCount && mistakeReview.focus.length > 0,
+      `${category.slug}: yanlışlara odaklı oyun sonu özeti üretilemedi.`,
+    );
     const sentFactIds = new Set(trustedPayload.facts.map((fact) => fact.id));
     assert(
-      trustedPayload.facts.length <= 20,
-      `${category.slug}: AI bilgi paketi 20 sınırını aşıyor.`,
+      trustedPayload.facts.length <= 14,
+      `${category.slug}: AI bilgi paketi 14 sınırını aşıyor.`,
     );
     assert(
-      trustedPayload.mistakes.length <= 4,
-      `${category.slug}: AI yanlış bağlamı 4 sınırını aşıyor.`,
+      trustedPayload.mistakes.length <= 3,
+      `${category.slug}: AI yanlış bağlamı 3 sınırını aşıyor.`,
     );
     for (const mistake of trustedPayload.mistakes) {
       assert(
@@ -195,11 +231,6 @@ try {
       );
     }
   }
-
-  assert(
-    minimumDistance >= MIN_VISIBLE_TARGET_DISTANCE,
-    `Görünen hedefler arası en düşük mesafe ${minimumDistance.toFixed(2)}.`,
-  );
 
   const allMountains = game.CATEGORY_MAP["tum-daglar"].items.map((item) => item.name).sort();
   const mountainUnion = ["kivrim-daglari", "kirik-daglari", "volkanik-daglar"]
@@ -259,6 +290,7 @@ try {
     Object.keys(labels.PROVINCE_LABEL_LAYOUT).map(names.normalizePlaceName),
   );
   assert(mapProvinceNames.size === 81, "SVG haritada 81 il bulunmalı.");
+  assert(provinceNames.PROVINCE_NAME_SET.size === 81, "Oyun modu il sözlüğünde 81 il bulunmalı.");
   assert(cardProvinceNames.size === 81, "81 İl oyununda 81 kart bulunmalı.");
   assert(labelProvinceNames.size === 81, "81 il için iç etiket konumu bulunmalı.");
   for (const provinceName of mapProvinceNames) {
@@ -289,6 +321,29 @@ try {
     );
   }
 
+  assert(
+    duplicateValues(neighbors.NEIGHBOR_BORDERS.map((border) => border.country)).length === 0,
+    "Komşu sınır katmanında ülke adları benzersiz olmalı.",
+  );
+  assert(
+    neighbors.NEIGHBOR_BORDERS.some((border) => border.country === "Azerbaycan (Nahçıvan)"),
+    "Nahçıvan sınırı Azerbaycan adıyla gösterilmeli.",
+  );
+  for (const border of neighbors.NEIGHBOR_BORDERS) {
+    assert(border.coords.length >= 2, `${border.country}: sınır çizgisi en az iki nokta içermeli.`);
+    for (const [lat, lon] of border.coords) {
+      const point = geo.project(lat, lon);
+      assert(
+        point.x >= 0 && point.x <= geo.MAP_W && point.y >= 0 && point.y <= geo.MAP_H,
+        `${border.country}: sınır çizgisi harita dışında.`,
+      );
+    }
+    assert(
+      /^M[\d.-]+,[\d.-]+/.test(neighbors.borderPath(border)),
+      `${border.country}: sınır SVG yolu üretilemedi.`,
+    );
+  }
+
   const constraintCategory = game.CATEGORY_MAP["marmara-illeri"];
   const constraintRequest = {
     categorySlug: constraintCategory.slug,
@@ -300,7 +355,6 @@ try {
       id: item.id,
       count: 1,
     })),
-    wrongWarmupQuestionIds: [],
   };
   const constraintPayload = studyPrompt.buildTrustedStudyPayload(constraintRequest);
   const firstMistake = constraintPayload.mistakes[0];
@@ -365,12 +419,12 @@ try {
     const aiResponse = await studyReviewServer.getStudyReviewOnServer(constraintRequest);
     assert(aiResponse.source === "ai", "Geçerli kapalı model planı AI yanıtına dönüşmeli.");
     assert(
-      capturedOpenAiBody?.model === "gpt-5-nano-2025-08-07" &&
+      capturedOpenAiBody?.model === "gpt-5-nano" &&
         capturedOpenAiBody?.store === false &&
         capturedOpenAiBody?.reasoning?.effort === "minimal" &&
         capturedOpenAiBody?.text?.verbosity === "low" &&
         capturedOpenAiBody?.text?.format?.type === "json_schema" &&
-        capturedOpenAiBody?.max_output_tokens === 480,
+        capturedOpenAiBody?.max_output_tokens === 360,
       "OpenAI isteği düşük maliyetli ve katı yapılandırmayı korumalı.",
     );
   } finally {
@@ -390,7 +444,6 @@ try {
   const result = {
     categories: game.CATEGORIES.length,
     items: itemCount,
-    minimumVisibleTargetDistance: Number(minimumDistance.toFixed(3)),
     provinces: mapProvinceNames.size,
     issues,
   };

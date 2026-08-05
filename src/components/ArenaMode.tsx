@@ -1,6 +1,7 @@
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Flame, Swords, Timer, Trophy } from "lucide-react";
+import { Flame, Layers3, Swords, Timer, Trophy, X } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useRouterState } from "@tanstack/react-router";
 
 import { useCompetitiveMode } from "@/hooks/use-competitive-mode";
 import { cn } from "@/lib/utils";
@@ -15,28 +16,46 @@ const EMBERS = [
 ] as const;
 
 export function ArenaAmbient() {
-  const { enabled } = useCompetitiveMode();
+  const { enabled, setEnabled } = useCompetitiveMode();
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
   const reduceMotion = useReducedMotion();
   if (!enabled) return null;
+  const isGameRoute = pathname.startsWith("/kategori/");
 
   return (
-    <div aria-hidden className="pointer-events-none fixed inset-0 z-[35] overflow-hidden">
-      <div className="absolute inset-y-0 left-0 w-[14vw] bg-gradient-to-r from-rose-600/18 to-transparent" />
-      <div className="absolute inset-y-0 right-0 w-[14vw] bg-gradient-to-l from-blue-600/18 to-transparent" />
-      <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-rose-500 via-orange-400 to-blue-500 shadow-[0_0_22px_rgba(249,115,22,0.75)]" />
-      {!reduceMotion &&
-        EMBERS.map(([left, delay], index) => (
-          <span
-            key={index}
-            className="arena-ember absolute bottom-[-16px] h-1.5 w-1.5 rounded-full bg-orange-400 shadow-[0_0_10px_2px_rgba(251,146,60,0.75)]"
-            style={{
-              left: `${left}%`,
-              animationDelay: `${delay * 4}s`,
-              animationDuration: `${5 + (index % 4)}s`,
-            }}
-          />
-        ))}
-    </div>
+    <>
+      <div aria-hidden className="pointer-events-none fixed inset-0 z-[35] overflow-hidden">
+        <div className="absolute inset-y-0 left-0 w-[14vw] bg-gradient-to-r from-rose-600/18 to-transparent" />
+        <div className="absolute inset-y-0 right-0 w-[14vw] bg-gradient-to-l from-blue-600/18 to-transparent" />
+        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-rose-500 via-orange-400 to-blue-500 shadow-[0_0_22px_rgba(249,115,22,0.75)]" />
+        {!reduceMotion &&
+          EMBERS.map(([left, delay], index) => (
+            <span
+              key={index}
+              className="arena-ember absolute bottom-[-16px] h-1.5 w-1.5 rounded-full bg-orange-400 shadow-[0_0_10px_2px_rgba(251,146,60,0.75)]"
+              style={{
+                left: `${left}%`,
+                animationDelay: `${delay * 4}s`,
+                animationDuration: `${5 + (index % 4)}s`,
+              }}
+            />
+          ))}
+      </div>
+      {!isGameRoute ? (
+        <motion.button
+          type="button"
+          onClick={() => setEnabled(false)}
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          whileTap={reduceMotion ? undefined : { scale: 0.96 }}
+          className="fixed right-3 top-1/2 z-[90] inline-flex -translate-y-1/2 items-center gap-2 rounded-full border border-orange-300 bg-slate-950/90 px-3 py-2 text-xs font-black text-white shadow-2xl shadow-orange-500/30 backdrop-blur sm:right-5"
+          aria-label="Rekabet modunu kapat"
+        >
+          <X className="h-4 w-4 text-orange-300" />
+          <span className="hidden sm:inline">Rekabeti kapat</span>
+        </motion.button>
+      ) : null}
+    </>
   );
 }
 
@@ -101,9 +120,9 @@ export function ArenaToggleCard() {
               </span>
             </div>
             <p className={cn("mt-1 text-sm", enabled ? "text-white/75" : "text-slate-600")}>
-              Sırayla birer hamle yapın; ikiniz de aynı görevleri tamamlayın, doğruluk ve süre
-              kazandırsın.
-              {enabled ? " Kapatmak için bu karta yeniden dokun." : ""}
+              Tek kart havuzundan sırayla seçim yapın. Bilinen kartlar tükendikçe sona kalan zor
+              kartlar rekabeti kızıştırsın.
+              {enabled ? " Sağdaki sabit düğmeyle istediğin an kapatabilirsin." : ""}
             </p>
             <div
               className={cn(
@@ -112,10 +131,13 @@ export function ArenaToggleCard() {
               )}
             >
               <span className="inline-flex items-center gap-1">
-                <Timer className="h-3.5 w-3.5" /> İki ayrı kronometre
+                <Layers3 className="h-3.5 w-3.5" /> Tek ortak kart havuzu
               </span>
               <span className="inline-flex items-center gap-1">
-                <Trophy className="h-3.5 w-3.5" /> Hız dengeli skor
+                <Timer className="h-3.5 w-3.5" /> Oyuncuya özel süre
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <Trophy className="h-3.5 w-3.5" /> Doğru kart ağırlıklı skor
               </span>
             </div>
           </div>

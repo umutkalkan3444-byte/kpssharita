@@ -6,7 +6,6 @@ import {
   itemStudyFactId,
   provinceMistakeStudyFactId,
 } from "@/data/study/facts";
-import { getWarmupQuestionBank } from "@/data/study/questions";
 import {
   AiReviewPlanSchema,
   type AiReviewPlan,
@@ -72,29 +71,7 @@ export function getReviewMistakeContexts(requestInput: StudyReviewRequest): Revi
   const mapContexts = request.wrongAttempts.map((mistake) =>
     mapMistakeContext(request.categorySlug, mistake),
   );
-  const questionBank = getWarmupQuestionBank(request.categorySlug);
-  const warmupContexts = request.wrongWarmupQuestionIds.flatMap((questionId) => {
-    const index = questionBank.findIndex((question) => question.id === questionId);
-    if (index < 0) return [];
-    const question = questionBank[index];
-    return [
-      {
-        key: `warmup:${question.id}`,
-        label: `Isınma sorusu ${index + 1}`,
-        count: 1,
-        defaultReason: "warmup_gap" as const,
-        defaultFactIds: question.relatedFactIds,
-      },
-    ];
-  });
-
-  const reasonPriority = (reason: ReviewReason) => (reason === "warmup_gap" ? 0 : 1);
-  return [...mapContexts, ...warmupContexts].sort(
-    (a, b) =>
-      b.count - a.count ||
-      reasonPriority(a.defaultReason) - reasonPriority(b.defaultReason) ||
-      a.key.localeCompare(b.key, "tr"),
-  );
+  return mapContexts.sort((a, b) => b.count - a.count || a.key.localeCompare(b.key, "tr"));
 }
 
 function uniqueFacts(
@@ -134,7 +111,7 @@ function fillEssentials(
 
 function closingFor(tone: AiReviewPlan["closingTone"], mistakeCount: number): string {
   if (mistakeCount === 0 || tone === "mastery") {
-    return "Haritadaki bilgileri doğru bağladın. Kalıcılık için dört uç noktayı kısa bir kez daha gözden geçir.";
+    return "Haritadaki bilgileri doğru bağladın. Kalıcılık için temel bağlantıları kısa bir kez daha gözden geçir.";
   }
   if (tone === "careful") {
     return "Önce en sık karışan hedefleri, ardından kuzey-güney ve batı-doğu sıralamasını tekrar et; sonra aynı haritayı yeniden dene.";

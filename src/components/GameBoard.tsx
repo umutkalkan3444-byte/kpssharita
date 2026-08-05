@@ -1,4 +1,14 @@
-import { lazy, memo, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  lazy,
+  memo,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type RefCallback,
+} from "react";
 import {
   DndContext,
   DragOverlay,
@@ -13,7 +23,21 @@ import {
 } from "@dnd-kit/core";
 import { snapCenterToCursor } from "@dnd-kit/modifiers";
 import { motion, AnimatePresence } from "framer-motion";
-import { RotateCcw, Trophy, Smartphone, ArrowLeft, ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
+import {
+  RotateCcw,
+  Trophy,
+  Smartphone,
+  ArrowLeft,
+  ZoomIn,
+  ZoomOut,
+  Maximize2,
+  Flame,
+  Eye,
+  EyeOff,
+  Lightbulb,
+  ChevronUp,
+  ChevronDown,
+} from "lucide-react";
 import { Link, useRouter } from "@tanstack/react-router";
 import {
   TransformComponent,
@@ -31,13 +55,13 @@ import { Button } from "@/components/ui/button";
 
 import { cn } from "@/lib/utils";
 import { normalizePlaceName } from "@/lib/place-name";
+import { allNamesAreProvinces } from "@/lib/province-names";
 import { getCompetitiveMode } from "@/lib/competitive-mode";
-import { findProvinceDropIdAtPoint } from "@/lib/province-drop-target";
-import {
-  mistakeKey,
-  type StudyMistake,
-  type StudyReviewRequest,
-} from "@/lib/study/schemas";
+import { findProvinceDropIdAtPoint, PROVINCE_DROP_KIND } from "@/lib/province-drop-target";
+import { mistakeKey, type StudyMistake, type StudyReviewRequest } from "@/lib/study/schemas";
+import { buildCardLabels } from "@/lib/card-label";
+import { splitGameItems, gameModeLabel } from "@/lib/game-mode";
+import { NEIGHBOR_BORDERS, borderPath, borderLabelPoint } from "@/data/neighbors";
 
 const PostGameStudy = lazy(() =>
   import("@/components/study/PostGameStudy").then((module) => ({
@@ -96,7 +120,7 @@ type ArenaPlayerId = "red" | "blue";
 type ArenaPlayer = { correct: number; wrong: number; elapsedMs: number };
 type ArenaPlayers = Record<ArenaPlayerId, ArenaPlayer>;
 type ArenaPlaced = Record<ArenaPlayerId, Placed>;
-type ArenaCards = Record<ArenaPlayerId, Category["items"]>;
+type ArenaCards = Category["items"];
 type ArenaWrongProvinces = Record<ArenaPlayerId, string[]>;
 
 function emptyArenaPlayers(): ArenaPlayers {
@@ -111,7 +135,7 @@ function emptyArenaPlaced(): ArenaPlaced {
 }
 
 function initialArenaCards(items: Category["items"]): ArenaCards {
-  return { red: shuffle(items), blue: shuffle(items) };
+  return shuffle(items);
 }
 
 function emptyArenaWrongProvinces(): ArenaWrongProvinces {
@@ -119,12 +143,9 @@ function emptyArenaWrongProvinces(): ArenaWrongProvinces {
 }
 
 function arenaScore(player: ArenaPlayer): number {
-  const attempts = player.correct + player.wrong;
-  const accuracyScore = attempts > 0 ? Math.round((player.correct / attempts) * 10_000) : 0;
-  // Her oyuncu aynı görevlerin tamamını çözer; bu nedenle doğruluk oranı ve
-  // yalnız kendi aktif süresi adil karşılaştırmadır. İki saat 14.400 puan
-  // götürür ve kusursuz ama aşırı yavaş oyun otomatik galibiyet olmaz.
-  return accuracyScore - Math.floor(player.elapsedMs / 1000) * 2;
+  // Ortak havuzda daha çok doğru kart almak ana avantajdır; yanlış ve aktif
+  // süre küçük ama hissedilir cezalarla eşitliği bozar.
+  return player.correct * 1_000 - player.wrong * 350 - Math.floor(player.elapsedMs / 1000) * 2;
 }
 
 function perfNow(): number {
@@ -150,6 +171,12 @@ const exactProvinceCollision: CollisionDetection = ({
   ];
 };
 
+const hybridCollision: CollisionDetection = (args) => {
+  const exact = exactProvinceCollision(args);
+  if (exact.length > 0) return exact;
+  return pointerWithin(args);
+};
+
 async function fireConfetti(options: Parameters<typeof import("canvas-confetti")>[0]) {
   if (
     typeof window === "undefined" ||
@@ -172,14 +199,16 @@ function CompetitionHUD({
   turnStartedAt,
   done,
   paused,
-  tasksPerPlayer,
+  poolRemaining,
+  totalItems,
 }: {
   turn: ArenaPlayerId;
   players: ArenaPlayers;
   turnStartedAt: number;
   done: boolean;
   paused: boolean;
-  tasksPerPlayer: number;
+  poolRemaining: number;
+  totalItems: number;
 }) {
   // Yalnızca küçük sayaç bileşeni saniyede bir yeniden çizilir; harita etkilenmez.
   const [now, setNow] = useState(() => perfNow());
@@ -195,50 +224,54 @@ function CompetitionHUD({
     (!done && !paused && turn === id ? Math.max(0, now - turnStartedAt) : 0);
 
   return (
-    <section
-      aria-label="Rekabet skoru"
-      className="mb-2 grid grid-cols-[1fr_auto_1fr] items-stretch gap-2 max-lg:landscape:mb-1"
-    >
-      {(["red", "blue"] as const).map((id, index) => {
-        const isActive = !done && turn === id;
-        const isRed = id === "red";
-        return (
-          <div key={id} className="contents">
-            {index === 1 ? (
-              <div className="grid place-items-center text-[10px] font-black uppercase tracking-[0.18em] text-orange-600">
-                VS
-              </div>
-            ) : null}
-            <div
-              className={cn(
-                "rounded-2xl border px-3 py-2 transition-all",
-                isRed
-                  ? "border-rose-200 bg-gradient-to-r from-rose-100 to-white text-rose-950"
-                  : "border-blue-200 bg-gradient-to-l from-blue-100 to-white text-blue-950",
-                isActive &&
-                  (isRed
-                    ? "ring-2 ring-rose-500 shadow-lg shadow-rose-500/20"
-                    : "ring-2 ring-blue-500 shadow-lg shadow-blue-500/20"),
-              )}
-            >
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-black">
-                  {isRed ? "Kırmızı" : "Mavi"} {isActive ? "· Sıra sende" : ""}
-                </span>
-                <span className="font-mono text-xs font-black">{formatMs(elapsedFor(id))}</span>
-              </div>
-              <div className="mt-0.5 text-[10px] font-bold opacity-70">
-                ✓ {players[id].correct}/{tasksPerPlayer} · ✗ {players[id].wrong} ·{" "}
-                {arenaScore({
-                  ...players[id],
-                  elapsedMs: elapsedFor(id),
-                })}{" "}
-                puan
+    <section aria-label="Rekabet skoru" className="mb-2 max-lg:landscape:mb-1">
+      <div className="mb-1.5 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-[0.16em] text-orange-700">
+        <Flame className="h-3.5 w-3.5" />
+        Ortak havuz · {poolRemaining}/{totalItems} kart kaldı
+        <Flame className="h-3.5 w-3.5" />
+      </div>
+      <div className="grid grid-cols-[1fr_auto_1fr] items-stretch gap-2">
+        {(["red", "blue"] as const).map((id, index) => {
+          const isActive = !done && turn === id;
+          const isRed = id === "red";
+          return (
+            <div key={id} className="contents">
+              {index === 1 ? (
+                <div className="grid place-items-center text-[10px] font-black uppercase tracking-[0.18em] text-orange-600">
+                  VS
+                </div>
+              ) : null}
+              <div
+                className={cn(
+                  "rounded-2xl border px-3 py-2 transition-all",
+                  isRed
+                    ? "border-rose-200 bg-gradient-to-r from-rose-100 to-white text-rose-950"
+                    : "border-blue-200 bg-gradient-to-l from-blue-100 to-white text-blue-950",
+                  isActive &&
+                    (isRed
+                      ? "ring-2 ring-rose-500 shadow-lg shadow-rose-500/20"
+                      : "ring-2 ring-blue-500 shadow-lg shadow-blue-500/20"),
+                )}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-black">
+                    {isRed ? "Kırmızı" : "Mavi"} {isActive ? "· Sıra sende" : ""}
+                  </span>
+                  <span className="font-mono text-xs font-black">{formatMs(elapsedFor(id))}</span>
+                </div>
+                <div className="mt-0.5 text-[10px] font-bold opacity-70">
+                  ✓ {players[id].correct} · ✗ {players[id].wrong} ·{" "}
+                  {arenaScore({
+                    ...players[id],
+                    elapsedMs: elapsedFor(id),
+                  })}{" "}
+                  puan
+                </div>
               </div>
             </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </section>
   );
 }
@@ -278,8 +311,26 @@ const DropDot = memo(function DropDot({
     >
       {placed ? (
         <>
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 ring-1 ring-white shadow" />
-          <span className="max-w-[76px] whitespace-normal break-words rounded-sm bg-white/85 px-1 text-center text-[8px] font-semibold leading-[1.05] text-emerald-800 shadow-sm sm:text-[9px]">
+          <span
+            className={cn(
+              "h-1.5 w-1.5 rounded-full ring-1 ring-white shadow",
+              claimTone === "red"
+                ? "bg-rose-500"
+                : claimTone === "blue"
+                  ? "bg-blue-500"
+                  : "bg-emerald-500",
+            )}
+          />
+          <span
+            className={cn(
+              "max-w-[76px] whitespace-normal break-words rounded-sm bg-white/85 px-1 text-center text-[8px] font-semibold leading-[1.05] shadow-sm sm:text-[9px]",
+              claimTone === "red"
+                ? "text-rose-800"
+                : claimTone === "blue"
+                  ? "text-blue-800"
+                  : "text-emerald-800",
+            )}
+          >
             {t.name}
           </span>
         </>
@@ -397,21 +448,73 @@ function CompassGuideLayer() {
   );
 }
 
-/** Doğru yerleştirilen öğelerin gerçek coğrafi şekillerini çizen SVG katmanı. */
+const ShapeDropPath = memo(function ShapeDropPath({
+  id,
+  d,
+  isLine,
+}: {
+  id: string;
+  d: string;
+  isLine: boolean;
+}) {
+  const { isOver, setNodeRef } = useDroppable({
+    id,
+    resizeObserverConfig: { disabled: true },
+  });
+  const ref = setNodeRef as unknown as RefCallback<SVGPathElement>;
+  return (
+    <>
+      {isOver ? (
+        <path
+          d={d}
+          fill={isLine ? "none" : "rgba(8,145,178,0.28)"}
+          stroke="rgba(8,145,178,0.95)"
+          strokeWidth={isLine ? 3.4 : 1.8}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          pointerEvents="none"
+        />
+      ) : null}
+      <path
+        ref={ref}
+        d={d}
+        fill={isLine ? "none" : "transparent"}
+        stroke="transparent"
+        strokeWidth={isLine ? 9 : 6}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        pointerEvents={isLine ? "stroke" : "all"}
+        data-drop-kind={PROVINCE_DROP_KIND}
+        data-drop-id={id}
+      />
+    </>
+  );
+});
+
+/**
+ * Coğrafi şekiller oyunun başında soluk hatlarla verilir (nereden başlayıp
+ * nerede bittiği görünür), doğru yerleştirilince gerçek rengine kavuşur.
+ * Yerleştirilmemiş şekiller aynı zamanda sürükleme hedefidir.
+ */
 function ShapeLayer({
   targets,
   placed,
   categorySlug,
+  interactive,
 }: {
   targets: TargetPoint[];
   placed: Record<string, TargetPoint>;
   categorySlug: string;
+  interactive?: boolean;
 }) {
-  const stroke =
-    categorySlug === "akarsular"
-      ? "#0284c7"
-      : categorySlug === "otoyollar"
-        ? "#4f46e5"
+  const isWind = categorySlug === "ruzgarlar";
+  const isRoad = categorySlug === "otoyollar";
+  const stroke = isWind
+    ? "#0f766e"
+    : isRoad
+      ? "#1e3a8a"
+      : categorySlug === "akarsular"
+        ? "#0284c7"
         : categorySlug === "dogalgaz-boru-hatlari"
           ? "#f97316"
           : categorySlug.includes("dag") ||
@@ -425,26 +528,115 @@ function ShapeLayer({
       : categorySlug === "delta-ovalari"
         ? "rgba(16,185,129,0.55)"
         : "rgba(14,165,233,0.55)";
+  const ghostStroke = "rgba(71,85,105,0.7)";
+  return (
+    <svg
+      viewBox={`0 0 ${MAP_W} ${MAP_H}`}
+      className={cn("absolute inset-0 h-full w-full", !interactive && "pointer-events-none")}
+      preserveAspectRatio="xMidYMid meet"
+    >
+      {isWind ? (
+        <defs>
+          <marker
+            id="wind-arrow-ghost"
+            viewBox="0 0 10 10"
+            refX="8"
+            refY="5"
+            markerWidth="5"
+            markerHeight="5"
+            orient="auto-start-reverse"
+          >
+            <path d="M0,0 L10,5 L0,10 z" fill={ghostStroke} />
+          </marker>
+          <marker
+            id="wind-arrow-placed"
+            viewBox="0 0 10 10"
+            refX="8"
+            refY="5"
+            markerWidth="5"
+            markerHeight="5"
+            orient="auto-start-reverse"
+          >
+            <path d="M0,0 L10,5 L0,10 z" fill={stroke} />
+          </marker>
+        </defs>
+      ) : null}
+      {targets.map((t) => {
+        if (!t.shape) return null;
+        const isLine = t.shape.type === "polyline";
+        const isPlaced = !!placed[t.id];
+        return (
+          <path
+            key={t.id}
+            d={t.shape.d}
+            fill={isLine ? "none" : isPlaced ? fill : "rgba(100,116,139,0.18)"}
+            stroke={isPlaced ? stroke : ghostStroke}
+            strokeWidth={isLine ? (isPlaced ? 2.2 : 1.6) : 1.2}
+            strokeDasharray={isPlaced ? undefined : isLine ? "4 3" : "2 2"}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            opacity={isPlaced ? 0.95 : 0.85}
+            markerEnd={
+              isWind && isLine
+                ? `url(#${isPlaced ? "wind-arrow-placed" : "wind-arrow-ghost"})`
+                : undefined
+            }
+            pointerEvents="none"
+          />
+        );
+      })}
+      {interactive
+        ? targets.map((t) =>
+            t.shape && !placed[t.id] ? (
+              <ShapeDropPath
+                key={`drop-${t.id}`}
+                id={t.id}
+                d={t.shape.d}
+                isLine={t.shape.type === "polyline"}
+              />
+            ) : null,
+          )
+        : null}
+    </svg>
+  );
+}
+
+/** Sınır kapıları oyununda komşu ülke sınırlarını gösterir. */
+function NeighborBorderLayer() {
   return (
     <svg
       viewBox={`0 0 ${MAP_W} ${MAP_H}`}
       className="pointer-events-none absolute inset-0 h-full w-full"
       preserveAspectRatio="xMidYMid meet"
+      aria-hidden="true"
     >
-      {targets.map((t) => {
-        if (!t.shape || !placed[t.id]) return null;
-        const isLine = t.shape.type === "polyline";
+      {NEIGHBOR_BORDERS.map((border) => {
+        const label = borderLabelPoint(border);
         return (
-          <path
-            key={t.id}
-            d={t.shape.d}
-            fill={isLine ? "none" : fill}
-            stroke={stroke}
-            strokeWidth={isLine ? 2.2 : 1.2}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            opacity={0.95}
-          />
+          <g key={border.country}>
+            <path
+              d={borderPath(border)}
+              fill="none"
+              stroke={border.color}
+              strokeWidth={2.6}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              opacity={0.85}
+            />
+            <text
+              x={label.x}
+              y={label.y - 5}
+              textAnchor="middle"
+              fill={border.color}
+              stroke="rgba(255,255,255,0.95)"
+              strokeWidth={1.1}
+              paintOrder="stroke"
+              fontSize={9}
+              fontWeight={800}
+            >
+              {border.country}
+            </text>
+          </g>
         );
       })}
     </svg>
@@ -471,35 +663,68 @@ const Card = memo(function Card({ id, name, shake }: { id: string; name: string;
   );
 });
 
-function ZoomControls() {
+function ZoomControls({
+  revealAll,
+  onToggleRevealAll,
+}: {
+  revealAll?: boolean;
+  onToggleRevealAll?: () => void;
+}) {
   const { zoomIn, zoomOut, resetTransform } = useControls();
+  const btn =
+    "grid h-8 w-8 place-items-center rounded-lg border border-cyan-200 bg-white/90 text-slate-700 shadow-md backdrop-blur transition hover:bg-white";
   return (
     <div className="absolute right-2 top-2 z-10 flex flex-col gap-1">
-      <button
-        type="button"
-        onClick={() => zoomIn()}
-        aria-label="Yakınlaştır"
-        className="grid h-8 w-8 place-items-center rounded-lg border border-cyan-200 bg-white/90 text-slate-700 shadow-md backdrop-blur transition hover:bg-white"
-      >
+      <button type="button" onClick={() => zoomIn()} aria-label="Yakınlaştır" className={btn}>
         <ZoomIn className="h-3.5 w-3.5" />
       </button>
-      <button
-        type="button"
-        onClick={() => zoomOut()}
-        aria-label="Uzaklaştır"
-        className="grid h-8 w-8 place-items-center rounded-lg border border-cyan-200 bg-white/90 text-slate-700 shadow-md backdrop-blur transition hover:bg-white"
-      >
+      <button type="button" onClick={() => zoomOut()} aria-label="Uzaklaştır" className={btn}>
         <ZoomOut className="h-3.5 w-3.5" />
       </button>
-      <button
-        type="button"
-        onClick={() => resetTransform()}
-        aria-label="Sıfırla"
-        className="grid h-8 w-8 place-items-center rounded-lg border border-cyan-200 bg-white/90 text-slate-700 shadow-md backdrop-blur transition hover:bg-white"
-      >
+      <button type="button" onClick={() => resetTransform()} aria-label="Sıfırla" className={btn}>
         <Maximize2 className="h-3.5 w-3.5" />
       </button>
+      {onToggleRevealAll ? (
+        <button
+          type="button"
+          onClick={onToggleRevealAll}
+          aria-label={revealAll ? "Cevapları gizle" : "Tüm cevapları göster"}
+          title={revealAll ? "Cevapları gizle" : "Tüm cevapları göster (öğrenme modu)"}
+          className={cn(btn, revealAll && "border-amber-400 bg-amber-100 text-amber-800")}
+        >
+          {revealAll ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+        </button>
+      ) : null}
     </div>
+  );
+}
+
+function ArenaPressure({ remaining, total }: { remaining: number; total: number }) {
+  const threshold = Math.max(3, Math.ceil(total * 0.3));
+  if (remaining <= 0 || remaining > threshold) return null;
+  const critical = remaining <= Math.max(2, Math.ceil(total * 0.12));
+
+  return (
+    <motion.div
+      aria-hidden="true"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="pointer-events-none fixed inset-0 z-[32] overflow-hidden"
+    >
+      <motion.div
+        animate={{ opacity: critical ? [0.18, 0.42, 0.18] : [0.1, 0.24, 0.1] }}
+        transition={{ duration: critical ? 0.65 : 1.4, repeat: Infinity }}
+        className="absolute inset-0 shadow-[inset_0_0_95px_rgba(239,68,68,0.8)]"
+      />
+      <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-orange-600/30 via-rose-500/10 to-transparent" />
+      <motion.div
+        animate={critical ? { scale: [1, 1.08, 1], y: [0, -3, 0] } : { y: [0, -2, 0] }}
+        transition={{ duration: critical ? 0.6 : 1.2, repeat: Infinity }}
+        className="absolute inset-x-0 bottom-16 mx-auto w-fit rounded-full border border-orange-300/70 bg-slate-950/80 px-4 py-2 text-center text-xs font-black uppercase tracking-[0.2em] text-orange-200 shadow-2xl backdrop-blur"
+      >
+        🔥 Son {remaining} kart · {critical ? "Ateş hattı!" : "Rekabet kızışıyor"}
+      </motion.div>
+    </motion.div>
   );
 }
 
@@ -534,14 +759,31 @@ export function GameBoard({ category }: { category: Category }) {
   const targets = useMemo(() => targetsFor(category), [category]);
   const targetById = useMemo(() => Object.fromEntries(targets.map((t) => [t.id, t])), [targets]);
 
-  // Tarım & Hayvancılık → "il tıklama" modu (sürükleme yok, harita büyük).
-  // "Tüm ..." alt kategorileri (item adları ürün adı olan) klasik sürükleme modunda kalır.
-  const isClickMode =
-    (category.mainSlug === "tarim" || category.mainSlug === "hayvancilik") &&
-    !category.slug.startsWith("tum-");
+  // Kart "dümdüz il seçimi" ise tıklamalı, tesis/şekil ise sürüklemelidir.
+  // İkisi de varsa oyun karma çalışır.
+  const { clickItems, dragItems } = useMemo(
+    () => splitGameItems(category.slug, category.items),
+    [category.items, category.slug],
+  );
+  const hasClick = clickItems.length > 0;
+  const hasDrag = dragItems.length > 0;
+  const isClickMode = hasClick && !hasDrag;
+  const modeBadge = gameModeLabel(hasClick, hasDrag);
+  const clickIds = useMemo(() => new Set(clickItems.map((item) => item.id)), [clickItems]);
+  const dragTargets = useMemo(
+    () => targets.filter((target) => !clickIds.has(target.id)),
+    [clickIds, targets],
+  );
   const isAllProvinces = category.slug === "iller-81";
+  const showNeighbors = category.slug === "sinir-kapilari";
+  // Tüm kart adları gerçek il adıysa sürükleme hedefi ilin kendi sınırıdır
+  // (beyaz nokta yok; sınır çerçevesi vurgulanır).
+  const isProvinceDrag = useMemo(
+    () => hasDrag && allNamesAreProvinces(dragItems),
+    [dragItems, hasDrag],
+  );
 
-  const [cards, setCards] = useState(() => shuffle(category.items));
+  const [cards, setCards] = useState(() => shuffle(dragItems));
   const [placed, setPlaced] = useState<Placed>({});
   const [wrongIds, setWrongIds] = useState<string[]>([]);
   const [shakeTarget, setShakeTarget] = useState<{
@@ -552,14 +794,19 @@ export function GameBoard({ category }: { category: Category }) {
   const [correctCount, setCorrectCount] = useState(0);
   const [wrongCount, setWrongCount] = useState(0);
   const [studyMistakes, setStudyMistakes] = useState<StudyMistake[]>([]);
+  const cardLabels = useMemo(() => buildCardLabels(category.items), [category.items]);
   // Click-mode: yanlış tıklanan il adları (kırmızıya boyanır, tekrar tıklanamaz)
   const [wrongProvinces, setWrongProvinces] = useState<string[]>([]);
+  // Joker ile açılan iller (sarı gösterilir)
+  const [hintProvinces, setHintProvinces] = useState<string[]>([]);
+  // Öğrenme modu: tüm cevapları geçici olarak haritada göster
+  const [revealAll, setRevealAll] = useState(false);
   const startedAtRef = useRef(Date.now());
   const [arenaTurn, setArenaTurn] = useState<ArenaPlayerId>("red");
   const arenaTurnRef = useRef<ArenaPlayerId>("red");
   const [arenaPlayers, setArenaPlayers] = useState<ArenaPlayers>(emptyArenaPlayers);
   const arenaPlayersRef = useRef<ArenaPlayers>(emptyArenaPlayers());
-  const [arenaCards, setArenaCards] = useState<ArenaCards>(() => initialArenaCards(category.items));
+  const [arenaCards, setArenaCards] = useState<ArenaCards>(() => initialArenaCards(dragItems));
   const arenaCardsRef = useRef<ArenaCards>(arenaCards);
   const [arenaPlaced, setArenaPlaced] = useState<ArenaPlaced>(emptyArenaPlaced);
   const arenaPlacedRef = useRef<ArenaPlaced>(emptyArenaPlaced());
@@ -600,8 +847,7 @@ export function GameBoard({ category }: { category: Category }) {
         },
       };
       const otherPlayer: ArenaPlayerId = playerId === "red" ? "blue" : "red";
-      const nextTurn: ArenaPlayerId =
-        arenaCardsRef.current[otherPlayer].length > 0 ? otherPlayer : playerId;
+      const nextTurn: ArenaPlayerId = otherPlayer;
       arenaPlayersRef.current = next;
       arenaTurnRef.current = nextTurn;
       arenaTurnStartedAtRef.current = now;
@@ -630,32 +876,57 @@ export function GameBoard({ category }: { category: Category }) {
     category.slug === "iller-81" ||
     category.slug === "buyuksehirler" ||
     isClickMode;
-  const displayedPlaced = isCompetitive ? arenaPlaced[arenaTurn] : placed;
+  const allPlacedPreview = useMemo(
+    () => Object.fromEntries(targets.map((t) => [t.id, t])) as Placed,
+    [targets],
+  );
+  const displayedPlaced = revealAll ? allPlacedPreview : placed;
   const displayedWrongProvinces = isCompetitive ? arenaWrongProvinces[arenaTurn] : wrongProvinces;
   const highlightedProvinces = useMemo(
-    () => (isIlleri ? Object.values(displayedPlaced).map((p) => p.name) : []),
-    [displayedPlaced, isIlleri],
+    () =>
+      Object.values(displayedPlaced)
+        .filter((p) => isIlleri || clickIds.has(p.id))
+        .map((p) => p.name),
+    [clickIds, displayedPlaced, isIlleri],
   );
   const provinceDropTargets = useMemo(
     () =>
-      isAllProvinces
-        ? targets.map((target) => ({
+      isProvinceDrag
+        ? dragTargets.map((target) => ({
             provinceName: target.name,
             dropId: target.id,
-            disabled: isCompetitive ? !!arenaPlaced[arenaTurn][target.id] : !!placed[target.id],
+            disabled: !!placed[target.id],
           }))
         : undefined,
-    [arenaPlaced, arenaTurn, isAllProvinces, isCompetitive, placed, targets],
+    [dragTargets, isProvinceDrag, placed],
   );
   const placedProvinceLabels = useMemo(
     () =>
-      isAllProvinces
+      isProvinceDrag
         ? Object.values(displayedPlaced).map((target) => ({
             provinceName: target.name,
             label: target.name,
           }))
         : undefined,
-    [displayedPlaced, isAllProvinces],
+    [displayedPlaced, isProvinceDrag],
+  );
+  const arenaClaimsById = useMemo(() => {
+    const claims: Record<string, ArenaPlayerId> = {};
+    for (const id of Object.keys(arenaPlaced.red)) claims[id] = "red";
+    for (const id of Object.keys(arenaPlaced.blue)) claims[id] = "blue";
+    return claims;
+  }, [arenaPlaced]);
+  const provinceClaims = useMemo(
+    () =>
+      isCompetitive
+        ? (["red", "blue"] as const).flatMap((tone) =>
+            Object.values(arenaPlaced[tone]).map((target) => ({
+              provinceName: target.name,
+              tone,
+            })),
+          )
+        : undefined,
+    [arenaPlaced, isCompetitive],
   );
 
   // Otomatik odak (bölge oyunları için)
@@ -664,10 +935,16 @@ export function GameBoard({ category }: { category: Category }) {
     [category.items, category.slug],
   );
   // Daha geniş bir genel görünüm için odak ölçeğine padding uygula (0.72 → %28 daha geriden bak)
-  const focusScale = focus ? Math.min(MAP_W / focus.w, MAP_H / focus.h) * 0.72 : 1;
-  const isFocused = !!focus;
+  const focusScale = focus ? Math.max(1, Math.min(MAP_W / focus.w, MAP_H / focus.h) * 0.62) : 1;
 
   const mapWrapRef = useRef<HTMLDivElement>(null);
+  const mapSurfaceRef = useRef<HTMLDivElement>(null);
+  const cardScrollRef = useRef<HTMLDivElement>(null);
+  const scrollCards = useCallback((direction: -1 | 1) => {
+    const el = cardScrollRef.current;
+    if (!el) return;
+    el.scrollBy({ top: direction * Math.max(120, el.clientHeight * 0.7), behavior: "smooth" });
+  }, []);
   const zoomRef = useRef<ReactZoomPanPinchRef | null>(null);
   const [containerW, setContainerW] = useState(0);
 
@@ -694,8 +971,8 @@ export function GameBoard({ category }: { category: Category }) {
   }, [focus, focusScale, containerW, category.slug]);
 
   const total = category.items.length;
-  const gameTotal = isCompetitive ? total * 2 : total;
-  const visibleCards = isCompetitive ? arenaCards[arenaTurn] : cards;
+  const gameTotal = total;
+  const visibleCards = isCompetitive ? arenaCards : cards;
 
   // Event handler'ları aynı frame içindeki ikinci touch/pointer olayında da
   // güncel değeri görsün; React effect turunu beklemiyoruz.
@@ -760,7 +1037,7 @@ export function GameBoard({ category }: { category: Category }) {
   const commitCorrectTarget = (cardId: string, target: TargetPoint) => {
     if (isCompetitive) {
       const playerId = arenaTurnRef.current;
-      if (arenaPlacedRef.current[playerId][cardId]) return null;
+      if (placedRef.current[cardId]) return null;
       const nextArenaPlaced: ArenaPlaced = {
         ...arenaPlacedRef.current,
         [playerId]: {
@@ -771,19 +1048,13 @@ export function GameBoard({ category }: { category: Category }) {
       arenaPlacedRef.current = nextArenaPlaced;
       setArenaPlaced(nextArenaPlaced);
 
-      const nextArenaCards: ArenaCards = {
-        ...arenaCardsRef.current,
-        [playerId]: arenaCardsRef.current[playerId].filter((card) => card.id !== cardId),
-      };
+      const nextArenaCards: ArenaCards = arenaCardsRef.current.filter((card) => card.id !== cardId);
       arenaCardsRef.current = nextArenaCards;
       setArenaCards(nextArenaCards);
 
-      const otherPlayer: ArenaPlayerId = playerId === "red" ? "blue" : "red";
-      if (nextArenaPlaced[otherPlayer][cardId]) {
-        const nextPlaced = { ...placedRef.current, [cardId]: target };
-        placedRef.current = nextPlaced;
-        setPlaced(nextPlaced);
-      }
+      const nextPlaced = { ...placedRef.current, [cardId]: target };
+      placedRef.current = nextPlaced;
+      setPlaced(nextPlaced);
     } else {
       if (placedRef.current[cardId]) return null;
       const nextPlaced = { ...placedRef.current, [cardId]: target };
@@ -877,20 +1148,22 @@ export function GameBoard({ category }: { category: Category }) {
     }
   };
 
-  // Click-mode: il tıklama akışı (sadece tarım/hayvancılık)
+  // Tıklamalı akış: kart "dümdüz il" olan hedefler haritadan tıklanarak bulunur.
+  const clickTargets = useMemo(
+    () => targets.filter((target) => clickIds.has(target.id)),
+    [clickIds, targets],
+  );
   const answerMap = useMemo(() => {
     const m = new Map<string, TargetPoint>();
-    if (isClickMode) {
-      for (const t of targets) m.set(normalizePlaceName(t.name), t);
-    }
+    for (const t of clickTargets) m.set(normalizePlaceName(t.name), t);
     return m;
-  }, [targets, isClickMode]);
+  }, [clickTargets]);
 
   const handleProvinceClick = (provinceName: string) => {
-    if (!isClickMode || doneRef.current) return;
+    if (!hasClick || doneRef.current) return;
     const key = normalizePlaceName(provinceName);
     const playerId = arenaTurnRef.current;
-    const currentPlaced = isCompetitive ? arenaPlacedRef.current[playerId] : placedRef.current;
+    const currentPlaced = placedRef.current;
     const currentWrongProvinces = isCompetitive
       ? arenaWrongProvincesRef.current[playerId]
       : wrongProvincesRef.current;
@@ -938,6 +1211,30 @@ export function GameBoard({ category }: { category: Category }) {
     }
   };
 
+  const takeJoker = () => {
+    if (!hasClick || doneRef.current) return;
+    const takenNames = new Set(
+      [...Object.values(placedRef.current).map((t) => t.name), ...hintProvinces].map(
+        normalizePlaceName,
+      ),
+    );
+    const remaining = clickTargets.filter(
+      (t) => !placedRef.current[t.id] && !takenNames.has(normalizePlaceName(t.name)),
+    );
+    if (remaining.length === 0) return;
+    const pick = remaining[Math.floor(Math.random() * remaining.length)];
+    setHintProvinces((current) => [...current, pick.name]);
+    const committed = commitCorrectTarget(pick.id, pick);
+    if (committed?.nextCorrect === gameTotal) {
+      finalize(
+        committed.nextCorrect,
+        wrongCountRef.current,
+        wrongIdsRef.current,
+        committed.arenaSnapshot,
+      );
+    }
+  };
+
   const finalize = (
     correct: number,
     wrong: number,
@@ -977,8 +1274,8 @@ export function GameBoard({ category }: { category: Category }) {
     setShakeTarget(null);
     runGenerationRef.current += 1;
     activeDragRef.current = null;
-    const nextCards = shuffle(category.items);
-    const nextArenaCards = initialArenaCards(category.items);
+    const nextCards = shuffle(dragItems);
+    const nextArenaCards = initialArenaCards(dragItems);
     const nextArenaPlaced = emptyArenaPlaced();
     const nextArenaWrong = emptyArenaWrongProvinces();
     setCards(nextCards);
@@ -994,6 +1291,8 @@ export function GameBoard({ category }: { category: Category }) {
     wrongIdsRef.current = [];
     setWrongProvinces([]);
     wrongProvincesRef.current = [];
+    setHintProvinces([]);
+    setRevealAll(false);
     setStudyMistakes([]);
     setCorrectCount(0);
     correctCountRef.current = 0;
@@ -1057,7 +1356,6 @@ export function GameBoard({ category }: { category: Category }) {
       wrongCount: Math.min(5_000, summary.wrong),
       totalMs: Math.min(24 * 60 * 60 * 1000, summary.totalMs),
       wrongAttempts: studyMistakes,
-      wrongWarmupQuestionIds: [],
     };
   }, [category.items.length, category.slug, studyMistakes, summary]);
 
@@ -1104,16 +1402,17 @@ export function GameBoard({ category }: { category: Category }) {
 
         <h1 className="min-w-0 truncate text-base font-black tracking-tight text-slate-900 sm:text-2xl max-lg:landscape:text-sm">
           <span className="mr-2">{category.emoji}</span>
+          <span className={isClickMode ? "text-emerald-700" : undefined}>{category.title}</span>
+          {modeBadge ? (
+            <span className="ml-1 font-semibold text-xs text-cyan-700 sm:text-sm max-lg:landscape:text-[10px]">
+              ({modeBadge})
+            </span>
+          ) : null}
           {isClickMode ? (
-            <>
-              <span className="text-emerald-700">{category.title}</span>
-              <span className="ml-1 text-slate-500 font-semibold text-xs sm:text-sm max-lg:landscape:text-[10px]">
-                — üretim illerini bul
-              </span>
-            </>
-          ) : (
-            category.title
-          )}
+            <span className="ml-1 text-slate-500 font-semibold text-xs sm:text-sm max-lg:landscape:text-[10px]">
+              {category.slug === "buyuksehirler" ? "— doğru illere tıkla" : "— doğru illere tıkla"}
+            </span>
+          ) : null}
         </h1>
 
         <div className="flex items-center justify-end gap-1.5 text-sm text-slate-700 sm:gap-2">
@@ -1137,7 +1436,8 @@ export function GameBoard({ category }: { category: Category }) {
           turnStartedAt={arenaTurnStartedAt}
           done={done}
           paused={arenaPaused}
-          tasksPerPlayer={total}
+          poolRemaining={arenaCards.length}
+          totalItems={total}
         />
       ) : null}
 
@@ -1155,23 +1455,26 @@ export function GameBoard({ category }: { category: Category }) {
 
       {isClickMode ? (
         // Click-mode: harita tam genişlik, kart paneli yok
-        <div className="flex flex-1 min-h-0 flex-col">
+        <div className="flex flex-1 min-h-0 flex-row gap-2">
           <div className="relative flex-1 min-h-0" ref={mapWrapRef}>
             <TransformWrapper
               key={category.slug + (containerW > 0 ? "-ready" : "-init")}
               ref={zoomRef}
               initialScale={focusScale}
-              minScale={focusScale}
-              maxScale={isFocused ? focusScale : 5}
+              minScale={0.9}
+              maxScale={8}
               doubleClick={{ disabled: true }}
-              wheel={{ disabled: isFocused, step: 0.15 }}
-              pinch={{ disabled: isFocused, step: 5 }}
-              panning={{ disabled: isFocused, velocityDisabled: true }}
+              wheel={{ step: 0.15 }}
+              pinch={{ step: 5 }}
+              panning={{ velocityDisabled: true }}
               limitToBounds={true}
               centerOnInit={!focus}
             >
               <>
-                {!isFocused && <ZoomControls />}
+                <ZoomControls
+                  revealAll={revealAll}
+                  onToggleRevealAll={() => setRevealAll((v) => !v)}
+                />
                 <TransformComponent
                   wrapperClass="!w-full !h-full !overflow-hidden !rounded-2xl !border !border-cyan-200 !bg-gradient-to-br !from-white !via-sky-50 !to-cyan-50 !shadow-xl !shadow-cyan-500/10"
                   contentClass="!w-full"
@@ -1182,6 +1485,7 @@ export function GameBoard({ category }: { category: Category }) {
                       variant={category.mapVariant}
                       highlightedProvinces={highlightedProvinces}
                       wrongProvinces={displayedWrongProvinces}
+                      hintProvinces={hintProvinces}
                       onProvinceClick={onProvinceClick}
                       interactive
                     />
@@ -1190,18 +1494,36 @@ export function GameBoard({ category }: { category: Category }) {
               </>
             </TransformWrapper>
           </div>
+          <div className="w-[104px] shrink-0 sm:w-[140px]">
+            <button
+              type="button"
+              onClick={takeJoker}
+              disabled={done || correctCount >= gameTotal}
+              className="flex w-full flex-col items-center gap-1 rounded-2xl border border-amber-300 bg-gradient-to-b from-amber-100 to-amber-50 px-2 py-3 text-center text-[11px] font-black text-amber-800 shadow-md transition active:scale-95 disabled:opacity-40 sm:text-xs"
+            >
+              <Lightbulb className="h-5 w-5" />
+              Joker
+              <span className="text-[9px] font-semibold leading-tight text-amber-700/80">
+                Bir doğru cevabı sarı göster
+              </span>
+            </button>
+            <div className="mt-2 rounded-2xl bg-white/60 p-2 text-[10px] font-semibold leading-tight text-slate-500 ring-1 ring-cyan-100">
+              Joker ile açılan iller <span className="text-amber-600">sarı</span> renkte kalır.
+            </div>
+          </div>
         </div>
       ) : (
         <DndContext
           sensors={sensors}
-          collisionDetection={isAllProvinces ? exactProvinceCollision : pointerWithin}
+          collisionDetection={hybridCollision}
           modifiers={[snapCenterToCursor]}
           onDragStart={(e) => {
+            const cardId = String(e.active.id);
             activeDragRef.current = {
               generation: runGenerationRef.current,
               owner: isCompetitive ? arenaTurnRef.current : null,
             };
-            setActiveId(String(e.active.id));
+            setActiveId(cardId);
           }}
           onDragCancel={() => {
             activeDragRef.current = null;
@@ -1213,7 +1535,7 @@ export function GameBoard({ category }: { category: Category }) {
           <div
             className={cn(
               "flex flex-1 min-h-0 flex-col gap-3 max-lg:landscape:flex-row max-lg:landscape:gap-2",
-              isAllProvinces && "lg:flex-row",
+              isProvinceDrag && "lg:flex-row",
             )}
           >
             <div className="relative flex-1 min-h-0" ref={mapWrapRef}>
@@ -1221,43 +1543,66 @@ export function GameBoard({ category }: { category: Category }) {
                 key={category.slug + (containerW > 0 ? "-ready" : "-init")}
                 ref={zoomRef}
                 initialScale={focusScale}
-                minScale={focusScale}
-                maxScale={isFocused ? focusScale : 5}
-                doubleClick={{ disabled: isFocused, mode: "toggle", step: 1.5 }}
-                wheel={{ disabled: isFocused, step: 0.15 }}
-                pinch={{ disabled: isFocused, step: 5 }}
-                panning={{ disabled: isFocused, velocityDisabled: true }}
+                minScale={0.9}
+                maxScale={8}
+                doubleClick={{ mode: "toggle", step: 1.5 }}
+                wheel={{ step: 0.15 }}
+                pinch={{ step: 5 }}
+                panning={{ velocityDisabled: true }}
                 limitToBounds={true}
                 centerOnInit={!focus}
               >
                 <>
-                  {!isFocused && <ZoomControls />}
+                  <ZoomControls
+                    revealAll={revealAll}
+                    onToggleRevealAll={() => setRevealAll((v) => !v)}
+                  />
                   <TransformComponent
                     wrapperClass="!w-full !h-full !overflow-hidden !rounded-2xl !border !border-cyan-200 !bg-gradient-to-br !from-white !via-sky-50 !to-cyan-50 !shadow-xl !shadow-cyan-500/10"
                     contentClass="!w-full"
                   >
-                    <div className="relative w-full" style={{ aspectRatio: `${MAP_W} / ${MAP_H}` }}>
+                    <div
+                      ref={mapSurfaceRef}
+                      className="relative w-full"
+                      style={{ aspectRatio: `${MAP_W} / ${MAP_H}` }}
+                    >
                       <TurkeyMap
                         className="absolute inset-0 h-full w-full"
                         variant={category.mapVariant}
                         highlightedProvinces={highlightedProvinces}
+                        wrongProvinces={displayedWrongProvinces}
+                        hintProvinces={hintProvinces}
                         provinceDropTargets={provinceDropTargets}
                         placedProvinceLabels={placedProvinceLabels}
+                        provinceClaims={provinceClaims}
+                        onProvinceClick={hasClick ? onProvinceClick : undefined}
+                        interactive={hasClick}
                       />
                       {category.slug === "ruzgarlar" ? <CompassGuideLayer /> : null}
+                      {showNeighbors ? <NeighborBorderLayer /> : null}
                       <ShapeLayer
-                        targets={targets}
+                        targets={dragTargets}
                         placed={displayedPlaced}
                         categorySlug={category.slug}
+                        interactive={!revealAll}
                       />
-                      {!isAllProvinces ? (
-                        <TargetGuideLayer targets={targets} placed={displayedPlaced} />
+                      {!isProvinceDrag ? (
+                        <TargetGuideLayer targets={dragTargets} placed={displayedPlaced} />
                       ) : null}
                       <div className="absolute inset-0">
-                        {!isAllProvinces
-                          ? targets.map((t) => (
-                              <DropDot key={t.id} t={t} placed={!!displayedPlaced[t.id]} />
-                            ))
+                        {!isProvinceDrag
+                          ? dragTargets.map((t) =>
+                              // Şekli olan hedeflerin kendisi sürükleme alanıdır;
+                              // yerleşmeden beyaz nokta gösterilmez.
+                              t.shape && !displayedPlaced[t.id] ? null : (
+                                <DropDot
+                                  key={t.id}
+                                  t={t}
+                                  placed={!!displayedPlaced[t.id]}
+                                  claimTone={arenaClaimsById[t.id]}
+                                />
+                              ),
+                            )
                           : null}
                       </div>
                     </div>
@@ -1270,16 +1615,48 @@ export function GameBoard({ category }: { category: Category }) {
             <div
               className={cn(
                 "max-lg:landscape:w-[200px] max-lg:landscape:flex-shrink-0",
-                isAllProvinces && "lg:w-[220px] lg:flex-shrink-0",
+                isProvinceDrag && "lg:w-[220px] lg:flex-shrink-0",
               )}
             >
-              <div className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500 max-lg:landscape:hidden">
-                Kartları haritaya sürükle
+              <div className="mb-1 flex items-center justify-between gap-2">
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                  Kartları haritaya sürükle
+                </span>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    aria-label="Kartlarda yukarı kaydır"
+                    onClick={() => scrollCards(-1)}
+                    className="grid h-7 w-7 place-items-center rounded-full bg-white text-slate-600 shadow ring-1 ring-cyan-200 transition active:scale-95"
+                  >
+                    <ChevronUp className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Kartlarda aşağı kaydır"
+                    onClick={() => scrollCards(1)}
+                    className="grid h-7 w-7 place-items-center rounded-full bg-white text-slate-600 shadow ring-1 ring-cyan-200 transition active:scale-95"
+                  >
+                    <ChevronDown className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
+              {hasClick ? (
+                <button
+                  type="button"
+                  onClick={takeJoker}
+                  disabled={done || correctCount >= gameTotal}
+                  className="mb-2 flex w-full items-center justify-center gap-1.5 rounded-xl border border-amber-300 bg-gradient-to-b from-amber-100 to-amber-50 px-2 py-2 text-[11px] font-black text-amber-800 shadow-sm transition active:scale-95 disabled:opacity-40"
+                >
+                  <Lightbulb className="h-4 w-4" />
+                  Joker (il aç)
+                </button>
+              ) : null}
               <div
+                ref={cardScrollRef}
                 className={cn(
                   "max-h-[32vh] overflow-y-auto rounded-2xl bg-white/50 p-2 ring-1 ring-cyan-100 max-lg:landscape:max-h-full max-lg:landscape:h-full",
-                  isAllProvinces && "lg:max-h-[68vh]",
+                  isProvinceDrag && "lg:max-h-[68vh]",
                 )}
               >
                 <div className="flex flex-wrap items-start justify-start gap-1.5 max-lg:landscape:flex-col max-lg:landscape:flex-nowrap">
@@ -1287,7 +1664,7 @@ export function GameBoard({ category }: { category: Category }) {
                     <div key={c.id} className="max-lg:landscape:w-full">
                       <Card
                         id={c.id}
-                        name={c.name}
+                        name={cardLabels[c.id] ?? c.name}
                         shake={
                           shakeTarget?.id === c.id &&
                           shakeTarget.owner === (isCompetitive ? arenaTurn : null)
@@ -1306,12 +1683,14 @@ export function GameBoard({ category }: { category: Category }) {
           <DragOverlay dropAnimation={null}>
             {activeId ? (
               <div className="pointer-events-none min-h-[40px] w-[150px] whitespace-normal break-words rounded-xl border border-cyan-400 bg-white px-3 py-2 text-center text-xs font-semibold text-slate-800 shadow-2xl shadow-cyan-500/40 sm:w-[170px] sm:text-sm">
-                {category.items.find((i) => i.id === activeId)?.name}
+                {cardLabels[activeId] ?? category.items.find((i) => i.id === activeId)?.name}
               </div>
             ) : null}
           </DragOverlay>
         </DndContext>
       )}
+
+      {isCompetitive ? <ArenaPressure remaining={arenaCards.length} total={total} /> : null}
 
       <Suspense fallback={null}>
         <TopicEssentials categorySlug={category.slug} />
@@ -1389,7 +1768,7 @@ export function GameBoard({ category }: { category: Category }) {
                   </div>
                   <div className="min-w-0">
                     <div className="text-[10px] font-semibold uppercase tracking-wide text-cyan-600">
-                      Harita tamamlandı · {arenaOutcome ? "arena sonucu" : "oyun sonucu"}
+                      Oyun tamamlandı · {arenaOutcome ? "arena sonucu" : "harita sonucu"}
                     </div>
                     <div className="truncate text-lg font-black text-slate-900">
                       {arenaOutcome
@@ -1417,7 +1796,7 @@ export function GameBoard({ category }: { category: Category }) {
                       tone="blue"
                     />
                     <p className="col-span-2 text-[10px] font-semibold leading-relaxed text-slate-500">
-                      Skor: doğruluk (10.000) − aktif saniye × 2
+                      Skor: doğru kart × 1.000 − yanlış × 350 − aktif saniye × 2
                     </p>
                   </div>
                 ) : (
@@ -1442,11 +1821,7 @@ export function GameBoard({ category }: { category: Category }) {
                   </div>
                 }
               >
-                <PostGameStudy
-                  result={studyResult}
-                  onReplay={reset}
-                  onExit={goBack}
-                />
+                <PostGameStudy result={studyResult} onReplay={reset} onExit={goBack} />
               </Suspense>
             </motion.div>
           </motion.div>

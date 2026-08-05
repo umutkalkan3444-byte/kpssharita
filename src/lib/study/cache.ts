@@ -37,7 +37,6 @@ function canonicalRequest(requestInput: StudyReviewRequest): string {
       .slice()
       .sort((a, b) => mistakeKey(a).localeCompare(mistakeKey(b), "tr"))
       .map((mistake) => [mistake.kind, mistake.id, mistake.droppedOnId ?? null, mistake.count]),
-    wrongWarmupQuestionIds: request.wrongWarmupQuestionIds.slice().sort(),
   });
 }
 

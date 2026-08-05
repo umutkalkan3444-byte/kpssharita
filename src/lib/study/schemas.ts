@@ -17,34 +17,6 @@ export const VerifiedFactSchema = z.object({
 });
 export type VerifiedFact = z.infer<typeof VerifiedFactSchema>;
 
-const ChoiceIndexSchema = z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)]);
-
-export const WarmupQuestionSchema = z.object({
-  id: z.string().min(1).max(160),
-  categorySlug: z.string().min(1).max(64),
-  prompt: z.string().min(1).max(600),
-  statements: z.array(z.string().min(1).max(240)).max(3).optional(),
-  choices: z.tuple([
-    z.string().min(1).max(220),
-    z.string().min(1).max(220),
-    z.string().min(1).max(220),
-    z.string().min(1).max(220),
-  ]),
-  correctIndex: ChoiceIndexSchema,
-  explanation: z.string().min(1).max(600),
-  relatedFactIds: z.array(z.string().min(1).max(160)).min(1).max(8),
-  sourceRefs: z.array(z.string().min(1).max(120)).min(1).max(6),
-  contentVersion: z.string().min(1).max(40),
-});
-export type WarmupQuestion = z.infer<typeof WarmupQuestionSchema>;
-
-export const WarmupCompletionSchema = z.object({
-  questionIds: z.array(z.string().min(1).max(160)).length(3),
-  wrongQuestionIds: z.array(z.string().min(1).max(160)).max(3),
-  correctCount: z.number().int().min(0).max(3),
-});
-export type WarmupCompletion = z.infer<typeof WarmupCompletionSchema>;
-
 export const StudyMistakeSchema = z.object({
   kind: z.enum(["target", "province"]),
   id: z.string().min(1).max(120),
@@ -67,16 +39,10 @@ export const StudyReviewRequestSchema = z.object({
     .min(0)
     .max(24 * 60 * 60 * 1000),
   wrongAttempts: z.array(StudyMistakeSchema).max(100),
-  wrongWarmupQuestionIds: z.array(z.string().min(1).max(160)).max(3).default([]),
 });
 export type StudyReviewRequest = z.infer<typeof StudyReviewRequestSchema>;
 
-export const ReviewReasonSchema = z.enum([
-  "repeated_error",
-  "warmup_gap",
-  "exam_high_yield",
-  "prerequisite",
-]);
+export const ReviewReasonSchema = z.enum(["repeated_error", "exam_high_yield", "prerequisite"]);
 export type ReviewReason = z.infer<typeof ReviewReasonSchema>;
 
 export const AiReviewPlanSchema = z.object({
@@ -141,9 +107,6 @@ export function normalizeStudyReviewRequest(input: StudyReviewRequest): StudyRev
     ...parsed,
     wrongAttempts: Array.from(merged.values()).sort((a, b) =>
       mistakeKey(a).localeCompare(mistakeKey(b), "tr"),
-    ),
-    wrongWarmupQuestionIds: Array.from(new Set(parsed.wrongWarmupQuestionIds)).sort((a, b) =>
-      a.localeCompare(b, "tr"),
     ),
   };
 }
