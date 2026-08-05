@@ -1216,8 +1216,8 @@ export function GameBoard({ category }: { category: Category }) {
     setShakeTarget(null);
     runGenerationRef.current += 1;
     activeDragRef.current = null;
-    const nextCards = shuffle(category.items);
-    const nextArenaCards = initialArenaCards(category.items);
+    const nextCards = shuffle(dragItems);
+    const nextArenaCards = initialArenaCards(dragItems);
     const nextArenaPlaced = emptyArenaPlaced();
     const nextArenaWrong = emptyArenaWrongProvinces();
     setCards(nextCards);
