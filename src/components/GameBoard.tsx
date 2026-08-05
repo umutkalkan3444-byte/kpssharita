@@ -37,7 +37,6 @@ import {
   mistakeKey,
   type StudyMistake,
   type StudyReviewRequest,
-  type WarmupCompletion,
 } from "@/lib/study/schemas";
 
 const PostGameStudy = lazy(() =>
@@ -522,15 +521,7 @@ function useIsPortraitMobile() {
   return portrait;
 }
 
-export function GameBoard({
-  category,
-  warmupCompletion,
-  onRestartJourney,
-}: {
-  category: Category;
-  warmupCompletion?: WarmupCompletion;
-  onRestartJourney?: () => void;
-}) {
+export function GameBoard({ category }: { category: Category }) {
   // SSR sırasında localStorage okunamaz. İlk istemci effect'inde gerçek tercih
   // bir kez alınır ve oyun boyunca kilitlenir; başka sekmedeki değişiklik devam
   // eden solo/arena state'lerini birbirine karıştıramaz.
@@ -1066,9 +1057,9 @@ export function GameBoard({
       wrongCount: Math.min(5_000, summary.wrong),
       totalMs: Math.min(24 * 60 * 60 * 1000, summary.totalMs),
       wrongAttempts: studyMistakes,
-      wrongWarmupQuestionIds: warmupCompletion?.wrongQuestionIds ?? [],
+      wrongWarmupQuestionIds: [],
     };
-  }, [category.items.length, category.slug, studyMistakes, summary, warmupCompletion]);
+  }, [category.items.length, category.slug, studyMistakes, summary]);
 
   if (!modeReady) {
     return (
@@ -1398,7 +1389,7 @@ export function GameBoard({
                   </div>
                   <div className="min-w-0">
                     <div className="text-[10px] font-semibold uppercase tracking-wide text-cyan-600">
-                      2. aşama tamamlandı · {arenaOutcome ? "arena sonucu" : "harita sonucu"}
+                      Harita tamamlandı · {arenaOutcome ? "arena sonucu" : "oyun sonucu"}
                     </div>
                     <div className="truncate text-lg font-black text-slate-900">
                       {arenaOutcome
@@ -1453,7 +1444,7 @@ export function GameBoard({
               >
                 <PostGameStudy
                   result={studyResult}
-                  onReplay={onRestartJourney ?? reset}
+                  onReplay={reset}
                   onExit={goBack}
                 />
               </Suspense>

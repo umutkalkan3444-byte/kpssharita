@@ -134,7 +134,7 @@ function fillEssentials(
 
 function closingFor(tone: AiReviewPlan["closingTone"], mistakeCount: number): string {
   if (mistakeCount === 0 || tone === "mastery") {
-    return "Harita ve ısınma aşamasındaki bilgileri doğru bağladın. Kalıcılık için dört uç noktayı kısa bir kez daha gözden geçir.";
+    return "Haritadaki bilgileri doğru bağladın. Kalıcılık için dört uç noktayı kısa bir kez daha gözden geçir.";
   }
   if (tone === "careful") {
     return "Önce en sık karışan hedefleri, ardından kuzey-güney ve batı-doğu sıralamasını tekrar et; sonra aynı haritayı yeniden dene.";

@@ -120,7 +120,7 @@ export function PostGameStudy({ result, onReplay, onExit }: PostGameStudyProps) 
             </div>
             <div className="min-w-0">
               <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/80">
-                3. aşama · mini çalışma
+                Oyun sonu · mini çalışma
               </p>
               <h2 className="truncate text-lg font-black sm:text-xl">{review.title}</h2>
             </div>
