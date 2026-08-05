@@ -707,21 +707,31 @@ export function GameBoard({ category }: { category: Category }) {
   const targets = useMemo(() => targetsFor(category), [category]);
   const targetById = useMemo(() => Object.fromEntries(targets.map((t) => [t.id, t])), [targets]);
 
-  // Tarım & Hayvancılık → "il tıklama" modu (sürükleme yok, harita büyük).
-  // "Tüm ..." alt kategorileri (item adları ürün adı olan) klasik sürükleme modunda kalır.
-  const isClickMode =
-    ((category.mainSlug === "tarim" || category.mainSlug === "hayvancilik") &&
-      !category.slug.startsWith("tum-")) ||
-    category.slug === "buyuksehirler";
+  // Kart "dümdüz il seçimi" ise tıklamalı, tesis/şekil ise sürüklemelidir.
+  // İkisi de varsa oyun karma çalışır.
+  const { clickItems, dragItems } = useMemo(
+    () => splitGameItems(category.slug, category.items),
+    [category.items, category.slug],
+  );
+  const hasClick = clickItems.length > 0;
+  const hasDrag = dragItems.length > 0;
+  const isClickMode = hasClick && !hasDrag;
+  const modeBadge = gameModeLabel(hasClick, hasDrag);
+  const clickIds = useMemo(() => new Set(clickItems.map((item) => item.id)), [clickItems]);
+  const dragTargets = useMemo(
+    () => targets.filter((target) => !clickIds.has(target.id)),
+    [clickIds, targets],
+  );
   const isAllProvinces = category.slug === "iller-81";
+  const showNeighbors = category.slug === "sinir-kapilari";
   // Tüm kart adları gerçek il adıysa sürükleme hedefi ilin kendi sınırıdır
   // (beyaz nokta yok; sınır çerçevesi vurgulanır).
   const isProvinceDrag = useMemo(
-    () => !isClickMode && allNamesAreProvinces(category.items),
-    [category.items, isClickMode],
+    () => hasDrag && allNamesAreProvinces(dragItems),
+    [dragItems, hasDrag],
   );
 
-  const [cards, setCards] = useState(() => shuffle(category.items));
+  const [cards, setCards] = useState(() => shuffle(dragItems));
   const [placed, setPlaced] = useState<Placed>({});
   const [wrongIds, setWrongIds] = useState<string[]>([]);
   const [shakeTarget, setShakeTarget] = useState<{
