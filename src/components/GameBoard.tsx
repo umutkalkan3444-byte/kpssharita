@@ -58,6 +58,8 @@ import { getCompetitiveMode } from "@/lib/competitive-mode";
 import { findProvinceDropIdAtPoint, PROVINCE_DROP_KIND } from "@/lib/province-drop-target";
 import { mistakeKey, type StudyMistake, type StudyReviewRequest } from "@/lib/study/schemas";
 import { buildCardLabels } from "@/lib/card-label";
+import { splitGameItems, gameModeLabel } from "@/lib/game-mode";
+import { NEIGHBOR_BORDERS, borderPath, borderLabelPoint } from "@/data/neighbors";
 
 const PostGameStudy = lazy(() =>
   import("@/components/study/PostGameStudy").then((module) => ({
