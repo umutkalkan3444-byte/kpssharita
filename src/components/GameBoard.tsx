@@ -887,6 +887,12 @@ export function GameBoard({ category }: { category: Category }) {
 
   const mapWrapRef = useRef<HTMLDivElement>(null);
   const mapSurfaceRef = useRef<HTMLDivElement>(null);
+  const cardScrollRef = useRef<HTMLDivElement>(null);
+  const scrollCards = useCallback((direction: -1 | 1) => {
+    const el = cardScrollRef.current;
+    if (!el) return;
+    el.scrollBy({ top: direction * Math.max(120, el.clientHeight * 0.7), behavior: "smooth" });
+  }, []);
   const zoomRef = useRef<ReactZoomPanPinchRef | null>(null);
   const [containerW, setContainerW] = useState(0);
 
