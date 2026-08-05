@@ -831,19 +831,22 @@ export function GameBoard({ category }: { category: Category }) {
   const displayedPlaced = revealAll ? allPlacedPreview : placed;
   const displayedWrongProvinces = isCompetitive ? arenaWrongProvinces[arenaTurn] : wrongProvinces;
   const highlightedProvinces = useMemo(
-    () => (isIlleri ? Object.values(displayedPlaced).map((p) => p.name) : []),
-    [displayedPlaced, isIlleri],
+    () =>
+      Object.values(displayedPlaced)
+        .filter((p) => isIlleri || clickIds.has(p.id))
+        .map((p) => p.name),
+    [clickIds, displayedPlaced, isIlleri],
   );
   const provinceDropTargets = useMemo(
     () =>
       isProvinceDrag
-        ? targets.map((target) => ({
+        ? dragTargets.map((target) => ({
             provinceName: target.name,
             dropId: target.id,
             disabled: !!placed[target.id],
           }))
         : undefined,
-    [isProvinceDrag, placed, targets],
+    [dragTargets, isProvinceDrag, placed],
   );
   const placedProvinceLabels = useMemo(
     () =>
