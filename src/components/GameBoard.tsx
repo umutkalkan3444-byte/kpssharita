@@ -22,7 +22,7 @@ import {
   type ReactZoomPanPinchRef,
 } from "react-zoom-pan-pinch";
 
-import { type Category, targetsFor, type TargetPoint } from "@/lib/game-data";
+import { COMPASS_LAYOUT, type Category, targetsFor, type TargetPoint } from "@/lib/game-data";
 import { MAP_W, MAP_H, focusBoundsForSlug, REGION_ILLERI_SLUGS } from "@/lib/geo";
 import { TurkeyMap } from "@/components/TurkeyMap";
 import { sfx } from "@/lib/sfx";
@@ -43,6 +43,12 @@ import {
 const PostGameStudy = lazy(() =>
   import("@/components/study/PostGameStudy").then((module) => ({
     default: module.PostGameStudy,
+  })),
+);
+
+const TopicEssentials = lazy(() =>
+  import("@/components/TopicEssentials").then((module) => ({
+    default: module.TopicEssentials,
   })),
 );
 
@@ -267,14 +273,14 @@ const DropDot = memo(function DropDot({
             : "grid h-10 w-10 place-items-center",
       )}
       style={{
-        left: `${((placed || inactiveClaim ? t.geoX : t.x) / MAP_W) * 100}%`,
-        top: `${((placed || inactiveClaim ? t.geoY : t.y) / MAP_H) * 100}%`,
+        left: `${(t.x / MAP_W) * 100}%`,
+        top: `${(t.y / MAP_H) * 100}%`,
       }}
     >
       {placed ? (
         <>
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 ring-1 ring-white shadow" />
-          <span className="whitespace-nowrap rounded-sm bg-white/85 px-1 text-[8px] font-semibold leading-tight text-emerald-800 shadow-sm sm:text-[9px]">
+          <span className="max-w-[76px] whitespace-normal break-words rounded-sm bg-white/85 px-1 text-center text-[8px] font-semibold leading-[1.05] text-emerald-800 shadow-sm sm:text-[9px]">
             {t.name}
           </span>
         </>
@@ -317,7 +323,7 @@ function TargetGuideLayer({ targets, placed }: { targets: TargetPoint[]; placed:
       aria-hidden="true"
     >
       {targets.map((target) => {
-        if (placed[target.id] || Math.hypot(target.x - target.geoX, target.y - target.geoY) < 2) {
+        if (Math.hypot(target.x - target.geoX, target.y - target.geoY) < 2) {
           return null;
         }
         return (
@@ -327,7 +333,7 @@ function TargetGuideLayer({ targets, placed }: { targets: TargetPoint[]; placed:
               y1={target.geoY}
               x2={target.x}
               y2={target.y}
-              stroke="rgba(8,145,178,0.55)"
+              stroke={placed[target.id] ? "rgba(16,185,129,0.72)" : "rgba(8,145,178,0.55)"}
               strokeWidth={1.1}
               strokeDasharray="3 3"
             />
@@ -346,6 +352,52 @@ function TargetGuideLayer({ targets, placed }: { targets: TargetPoint[]; placed:
   );
 }
 
+function CompassGuideLayer() {
+  return (
+    <svg
+      viewBox={`0 0 ${MAP_W} ${MAP_H}`}
+      className="pointer-events-none absolute inset-0 h-full w-full"
+      preserveAspectRatio="xMidYMid meet"
+      aria-label="Sekiz yönlü rüzgâr pusulası"
+      role="img"
+    >
+      <circle
+        cx="500"
+        cy="210"
+        r="168"
+        fill="rgba(255,255,255,0.18)"
+        stroke="rgba(8,145,178,0.35)"
+        strokeWidth="1.5"
+        strokeDasharray="5 6"
+      />
+      {COMPASS_LAYOUT.map((spoke) => (
+        <g key={spoke.label}>
+          <line
+            x1="500"
+            y1="210"
+            x2={spoke.x}
+            y2={spoke.y}
+            stroke="rgba(8,145,178,0.3)"
+            strokeWidth="1.25"
+          />
+          <text
+            x={500 + (spoke.x - 500) * 0.78}
+            y={210 + (spoke.y - 210) * 0.78}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fill="#0e7490"
+            fontSize="12"
+            fontWeight="800"
+          >
+            {spoke.label}
+          </text>
+        </g>
+      ))}
+      <circle cx="500" cy="210" r="4" fill="#0891b2" stroke="white" strokeWidth="2" />
+    </svg>
+  );
+}
+
 /** Doğru yerleştirilen öğelerin gerçek coğrafi şekillerini çizen SVG katmanı. */
 function ShapeLayer({
   targets,
@@ -359,11 +411,15 @@ function ShapeLayer({
   const stroke =
     categorySlug === "akarsular"
       ? "#0284c7"
-      : categorySlug.includes("dag") ||
-          categorySlug === "kivrim-daglari" ||
-          categorySlug === "kirik-daglari"
-        ? "#78350f"
-        : "#065f46";
+      : categorySlug === "otoyollar"
+        ? "#4f46e5"
+        : categorySlug === "dogalgaz-boru-hatlari"
+          ? "#f97316"
+          : categorySlug.includes("dag") ||
+              categorySlug === "kivrim-daglari" ||
+              categorySlug === "kirik-daglari"
+            ? "#78350f"
+            : "#065f46";
   const fill =
     categorySlug === "akarsular"
       ? "none"
@@ -1197,6 +1253,7 @@ export function GameBoard({
                         provinceDropTargets={provinceDropTargets}
                         placedProvinceLabels={placedProvinceLabels}
                       />
+                      {category.slug === "ruzgarlar" ? <CompassGuideLayer /> : null}
                       <ShapeLayer
                         targets={targets}
                         placed={displayedPlaced}
@@ -1264,6 +1321,10 @@ export function GameBoard({
           </DragOverlay>
         </DndContext>
       )}
+
+      <Suspense fallback={null}>
+        <TopicEssentials categorySlug={category.slug} />
+      </Suspense>
 
       {/* Sabit çıkış butonu — mobil yatayda gizli (üstteki X kullanılır) */}
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-rose-200 bg-white/95 px-3 py-2 shadow-[0_-8px_20px_-10px_rgba(0,0,0,0.15)] backdrop-blur max-lg:landscape:hidden">
@@ -1378,6 +1439,10 @@ export function GameBoard({
                   </div>
                 )}
               </section>
+
+              <Suspense fallback={null}>
+                <TopicEssentials categorySlug={category.slug} hideInLandscape={false} />
+              </Suspense>
 
               <Suspense
                 fallback={

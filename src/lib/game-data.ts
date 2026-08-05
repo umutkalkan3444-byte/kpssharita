@@ -9,10 +9,11 @@ import {
   type MainCategory,
   type GameItem,
   type MapVariant,
+  type CompassDirection,
 } from "@/data/curriculum";
 
 export { MAIN_CATEGORIES, MAIN_MAP, SUBCATEGORY_MAP };
-export type { Subcategory, MainCategory, GameItem, MapVariant };
+export type { Subcategory, MainCategory, GameItem, MapVariant, CompassDirection };
 
 // Oyunun kullandığı düzleştirilmiş kategori tipi.
 export type Category = {
@@ -24,7 +25,14 @@ export type Category = {
   mainSlug: string;
   mainTitle: string;
   mapVariant: MapVariant;
-  items: { id: string; name: string; lat: number; lon: number; hint?: string }[];
+  items: {
+    id: string;
+    name: string;
+    lat: number;
+    lon: number;
+    hint?: string;
+    compassDirection?: CompassDirection;
+  }[];
 };
 
 function buildCategory(main: MainCategory, sub: Subcategory): Category {
@@ -43,6 +51,7 @@ function buildCategory(main: MainCategory, sub: Subcategory): Category {
       lat: it.lat,
       lon: it.lon,
       hint: it.hint,
+      compassDirection: it.compassDirection,
     })),
   };
 }
@@ -67,7 +76,7 @@ export type TargetPoint = {
   shape?: { type: "polyline" | "polygon"; d: string };
 };
 
-const MIN_DROP_DISTANCE = 42;
+const MIN_DROP_DISTANCE = 64;
 const DROP_EDGE_MARGIN = 22;
 const SHAPE_CATEGORY_SLUGS = new Set([
   "akarsular",
@@ -82,7 +91,29 @@ const SHAPE_CATEGORY_SLUGS = new Set([
   "kirik-daglari",
   "volkanik-daglar",
   "delta-ovalari",
+  "otoyollar",
+  "dogalgaz-boru-hatlari",
 ]);
+
+export const COMPASS_LAYOUT: ReadonlyArray<{
+  direction: CompassDirection;
+  label: string;
+  x: number;
+  y: number;
+}> = [
+  { direction: "N", label: "K", x: 500, y: 42 },
+  { direction: "NE", label: "KD", x: 620, y: 90 },
+  { direction: "E", label: "D", x: 674, y: 210 },
+  { direction: "SE", label: "GD", x: 620, y: 330 },
+  { direction: "S", label: "G", x: 500, y: 378 },
+  { direction: "SW", label: "GB", x: 380, y: 330 },
+  { direction: "W", label: "B", x: 326, y: 210 },
+  { direction: "NW", label: "KB", x: 380, y: 90 },
+];
+
+const COMPASS_TARGETS = Object.fromEntries(
+  COMPASS_LAYOUT.map(({ direction, x, y }) => [direction, { x, y }]),
+) as Record<CompassDirection, { x: number; y: number }>;
 
 /**
  * Aynı şehirde ya da birbirine çok yakın olan hedefleri görünür biçimde
@@ -182,6 +213,10 @@ function separateCloseDropAnchors(points: TargetPoint[]): TargetPoint[] {
 
 export function targetsFor(category: Category): TargetPoint[] {
   const targets = category.items.map((it) => {
+    if (category.slug === "ruzgarlar" && it.compassDirection) {
+      const { x, y } = COMPASS_TARGETS[it.compassDirection];
+      return { id: it.id, name: it.name, x, y, geoX: x, geoY: y };
+    }
     // Aynı ad farklı kavramlarda kullanılabilir (ör. Burdur ili/gölü veya
     // Seyhan nehri/barajı). Şekil yalnız anlamı açık coğrafya kategorilerinde
     // bağlanır; ad eşleşmesi tek başına yeterli kabul edilmez.
@@ -204,7 +239,9 @@ export function targetsFor(category: Category): TargetPoint[] {
     }
     return { id: it.id, name: it.name, x, y, geoX: x, geoY: y };
   });
-  return category.slug === "iller-81" ? targets : separateCloseDropAnchors(targets);
+  return category.slug === "iller-81" || category.slug === "ruzgarlar"
+    ? targets
+    : separateCloseDropAnchors(targets);
 }
 
 export function categoriesForMain(mainSlug: string): Category[] {

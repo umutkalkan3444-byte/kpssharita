@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 
 import { createServer } from "vite";
 
-const MIN_VISIBLE_TARGET_DISTANCE = 41.5;
+const MIN_VISIBLE_TARGET_DISTANCE = 63.5;
 
 const issues = [];
 const assert = (condition, message) => {
@@ -34,6 +34,7 @@ try {
   const questions = await vite.ssrLoadModule("/src/data/study/questions.ts");
   const facts = await vite.ssrLoadModule("/src/data/study/facts.ts");
   const studySources = await vite.ssrLoadModule("/src/data/study/sources.ts");
+  const topicEssentials = await vite.ssrLoadModule("/src/data/topic-essentials.ts");
   const schemas = await vite.ssrLoadModule("/src/lib/study/schemas.ts");
   const studyPrompt = await vite.ssrLoadModule("/src/server/study-prompt.server.ts");
   const studyReview = await vite.ssrLoadModule("/src/lib/study/build-static-review.ts");
@@ -44,6 +45,37 @@ try {
     duplicateValues(game.CATEGORIES.map((category) => category.slug)).length === 0,
     "Kategori slug değerleri benzersiz olmalı.",
   );
+
+  const categorySlugs = new Set(game.CATEGORIES.map((category) => category.slug));
+  const topicEssentialSlugs = Object.keys(topicEssentials.TOPIC_ESSENTIALS);
+  const missingTopicEssentials = [...categorySlugs].filter(
+    (categorySlug) => !topicEssentials.TOPIC_ESSENTIALS[categorySlug],
+  );
+  const orphanTopicEssentials = topicEssentialSlugs.filter(
+    (categorySlug) => !categorySlugs.has(categorySlug),
+  );
+  assert(
+    missingTopicEssentials.length === 0,
+    `Harita altı konu özeti eksik: ${missingTopicEssentials.join(", ")}.`,
+  );
+  assert(
+    orphanTopicEssentials.length === 0,
+    `Artık kullanılmayan konu özeti kaydı var: ${orphanTopicEssentials.join(", ")}.`,
+  );
+  for (const [categorySlug, topic] of Object.entries(topicEssentials.TOPIC_ESSENTIALS)) {
+    assert(
+      typeof topic.definition === "string" && topic.definition.trim().length >= 40,
+      `${categorySlug}: konu tanımı kısa veya eksik.`,
+    );
+    assert(
+      Array.isArray(topic.keyPoints) && topic.keyPoints.length >= 3,
+      `${categorySlug}: en az üç sınavlık çekirdek bilgi bulunmalı.`,
+    );
+    assert(
+      typeof topic.examTip === "string" && topic.examTip.trim().length >= 30,
+      `${categorySlug}: ÖSYM ipucu kısa veya eksik.`,
+    );
+  }
 
   let itemCount = 0;
   let minimumDistance = Number.POSITIVE_INFINITY;
@@ -106,6 +138,12 @@ try {
         .length === 0,
       `${category.slug}: ilk 3 soruda içerik tekrarı var.`,
     );
+    if (category.slug !== "ruzgarlar") {
+      assert(
+        bank.some((question) => question.statements?.length === 3),
+        `${category.slug}: birden fazla bilgiyi birlikte ölçen soru eksik.`,
+      );
+    }
 
     const factMap = facts.getStudyFactMap(category.slug);
     for (const question of bank) {
@@ -175,6 +213,40 @@ try {
     for (const target of game.targetsFor(game.CATEGORY_MAP[slug])) {
       assert(Boolean(target.shape), `${slug}/${target.name}: doğrulanacak dağ çizgisi eksik.`);
     }
+  }
+  for (const slug of ["akarsular", "delta-ovalari", "otoyollar", "dogalgaz-boru-hatlari"]) {
+    for (const target of game.targetsFor(game.CATEGORY_MAP[slug])) {
+      assert(Boolean(target.shape), `${slug}/${target.name}: çizgi veya alan şekli eksik.`);
+    }
+  }
+
+  const windDirections = game.CATEGORY_MAP.ruzgarlar.items
+    .map((item) => item.compassDirection)
+    .sort();
+  assert(
+    JSON.stringify(windDirections) === JSON.stringify(["E", "N", "NE", "NW", "S", "SE", "SW", "W"]),
+    "Rüzgâr oyununda sekiz pusula yönü eksiksiz ve benzersiz olmalı.",
+  );
+  assert(game.COMPASS_LAYOUT.length === 8, "Rüzgâr pusulasında sekiz yerleşim olmalı.");
+
+  const requiredCategorySources = {
+    findik: "tuik-bitkisel",
+    sigir: "tarim-hayvancilik",
+    akarsular: "dsi-sular",
+    "milli-parklar": "dkmp-korunan-alanlar",
+    ramsar: "ramsar-turkiye",
+    "serbest-bolgeler": "ticaret-serbest-bolgeler",
+    demir: "etkb-madenler",
+    ruzgar: "repa-ruzgar",
+    otoyollar: "kgm-yol-agi",
+    yht: "uab-yht",
+    havalimanlari: "dhmi-havalimanlari",
+    kruvaziyer: "uab-denizcilik",
+    unesco: "unesco-turkiye",
+  };
+  for (const [categorySlug, sourceId] of Object.entries(requiredCategorySources)) {
+    const sourceRefs = studySources.sourceRefsForCategory(game.CATEGORY_MAP[categorySlug]);
+    assert(sourceRefs.includes(sourceId), `${categorySlug}: kategoriye özel resmî kaynak eksik.`);
   }
 
   const mapProvinceNames = new Set(

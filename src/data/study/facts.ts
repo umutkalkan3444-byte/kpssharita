@@ -1,9 +1,10 @@
 import { CATEGORY_MAP, type Category } from "@/lib/game-data";
+import { getTopicEssential } from "@/data/topic-essentials";
 import { type StudyMistake, type VerifiedFact } from "@/lib/study/schemas";
 import { STUDY_CONTENT_VERSION } from "./version";
 import { sourceRefsForCategory } from "./sources";
 
-const REVIEWED_AT = "2026-07-26";
+const REVIEWED_AT = "2026-08-05";
 const EXAM_TAGS = ["KPSS", "YKS-TYT", "YKS-AYT"] as const;
 
 export function categoryOverviewFactId(categorySlug: string): string {
@@ -41,6 +42,13 @@ function sortedBy(
 }
 
 function overviewText(category: Category): string {
+  if (category.slug === "ruzgarlar") {
+    return "Rüzgâr adını geldiği yönden alır: kuzey Yıldız, kuzeydoğu Poyraz, doğu Gündoğusu, güneydoğu Keşişleme, güney Kıble, güneybatı Lodos, batı Günbatısı, kuzeybatı Karayel'dir; Samyeli güneydoğulu rüzgâr için kullanılan bölgesel addır.";
+  }
+  const topic = getTopicEssential(category.slug);
+  if (topic) {
+    return `${topic.definition} ${topic.keyPoints[0]}`;
+  }
   if (category.items.length === 0) {
     return `${category.title} konusu için henüz doğrulanmış bir harita hedefi bulunmuyor.`;
   }
@@ -56,6 +64,19 @@ function overviewText(category: Category): string {
 }
 
 function itemRelationText(category: Category, item: Category["items"][number]): string {
+  if (category.slug === "ruzgarlar" && item.compassDirection) {
+    const directionNames = {
+      N: "kuzeyden",
+      NE: "kuzeydoğudan",
+      E: "doğudan",
+      SE: "güneydoğudan",
+      S: "güneyden",
+      SW: "güneybatıdan",
+      W: "batıdan",
+      NW: "kuzeybatıdan",
+    } as const;
+    return `${item.name}, Türkiye'ye ${directionNames[item.compassDirection]} gelen yerel rüzgâr adıdır; haritadaki hedef bir oluşum bölgesini değil pusula yönünü gösterir.`;
+  }
   const others = category.items.filter((candidate) => candidate.id !== item.id);
   if (others.length === 0) {
     return `${item.name}, ${category.title} harita oyununun doğrulanmış hedefidir.`;
@@ -80,10 +101,13 @@ function itemRelationText(category: Category, item: Category["items"][number]): 
   const vertical = item.lat >= verticalAnchor.lat ? "kuzeyinde" : "güneyinde";
   const hint = item.hint ? `${item.hint.trim()} ` : "";
 
-  return `${hint}Haritadaki doğrulanmış merkez koordinatlarına göre ${item.name}, ${horizontalAnchor.name} hedefinin ${horizontal}; ${verticalAnchor.name} hedefinin ${vertical} yer alır.`;
+  return `${hint}Oyundaki öğretim çapasına göre ${item.name}, ${horizontalAnchor.name} hedefinin ${horizontal}; ${verticalAnchor.name} hedefinin ${vertical} gösterilir. Çizgi ve alan konularında bu çapa unsurun tamamını değil kartın yerleşim referansını temsil eder.`;
 }
 
 function itemMemoryHook(category: Category, item: Category["items"][number]): string {
+  if (category.slug === "ruzgarlar") {
+    return `${item.name} adını pusuladaki geliş yönüyle birlikte tekrar et; kartta yön cevabı yazmaz.`;
+  }
   const westToEast = sortedBy(category, (candidate) => candidate.lon, "asc");
   const index = westToEast.findIndex((candidate) => candidate.id === item.id);
   if (index < 0 || westToEast.length < 2) {
@@ -102,7 +126,9 @@ function buildBaseFacts(category: Category): VerifiedFact[] {
     categorySlug: category.slug,
     itemIds: category.items.slice(0, 8).map((item) => item.id),
     text: overviewText(category),
-    memoryHook: "Önce dört uç noktayı zihninde sabitle: kuzey, güney, batı, doğu.",
+    memoryHook:
+      getTopicEssential(category.slug)?.examTip ??
+      "Önce dört uç noktayı zihninde sabitle: kuzey, güney, batı, doğu.",
     examTags: [...EXAM_TAGS],
     importance: 3,
     sourceRefs,
