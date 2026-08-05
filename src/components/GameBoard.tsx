@@ -1344,16 +1344,17 @@ export function GameBoard({ category }: { category: Category }) {
 
         <h1 className="min-w-0 truncate text-base font-black tracking-tight text-slate-900 sm:text-2xl max-lg:landscape:text-sm">
           <span className="mr-2">{category.emoji}</span>
+          <span className={isClickMode ? "text-emerald-700" : undefined}>{category.title}</span>
+          {modeBadge ? (
+            <span className="ml-1 font-semibold text-xs text-cyan-700 sm:text-sm max-lg:landscape:text-[10px]">
+              ({modeBadge})
+            </span>
+          ) : null}
           {isClickMode ? (
-            <>
-              <span className="text-emerald-700">{category.title}</span>
-              <span className="ml-1 text-slate-500 font-semibold text-xs sm:text-sm max-lg:landscape:text-[10px]">
-                {category.slug === "buyuksehirler" ? "— doğru illere tıkla" : "— üretim illerini bul"}
-              </span>
-            </>
-          ) : (
-            category.title
-          )}
+            <span className="ml-1 text-slate-500 font-semibold text-xs sm:text-sm max-lg:landscape:text-[10px]">
+              {category.slug === "buyuksehirler" ? "— doğru illere tıkla" : "— doğru illere tıkla"}
+            </span>
+          ) : null}
         </h1>
 
         <div className="flex items-center justify-end gap-1.5 text-sm text-slate-700 sm:gap-2">
