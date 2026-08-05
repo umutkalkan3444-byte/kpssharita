@@ -1090,17 +1090,19 @@ export function GameBoard({ category }: { category: Category }) {
     }
   };
 
-  // Click-mode: il tıklama akışı (sadece tarım/hayvancılık)
+  // Tıklamalı akış: kart "dümdüz il" olan hedefler haritadan tıklanarak bulunur.
+  const clickTargets = useMemo(
+    () => targets.filter((target) => clickIds.has(target.id)),
+    [clickIds, targets],
+  );
   const answerMap = useMemo(() => {
     const m = new Map<string, TargetPoint>();
-    if (isClickMode) {
-      for (const t of targets) m.set(normalizePlaceName(t.name), t);
-    }
+    for (const t of clickTargets) m.set(normalizePlaceName(t.name), t);
     return m;
-  }, [targets, isClickMode]);
+  }, [clickTargets]);
 
   const handleProvinceClick = (provinceName: string) => {
-    if (!isClickMode || doneRef.current) return;
+    if (!hasClick || doneRef.current) return;
     const key = normalizePlaceName(provinceName);
     const playerId = arenaTurnRef.current;
     const currentPlaced = isCompetitive ? arenaPlacedRef.current[playerId] : placedRef.current;
