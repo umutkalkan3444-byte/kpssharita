@@ -11,6 +11,9 @@ import { NEIGHBOR_AREAS, areaPath, areaLabelPoint } from "@/data/neighbors";
 
 type ProvinceDef = { name: string; path: string };
 const provinces = (provincesData as { provinces: ProvinceDef[] }).provinces;
+const MAP_PAD_X = 58;
+const MAP_PAD_Y = 30;
+const DEFAULT_VIEW_BOX = `${-MAP_PAD_X} ${-MAP_PAD_Y} ${MAP_W + MAP_PAD_X * 2} ${MAP_H + MAP_PAD_Y * 2}`;
 
 export type MapVariant = "provinces" | "regions" | "muted";
 
@@ -177,7 +180,7 @@ type RenderedProvinceLabel = {
 export function TurkeyMap({
   className,
   children,
-  viewBox = `0 0 ${MAP_W} ${MAP_H}`,
+  viewBox = DEFAULT_VIEW_BOX,
   variant = "provinces",
   highlightedProvinces,
   wrongProvinces,
@@ -265,7 +268,13 @@ export function TurkeyMap({
           </clipPath>
         ))}
       </defs>
-      <rect width={MAP_W} height={MAP_H} fill={`url(#${seaGradientId})`} />
+      <rect
+        x={-MAP_PAD_X}
+        y={-MAP_PAD_Y}
+        width={MAP_W + MAP_PAD_X * 2}
+        height={MAP_H + MAP_PAD_Y * 2}
+        fill={`url(#${seaGradientId})`}
+      />
       <g pointerEvents="none" aria-hidden="true">
         {NEIGHBOR_AREAS.map((area) => (
           <path
@@ -274,7 +283,7 @@ export function TurkeyMap({
             fill={area.fill}
             fillRule="evenodd"
             stroke={area.fill}
-            strokeWidth={1.5}
+            strokeWidth={area.overlapWidth}
             strokeLinejoin="round"
           />
         ))}
@@ -368,7 +377,15 @@ export function TurkeyMap({
               fontWeight={750}
               letterSpacing="0.25"
             >
-              {label.text}
+              {label.text.split("\n").map((line, lineIndex, lines) => (
+                <tspan
+                  key={line}
+                  x={label.x}
+                  dy={lineIndex === 0 ? (lines.length > 1 ? -4 : 0) : 9}
+                >
+                  {line}
+                </tspan>
+              ))}
             </text>
           );
         })}

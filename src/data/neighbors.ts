@@ -2,7 +2,7 @@
 // Türkiye's eight land neighbours. Keeping the real polygons here prevents
 // the Mediterranean and Black Sea from being painted as neighbouring land.
 import neighborCountryData from "@/data/neighbor-countries.json";
-import { MAP_H, MAP_W, project } from "@/lib/geo";
+import { project } from "@/lib/geo";
 
 type Position = [number, number]; // [longitude, latitude]
 
@@ -26,24 +26,26 @@ type NeighborSource = {
 type NeighborAppearance = {
   fill: string;
   label: [number, number]; // [latitude, longitude]
+  overlapWidth: number;
   shortLabel?: string;
 };
 
 export type NeighborArea = NeighborSource & NeighborAppearance;
 
 const APPEARANCE: Record<string, NeighborAppearance> = {
-  Yunanistan: { fill: "#f4ead9", label: [40.95, 25.85] },
-  Bulgaristan: { fill: "#eee0cb", label: [41.94, 26.95] },
-  Gürcistan: { fill: "#f2e5d1", label: [41.9, 42.35] },
-  Ermenistan: { fill: "#ead9c2", label: [40.6, 44.55] },
+  Yunanistan: { fill: "#f4ead9", label: [40.65, 25.25], overlapWidth: 2.5 },
+  Bulgaristan: { fill: "#eee0cb", label: [42.35, 27], overlapWidth: 3 },
+  Gürcistan: { fill: "#f2e5d1", label: [42.35, 42.2], overlapWidth: 3.5 },
+  Ermenistan: { fill: "#ead9c2", label: [40.4, 44.95], overlapWidth: 4 },
   "Azerbaycan (Nahçıvan)": {
     fill: "#f1dfc5",
-    label: [39.72, 44.55],
-    shortLabel: "Nahçıvan",
+    label: [39.7, 44.85],
+    overlapWidth: 4,
+    shortLabel: "Azerbaycan",
   },
-  İran: { fill: "#ead6ba", label: [38.55, 44.55] },
-  Irak: { fill: "#efe0c8", label: [36.62, 43.45] },
-  Suriye: { fill: "#f4e6d1", label: [36.42, 38.7] },
+  İran: { fill: "#ead6ba", label: [38.35, 45.05], overlapWidth: 4.5 },
+  Irak: { fill: "#efe0c8", label: [36.7, 44.6], overlapWidth: 4 },
+  Suriye: { fill: "#f4e6d1", label: [36.2, 39], overlapWidth: 3.5 },
 };
 
 export const NEIGHBOR_AREAS: NeighborArea[] = (
@@ -79,8 +81,8 @@ export function areaLabelPoint(area: NeighborArea): {
 } {
   const point = project(area.label[0], area.label[1]);
   return {
-    x: Math.min(MAP_W - 34, Math.max(34, point.x)),
-    y: Math.min(MAP_H - 14, Math.max(14, point.y)),
+    x: point.x,
+    y: point.y,
     text: area.shortLabel ?? area.country,
   };
 }
