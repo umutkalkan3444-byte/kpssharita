@@ -6,6 +6,8 @@ import { MAP_W, MAP_H } from "@/lib/geo";
 import { REGION_OF, REGION_COLORS } from "@/lib/province-regions";
 import { normalizePlaceName } from "@/lib/place-name";
 import { PROVINCE_DROP_KIND } from "@/lib/province-drop-target";
+import { NEIGHBOR_AREAS, areaPath, areaLabelPoint } from "@/data/neighbors";
+
 
 type ProvinceDef = { name: string; path: string };
 const provinces = (provincesData as { provinces: ProvinceDef[] }).provinces;
