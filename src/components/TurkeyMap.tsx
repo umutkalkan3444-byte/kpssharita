@@ -264,7 +264,36 @@ export function TurkeyMap({
         ))}
       </defs>
       <rect width={MAP_W} height={MAP_H} fill={`url(#${seaGradientId})`} />
+      <g pointerEvents="none" aria-hidden="true">
+        {NEIGHBOR_AREAS.map((area) => {
+          const label = areaLabelPoint(area);
+          return (
+            <g key={area.country}>
+              <path
+                d={areaPath(area)}
+                fill="#f1e7d6"
+                stroke="rgba(146,131,105,0.35)"
+                strokeWidth={0.6}
+                strokeLinejoin="round"
+              />
+              <text
+                x={label.x}
+                y={label.y}
+                textAnchor="middle"
+                dominantBaseline="central"
+                fill="rgba(120,105,80,0.85)"
+                fontSize={8}
+                fontWeight={700}
+                letterSpacing="0.4"
+              >
+                {area.country}
+              </text>
+            </g>
+          );
+        })}
+      </g>
       <g>
+
         {provinces.map((p) => {
           const key = normalizePlaceName(p.name);
           const isHint = hintSet.has(key);
