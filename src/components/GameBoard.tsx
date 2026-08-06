@@ -1492,7 +1492,7 @@ export function GameBoard({ category }: { category: Category }) {
                       variant={category.mapVariant}
                       highlightedProvinces={highlightedProvinces}
                       wrongProvinces={displayedWrongProvinces}
-                      hintProvinces={hintProvinces}
+                      hintProvinces={displayedHintProvinces}
                       onProvinceClick={onProvinceClick}
                       interactive
                     />
@@ -1578,7 +1578,7 @@ export function GameBoard({ category }: { category: Category }) {
                         variant={category.mapVariant}
                         highlightedProvinces={highlightedProvinces}
                         wrongProvinces={displayedWrongProvinces}
-                        hintProvinces={hintProvinces}
+                        hintProvinces={displayedHintProvinces}
                         provinceDropTargets={provinceDropTargets}
                         placedProvinceLabels={placedProvinceLabels}
                         provinceClaims={provinceClaims}
