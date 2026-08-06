@@ -935,20 +935,19 @@ export function GameBoard({ category }: { category: Category }) {
     const shifts: Record<string, number> = {};
     const used: { x: number; y: number }[] = [];
     const entries = Object.values(displayedPlaced).sort((a, b) => a.y - b.y || a.x - b.x);
+    const candidates = [0, -11, 11, -22, 22, -33, 33, -44, 44];
     for (const target of entries) {
-      let shift = 0;
-      let guard = 0;
-      while (
-        guard++ < 12 &&
-        used.some(
-          (u) => Math.abs(u.x - target.x) < 62 && Math.abs(u.y - (target.y + shift)) < 11,
-        )
-      ) {
-        shift += shift >= 0 ? -(shift * 2 + 11) : -shift + 11;
-      }
+      const shift =
+        candidates.find(
+          (c) =>
+            !used.some(
+              (u) => Math.abs(u.x - target.x) < 62 && Math.abs(u.y - (target.y + c)) < 11,
+            ),
+        ) ?? 0;
       shifts[target.id] = shift;
       used.push({ x: target.x, y: target.y + shift });
     }
+
     return shifts;
   }, [displayedPlaced]);
 
