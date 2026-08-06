@@ -281,11 +281,17 @@ const DropDot = memo(function DropDot({
   placed,
   disabled,
   claimTone,
+  preview,
+  labelShift = 0,
 }: {
   t: TargetPoint;
   placed?: boolean;
   disabled?: boolean;
   claimTone?: ArenaPlayerId;
+  /** Öğrenme modunda gösterilen cevap (sarı). */
+  preview?: boolean;
+  /** Yan yana etiketlerin çakışmaması için dikey kaydırma (px). */
+  labelShift?: number;
 }) {
   // Doğru bilinmiş hedefler artık drop hedefi değil — üzerine bırakılırsa etkisiz.
   const { setNodeRef, isOver } = useDroppable({
@@ -307,34 +313,41 @@ const DropDot = memo(function DropDot({
       style={{
         left: `${(t.x / MAP_W) * 100}%`,
         top: `${(t.y / MAP_H) * 100}%`,
+        zIndex: placed ? 2 : 1,
       }}
     >
       {placed ? (
         <>
           <span
             className={cn(
-              "h-1.5 w-1.5 rounded-full ring-1 ring-white shadow",
-              claimTone === "red"
-                ? "bg-rose-500"
-                : claimTone === "blue"
-                  ? "bg-blue-500"
-                  : "bg-emerald-500",
+              "h-1.5 w-1.5 shrink-0 rounded-full ring-1 ring-white shadow",
+              preview
+                ? "bg-amber-500"
+                : claimTone === "red"
+                  ? "bg-rose-500"
+                  : claimTone === "blue"
+                    ? "bg-blue-500"
+                    : "bg-emerald-500",
             )}
           />
           <span
             className={cn(
-              "max-w-[76px] whitespace-normal break-words rounded-sm bg-white/85 px-1 text-center text-[8px] font-semibold leading-[1.05] shadow-sm sm:text-[9px]",
-              claimTone === "red"
-                ? "text-rose-800"
-                : claimTone === "blue"
-                  ? "text-blue-800"
-                  : "text-emerald-800",
+              "max-w-[76px] whitespace-normal break-words rounded-sm bg-white/90 px-1 text-center text-[8px] font-semibold leading-[1.05] shadow-sm sm:text-[9px]",
+              preview
+                ? "text-amber-700"
+                : claimTone === "red"
+                  ? "text-rose-800"
+                  : claimTone === "blue"
+                    ? "text-blue-800"
+                    : "text-emerald-800",
             )}
+            style={labelShift ? { transform: `translateY(${labelShift}px)` } : undefined}
           >
             {t.name}
           </span>
         </>
       ) : inactiveClaim ? (
+
         <span
           className={cn(
             "h-2.5 w-2.5 rounded-full border-2 border-white shadow",
