@@ -1655,32 +1655,18 @@ export function GameBoard({ category }: { category: Category }) {
             {/* Kart paneli — mobilde alt, mobil yatayda sağ */}
             <div
               className={cn(
-                "max-lg:landscape:w-[200px] max-lg:landscape:flex-shrink-0",
-                isProvinceDrag && "lg:w-[220px] lg:flex-shrink-0",
+                "flex h-[34vh] min-h-0 shrink-0 flex-col pb-14",
+                "max-lg:landscape:h-full max-lg:landscape:w-[200px] max-lg:landscape:flex-shrink-0 max-lg:landscape:pb-0",
+                isProvinceDrag && "lg:h-[68vh] lg:w-[220px] lg:flex-shrink-0 lg:pb-0",
               )}
             >
               <div className="mb-1 flex items-center justify-between gap-2">
                 <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
                   Kartları haritaya sürükle
                 </span>
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    aria-label="Kartlarda yukarı kaydır"
-                    onClick={() => scrollCards(-1)}
-                    className="grid h-7 w-7 place-items-center rounded-full bg-white text-slate-600 shadow ring-1 ring-cyan-200 transition active:scale-95"
-                  >
-                    <ChevronUp className="h-4 w-4" />
-                  </button>
-                  <button
-                    type="button"
-                    aria-label="Kartlarda aşağı kaydır"
-                    onClick={() => scrollCards(1)}
-                    className="grid h-7 w-7 place-items-center rounded-full bg-white text-slate-600 shadow ring-1 ring-cyan-200 transition active:scale-95"
-                  >
-                    <ChevronDown className="h-4 w-4" />
-                  </button>
-                </div>
+                <span className="text-[10px] font-semibold text-cyan-600">
+                  {visibleCards.length} kart
+                </span>
               </div>
               {hasClick ? (
                 <button
@@ -1695,11 +1681,9 @@ export function GameBoard({ category }: { category: Category }) {
               ) : null}
               <div
                 ref={cardScrollRef}
-                className={cn(
-                  "max-h-[32vh] overflow-y-auto rounded-2xl bg-white/50 p-2 ring-1 ring-cyan-100 max-lg:landscape:max-h-full max-lg:landscape:h-full",
-                  isProvinceDrag && "lg:max-h-[68vh]",
-                )}
+                className="cards-scroll min-h-0 flex-1 overflow-y-auto rounded-2xl bg-white/50 p-2 pr-3 ring-1 ring-cyan-100"
               >
+
                 <div className="flex flex-wrap items-start justify-start gap-1.5 max-lg:landscape:flex-col max-lg:landscape:flex-nowrap">
                   {visibleCards.map((c) => (
                     <div key={c.id} className="max-lg:landscape:w-full">
