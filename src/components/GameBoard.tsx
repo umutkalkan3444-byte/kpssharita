@@ -35,8 +35,6 @@ import {
   Eye,
   EyeOff,
   Lightbulb,
-  ChevronUp,
-  ChevronDown,
 } from "lucide-react";
 import { Link, useRouter } from "@tanstack/react-router";
 import {
@@ -61,7 +59,6 @@ import { findProvinceDropIdAtPoint, PROVINCE_DROP_KIND } from "@/lib/province-dr
 import { mistakeKey, type StudyMistake, type StudyReviewRequest } from "@/lib/study/schemas";
 import { buildCardLabels } from "@/lib/card-label";
 import { splitGameItems, gameModeLabel } from "@/lib/game-mode";
-import { NEIGHBOR_BORDERS, borderPath, borderLabelPoint } from "@/data/neighbors";
 
 const PostGameStudy = lazy(() =>
   import("@/components/study/PostGameStudy").then((module) => ({
@@ -281,11 +278,17 @@ const DropDot = memo(function DropDot({
   placed,
   disabled,
   claimTone,
+  preview,
+  labelShift = 0,
 }: {
   t: TargetPoint;
   placed?: boolean;
   disabled?: boolean;
   claimTone?: ArenaPlayerId;
+  /** Öğrenme modunda gösterilen cevap (sarı). */
+  preview?: boolean;
+  /** Yan yana etiketlerin çakışmaması için dikey kaydırma (px). */
+  labelShift?: number;
 }) {
   // Doğru bilinmiş hedefler artık drop hedefi değil — üzerine bırakılırsa etkisiz.
   const { setNodeRef, isOver } = useDroppable({
@@ -307,34 +310,41 @@ const DropDot = memo(function DropDot({
       style={{
         left: `${(t.x / MAP_W) * 100}%`,
         top: `${(t.y / MAP_H) * 100}%`,
+        zIndex: placed ? 2 : 1,
       }}
     >
       {placed ? (
         <>
           <span
             className={cn(
-              "h-1.5 w-1.5 rounded-full ring-1 ring-white shadow",
-              claimTone === "red"
-                ? "bg-rose-500"
-                : claimTone === "blue"
-                  ? "bg-blue-500"
-                  : "bg-emerald-500",
+              "h-1.5 w-1.5 shrink-0 rounded-full ring-1 ring-white shadow",
+              preview
+                ? "bg-amber-500"
+                : claimTone === "red"
+                  ? "bg-rose-500"
+                  : claimTone === "blue"
+                    ? "bg-blue-500"
+                    : "bg-emerald-500",
             )}
           />
           <span
             className={cn(
-              "max-w-[76px] whitespace-normal break-words rounded-sm bg-white/85 px-1 text-center text-[8px] font-semibold leading-[1.05] shadow-sm sm:text-[9px]",
-              claimTone === "red"
-                ? "text-rose-800"
-                : claimTone === "blue"
-                  ? "text-blue-800"
-                  : "text-emerald-800",
+              "max-w-[76px] whitespace-normal break-words rounded-sm bg-white/90 px-1 text-center text-[8px] font-semibold leading-[1.05] shadow-sm sm:text-[9px]",
+              preview
+                ? "text-amber-700"
+                : claimTone === "red"
+                  ? "text-rose-800"
+                  : claimTone === "blue"
+                    ? "text-blue-800"
+                    : "text-emerald-800",
             )}
+            style={labelShift ? { transform: `translateY(${labelShift}px)` } : undefined}
           >
             {t.name}
           </span>
         </>
       ) : inactiveClaim ? (
+
         <span
           className={cn(
             "h-2.5 w-2.5 rounded-full border-2 border-white shadow",
@@ -601,48 +611,6 @@ function ShapeLayer({
   );
 }
 
-/** Sınır kapıları oyununda komşu ülke sınırlarını gösterir. */
-function NeighborBorderLayer() {
-  return (
-    <svg
-      viewBox={`0 0 ${MAP_W} ${MAP_H}`}
-      className="pointer-events-none absolute inset-0 h-full w-full"
-      preserveAspectRatio="xMidYMid meet"
-      aria-hidden="true"
-    >
-      {NEIGHBOR_BORDERS.map((border) => {
-        const label = borderLabelPoint(border);
-        return (
-          <g key={border.country}>
-            <path
-              d={borderPath(border)}
-              fill="none"
-              stroke={border.color}
-              strokeWidth={2.6}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              opacity={0.85}
-            />
-            <text
-              x={label.x}
-              y={label.y - 5}
-              textAnchor="middle"
-              fill={border.color}
-              stroke="rgba(255,255,255,0.95)"
-              strokeWidth={1.1}
-              paintOrder="stroke"
-              fontSize={9}
-              fontWeight={800}
-            >
-              {border.country}
-            </text>
-          </g>
-        );
-      })}
-    </svg>
-  );
-}
-
 const Card = memo(function Card({ id, name, shake }: { id: string; name: string; shake: boolean }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id });
   return (
@@ -775,7 +743,6 @@ export function GameBoard({ category }: { category: Category }) {
     [clickIds, targets],
   );
   const isAllProvinces = category.slug === "iller-81";
-  const showNeighbors = category.slug === "sinir-kapilari";
   // Tüm kart adları gerçek il adıysa sürükleme hedefi ilin kendi sınırıdır
   // (beyaz nokta yok; sınır çerçevesi vurgulanır).
   const isProvinceDrag = useMemo(
@@ -882,13 +849,20 @@ export function GameBoard({ category }: { category: Category }) {
   );
   const displayedPlaced = revealAll ? allPlacedPreview : placed;
   const displayedWrongProvinces = isCompetitive ? arenaWrongProvinces[arenaTurn] : wrongProvinces;
+  // Kendi bulduğumuz iller yeşil; göz (öğrenme modu) ile açılanlar sarı kalır.
   const highlightedProvinces = useMemo(
     () =>
-      Object.values(displayedPlaced)
+      Object.values(placed)
         .filter((p) => isIlleri || clickIds.has(p.id))
         .map((p) => p.name),
-    [clickIds, displayedPlaced, isIlleri],
+    [clickIds, placed, isIlleri],
   );
+  const displayedHintProvinces = useMemo(() => {
+    if (!revealAll) return hintProvinces;
+    const revealed = targets.filter((t) => !placed[t.id]).map((t) => t.name);
+    return [...hintProvinces, ...revealed];
+  }, [hintProvinces, placed, revealAll, targets]);
+
   const provinceDropTargets = useMemo(
     () =>
       isProvinceDrag
@@ -910,6 +884,27 @@ export function GameBoard({ category }: { category: Category }) {
         : undefined,
     [displayedPlaced, isProvinceDrag],
   );
+  // Yan yana duran hedeflerin (ör. sınır kapıları) etiketleri çakışmasın.
+  const labelShifts = useMemo(() => {
+    const shifts: Record<string, number> = {};
+    const used: { x: number; y: number }[] = [];
+    const entries = Object.values(displayedPlaced).sort((a, b) => a.y - b.y || a.x - b.x);
+    const candidates = [0, -11, 11, -22, 22, -33, 33, -44, 44];
+    for (const target of entries) {
+      const shift =
+        candidates.find(
+          (c) =>
+            !used.some(
+              (u) => Math.abs(u.x - target.x) < 62 && Math.abs(u.y - (target.y + c)) < 11,
+            ),
+        ) ?? 0;
+      shifts[target.id] = shift;
+      used.push({ x: target.x, y: target.y + shift });
+    }
+
+    return shifts;
+  }, [displayedPlaced]);
+
   const arenaClaimsById = useMemo(() => {
     const claims: Record<string, ArenaPlayerId> = {};
     for (const id of Object.keys(arenaPlaced.red)) claims[id] = "red";
@@ -940,11 +935,6 @@ export function GameBoard({ category }: { category: Category }) {
   const mapWrapRef = useRef<HTMLDivElement>(null);
   const mapSurfaceRef = useRef<HTMLDivElement>(null);
   const cardScrollRef = useRef<HTMLDivElement>(null);
-  const scrollCards = useCallback((direction: -1 | 1) => {
-    const el = cardScrollRef.current;
-    if (!el) return;
-    el.scrollBy({ top: direction * Math.max(120, el.clientHeight * 0.7), behavior: "smooth" });
-  }, []);
   const zoomRef = useRef<ReactZoomPanPinchRef | null>(null);
   const [containerW, setContainerW] = useState(0);
 
@@ -1485,7 +1475,7 @@ export function GameBoard({ category }: { category: Category }) {
                       variant={category.mapVariant}
                       highlightedProvinces={highlightedProvinces}
                       wrongProvinces={displayedWrongProvinces}
-                      hintProvinces={hintProvinces}
+                      hintProvinces={displayedHintProvinces}
                       onProvinceClick={onProvinceClick}
                       interactive
                     />
@@ -1571,7 +1561,7 @@ export function GameBoard({ category }: { category: Category }) {
                         variant={category.mapVariant}
                         highlightedProvinces={highlightedProvinces}
                         wrongProvinces={displayedWrongProvinces}
-                        hintProvinces={hintProvinces}
+                        hintProvinces={displayedHintProvinces}
                         provinceDropTargets={provinceDropTargets}
                         placedProvinceLabels={placedProvinceLabels}
                         provinceClaims={provinceClaims}
@@ -1579,7 +1569,6 @@ export function GameBoard({ category }: { category: Category }) {
                         interactive={hasClick}
                       />
                       {category.slug === "ruzgarlar" ? <CompassGuideLayer /> : null}
-                      {showNeighbors ? <NeighborBorderLayer /> : null}
                       <ShapeLayer
                         targets={dragTargets}
                         placed={displayedPlaced}
@@ -1599,6 +1588,8 @@ export function GameBoard({ category }: { category: Category }) {
                                   key={t.id}
                                   t={t}
                                   placed={!!displayedPlaced[t.id]}
+                                  preview={revealAll && !placed[t.id]}
+                                  labelShift={labelShifts[t.id] ?? 0}
                                   claimTone={arenaClaimsById[t.id]}
                                 />
                               ),
@@ -1614,32 +1605,18 @@ export function GameBoard({ category }: { category: Category }) {
             {/* Kart paneli — mobilde alt, mobil yatayda sağ */}
             <div
               className={cn(
-                "max-lg:landscape:w-[200px] max-lg:landscape:flex-shrink-0",
-                isProvinceDrag && "lg:w-[220px] lg:flex-shrink-0",
+                "flex h-[34vh] min-h-0 shrink-0 flex-col pb-14",
+                "max-lg:landscape:h-full max-lg:landscape:w-[200px] max-lg:landscape:flex-shrink-0 max-lg:landscape:pb-0",
+                isProvinceDrag && "lg:h-[68vh] lg:w-[220px] lg:flex-shrink-0 lg:pb-0",
               )}
             >
               <div className="mb-1 flex items-center justify-between gap-2">
                 <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
                   Kartları haritaya sürükle
                 </span>
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    aria-label="Kartlarda yukarı kaydır"
-                    onClick={() => scrollCards(-1)}
-                    className="grid h-7 w-7 place-items-center rounded-full bg-white text-slate-600 shadow ring-1 ring-cyan-200 transition active:scale-95"
-                  >
-                    <ChevronUp className="h-4 w-4" />
-                  </button>
-                  <button
-                    type="button"
-                    aria-label="Kartlarda aşağı kaydır"
-                    onClick={() => scrollCards(1)}
-                    className="grid h-7 w-7 place-items-center rounded-full bg-white text-slate-600 shadow ring-1 ring-cyan-200 transition active:scale-95"
-                  >
-                    <ChevronDown className="h-4 w-4" />
-                  </button>
-                </div>
+                <span className="text-[10px] font-semibold text-cyan-600">
+                  {visibleCards.length} kart
+                </span>
               </div>
               {hasClick ? (
                 <button
@@ -1654,11 +1631,9 @@ export function GameBoard({ category }: { category: Category }) {
               ) : null}
               <div
                 ref={cardScrollRef}
-                className={cn(
-                  "max-h-[32vh] overflow-y-auto rounded-2xl bg-white/50 p-2 ring-1 ring-cyan-100 max-lg:landscape:max-h-full max-lg:landscape:h-full",
-                  isProvinceDrag && "lg:max-h-[68vh]",
-                )}
+                className="cards-scroll min-h-0 flex-1 overflow-y-auto rounded-2xl bg-white/50 p-2 pr-3 ring-1 ring-cyan-100"
               >
+
                 <div className="flex flex-wrap items-start justify-start gap-1.5 max-lg:landscape:flex-col max-lg:landscape:flex-nowrap">
                   {visibleCards.map((c) => (
                     <div key={c.id} className="max-lg:landscape:w-full">

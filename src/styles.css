@@ -193,3 +193,20 @@
     animation: none;
   }
 }
+
+/* Kart panelinde her zaman görünür, ince kaydırma çubuğu */
+.cards-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(34 211 238 / 0.85) rgb(207 250 254 / 0.7);
+}
+.cards-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+.cards-scroll::-webkit-scrollbar-track {
+  background: rgb(207 250 254 / 0.7);
+  border-radius: 999px;
+}
+.cards-scroll::-webkit-scrollbar-thumb {
+  background: rgb(34 211 238 / 0.85);
+  border-radius: 999px;
+}
