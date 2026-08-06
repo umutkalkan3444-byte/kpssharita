@@ -35,8 +35,6 @@ import {
   Eye,
   EyeOff,
   Lightbulb,
-  ChevronUp,
-  ChevronDown,
 } from "lucide-react";
 import { Link, useRouter } from "@tanstack/react-router";
 import {
@@ -61,7 +59,6 @@ import { findProvinceDropIdAtPoint, PROVINCE_DROP_KIND } from "@/lib/province-dr
 import { mistakeKey, type StudyMistake, type StudyReviewRequest } from "@/lib/study/schemas";
 import { buildCardLabels } from "@/lib/card-label";
 import { splitGameItems, gameModeLabel } from "@/lib/game-mode";
-import { NEIGHBOR_BORDERS, borderPath, borderLabelPoint } from "@/data/neighbors";
 
 const PostGameStudy = lazy(() =>
   import("@/components/study/PostGameStudy").then((module) => ({
@@ -614,48 +611,6 @@ function ShapeLayer({
   );
 }
 
-/** Sınır kapıları oyununda komşu ülke sınırlarını gösterir. */
-function NeighborBorderLayer() {
-  return (
-    <svg
-      viewBox={`0 0 ${MAP_W} ${MAP_H}`}
-      className="pointer-events-none absolute inset-0 h-full w-full"
-      preserveAspectRatio="xMidYMid meet"
-      aria-hidden="true"
-    >
-      {NEIGHBOR_BORDERS.map((border) => {
-        const label = borderLabelPoint(border);
-        return (
-          <g key={border.country}>
-            <path
-              d={borderPath(border)}
-              fill="none"
-              stroke={border.color}
-              strokeWidth={2.6}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              opacity={0.85}
-            />
-            <text
-              x={label.x}
-              y={label.y - 5}
-              textAnchor="middle"
-              fill={border.color}
-              stroke="rgba(255,255,255,0.95)"
-              strokeWidth={1.1}
-              paintOrder="stroke"
-              fontSize={9}
-              fontWeight={800}
-            >
-              {border.country}
-            </text>
-          </g>
-        );
-      })}
-    </svg>
-  );
-}
-
 const Card = memo(function Card({ id, name, shake }: { id: string; name: string; shake: boolean }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id });
   return (
@@ -788,7 +743,6 @@ export function GameBoard({ category }: { category: Category }) {
     [clickIds, targets],
   );
   const isAllProvinces = category.slug === "iller-81";
-  const showNeighbors = category.slug === "sinir-kapilari";
   // Tüm kart adları gerçek il adıysa sürükleme hedefi ilin kendi sınırıdır
   // (beyaz nokta yok; sınır çerçevesi vurgulanır).
   const isProvinceDrag = useMemo(
@@ -981,11 +935,6 @@ export function GameBoard({ category }: { category: Category }) {
   const mapWrapRef = useRef<HTMLDivElement>(null);
   const mapSurfaceRef = useRef<HTMLDivElement>(null);
   const cardScrollRef = useRef<HTMLDivElement>(null);
-  const scrollCards = useCallback((direction: -1 | 1) => {
-    const el = cardScrollRef.current;
-    if (!el) return;
-    el.scrollBy({ top: direction * Math.max(120, el.clientHeight * 0.7), behavior: "smooth" });
-  }, []);
   const zoomRef = useRef<ReactZoomPanPinchRef | null>(null);
   const [containerW, setContainerW] = useState(0);
 
@@ -1620,7 +1569,6 @@ export function GameBoard({ category }: { category: Category }) {
                         interactive={hasClick}
                       />
                       {category.slug === "ruzgarlar" ? <CompassGuideLayer /> : null}
-                      {showNeighbors ? <NeighborBorderLayer /> : null}
                       <ShapeLayer
                         targets={dragTargets}
                         placed={displayedPlaced}
@@ -1640,6 +1588,8 @@ export function GameBoard({ category }: { category: Category }) {
                                   key={t.id}
                                   t={t}
                                   placed={!!displayedPlaced[t.id]}
+                                  preview={revealAll && !placed[t.id]}
+                                  labelShift={labelShifts[t.id] ?? 0}
                                   claimTone={arenaClaimsById[t.id]}
                                 />
                               ),
