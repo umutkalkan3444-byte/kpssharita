@@ -322,25 +322,21 @@ try {
   }
 
   assert(
-    duplicateValues(neighbors.NEIGHBOR_BORDERS.map((border) => border.country)).length === 0,
+    duplicateValues(neighbors.NEIGHBOR_AREAS.map((area) => area.country)).length === 0,
     "Komşu sınır katmanında ülke adları benzersiz olmalı.",
   );
   assert(
-    neighbors.NEIGHBOR_BORDERS.some((border) => border.country === "Azerbaycan (Nahçıvan)"),
+    neighbors.NEIGHBOR_AREAS.some((area) => area.country === "Azerbaycan (Nahçıvan)"),
     "Nahçıvan sınırı Azerbaycan adıyla gösterilmeli.",
   );
-  for (const border of neighbors.NEIGHBOR_BORDERS) {
-    assert(border.coords.length >= 2, `${border.country}: sınır çizgisi en az iki nokta içermeli.`);
-    for (const [lat, lon] of border.coords) {
-      const point = geo.project(lat, lon);
-      assert(
-        point.x >= 0 && point.x <= geo.MAP_W && point.y >= 0 && point.y <= geo.MAP_H,
-        `${border.country}: sınır çizgisi harita dışında.`,
-      );
-    }
+  for (const area of neighbors.NEIGHBOR_AREAS) {
     assert(
-      /^M[\d.-]+,[\d.-]+/.test(neighbors.borderPath(border)),
-      `${border.country}: sınır SVG yolu üretilemedi.`,
+      area.geometry.type === "Polygon" || area.geometry.type === "MultiPolygon",
+      `${area.country}: ülke geometrisi Polygon veya MultiPolygon olmalı.`,
+    );
+    assert(
+      /^M[\d.-]+,[\d.-]+/.test(neighbors.areaPath(area)),
+      `${area.country}: ülke SVG yolu üretilemedi.`,
     );
   }
 

@@ -267,32 +267,17 @@ export function TurkeyMap({
       </defs>
       <rect width={MAP_W} height={MAP_H} fill={`url(#${seaGradientId})`} />
       <g pointerEvents="none" aria-hidden="true">
-        {NEIGHBOR_AREAS.map((area) => {
-          const label = areaLabelPoint(area);
-          return (
-            <g key={area.country}>
-              <path
-                d={areaPath(area)}
-                fill="#f1e7d6"
-                stroke="rgba(146,131,105,0.35)"
-                strokeWidth={0.6}
-                strokeLinejoin="round"
-              />
-              <text
-                x={label.x}
-                y={label.y}
-                textAnchor="middle"
-                dominantBaseline="central"
-                fill="rgba(120,105,80,0.85)"
-                fontSize={8}
-                fontWeight={700}
-                letterSpacing="0.4"
-              >
-                {area.country}
-              </text>
-            </g>
-          );
-        })}
+        {NEIGHBOR_AREAS.map((area) => (
+          <path
+            key={area.country}
+            d={areaPath(area)}
+            fill={area.fill}
+            fillRule="evenodd"
+            stroke={area.fill}
+            strokeWidth={1.5}
+            strokeLinejoin="round"
+          />
+        ))}
       </g>
       <g>
 
@@ -362,6 +347,29 @@ export function TurkeyMap({
             />
           ) : (
             <ProvincePath key={p.name} {...pathProps} />
+          );
+        })}
+      </g>
+      <g pointerEvents="none" aria-hidden="true">
+        {NEIGHBOR_AREAS.map((area) => {
+          const label = areaLabelPoint(area);
+          return (
+            <text
+              key={area.country}
+              x={label.x}
+              y={label.y}
+              textAnchor="middle"
+              dominantBaseline="central"
+              fill="rgba(105,88,63,0.9)"
+              stroke="rgba(255,250,241,0.82)"
+              strokeWidth={1.4}
+              paintOrder="stroke"
+              fontSize={7.5}
+              fontWeight={750}
+              letterSpacing="0.25"
+            >
+              {label.text}
+            </text>
           );
         })}
       </g>
