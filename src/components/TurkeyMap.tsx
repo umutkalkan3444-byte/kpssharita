@@ -269,27 +269,41 @@ export function TurkeyMap({
       <g pointerEvents="none" aria-hidden="true">
         {NEIGHBOR_AREAS.map((area) => {
           const label = areaLabelPoint(area);
+          // Haritanın yatay sınırlarının dışında kalan yazıları zorla içeride
+          // göstermiyoruz: bu, isimlerin yarısının kesilmesine ve il sınırlarının
+          // üzerinde okunaksız görünmesine yol açıyordu.
+          const canShowLabel =
+            label.x >= 40 &&
+            label.x <= MAP_W - 40 &&
+            label.y >= 22 &&
+            label.y <= MAP_H - 22;
           return (
             <g key={area.country}>
               <path
                 d={areaPath(area)}
+                // Komşu çokgenleri illerin gerçek dış hattıyla birebir aynı
+                // veri kaynağından gelmiyor. Geniş, aynı renkli bir alt çizgi
+                // çokgeni Türkiye'nin altına hafifçe bindirir; böylece kıyıda
+                // görünen mavi saçaklar ve kopuk ara boşluklar oluşmaz.
                 fill="#f1e7d6"
-                stroke="rgba(146,131,105,0.35)"
-                strokeWidth={0.6}
+                stroke="#f1e7d6"
+                strokeWidth={15}
                 strokeLinejoin="round"
               />
-              <text
-                x={label.x}
-                y={label.y}
-                textAnchor="middle"
-                dominantBaseline="central"
-                fill="rgba(120,105,80,0.85)"
-                fontSize={8}
-                fontWeight={700}
-                letterSpacing="0.4"
-              >
-                {area.country}
-              </text>
+              {canShowLabel ? (
+                <text
+                  x={label.x}
+                  y={label.y}
+                  textAnchor="middle"
+                  dominantBaseline="central"
+                  fill="rgba(120,105,80,0.85)"
+                  fontSize={8}
+                  fontWeight={700}
+                  letterSpacing="0.4"
+                >
+                  {area.country}
+                </text>
+              ) : null}
             </g>
           );
         })}
