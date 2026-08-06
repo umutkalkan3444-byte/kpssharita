@@ -930,6 +930,28 @@ export function GameBoard({ category }: { category: Category }) {
         : undefined,
     [displayedPlaced, isProvinceDrag],
   );
+  // Yan yana duran hedeflerin (ör. sınır kapıları) etiketleri çakışmasın.
+  const labelShifts = useMemo(() => {
+    const shifts: Record<string, number> = {};
+    const used: { x: number; y: number }[] = [];
+    const entries = Object.values(displayedPlaced).sort((a, b) => a.y - b.y || a.x - b.x);
+    for (const target of entries) {
+      let shift = 0;
+      let guard = 0;
+      while (
+        guard++ < 12 &&
+        used.some(
+          (u) => Math.abs(u.x - target.x) < 62 && Math.abs(u.y - (target.y + shift)) < 11,
+        )
+      ) {
+        shift += shift >= 0 ? -(shift * 2 + 11) : -shift + 11;
+      }
+      shifts[target.id] = shift;
+      used.push({ x: target.x, y: target.y + shift });
+    }
+    return shifts;
+  }, [displayedPlaced]);
+
   const arenaClaimsById = useMemo(() => {
     const claims: Record<string, ArenaPlayerId> = {};
     for (const id of Object.keys(arenaPlaced.red)) claims[id] = "red";
