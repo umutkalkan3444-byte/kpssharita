@@ -882,13 +882,20 @@ export function GameBoard({ category }: { category: Category }) {
   );
   const displayedPlaced = revealAll ? allPlacedPreview : placed;
   const displayedWrongProvinces = isCompetitive ? arenaWrongProvinces[arenaTurn] : wrongProvinces;
+  // Kendi bulduğumuz iller yeşil; göz (öğrenme modu) ile açılanlar sarı kalır.
   const highlightedProvinces = useMemo(
     () =>
-      Object.values(displayedPlaced)
+      Object.values(placed)
         .filter((p) => isIlleri || clickIds.has(p.id))
         .map((p) => p.name),
-    [clickIds, displayedPlaced, isIlleri],
+    [clickIds, placed, isIlleri],
   );
+  const displayedHintProvinces = useMemo(() => {
+    if (!revealAll) return hintProvinces;
+    const revealed = targets.filter((t) => !placed[t.id]).map((t) => t.name);
+    return [...hintProvinces, ...revealed];
+  }, [hintProvinces, placed, revealAll, targets]);
+
   const provinceDropTargets = useMemo(
     () =>
       isProvinceDrag
