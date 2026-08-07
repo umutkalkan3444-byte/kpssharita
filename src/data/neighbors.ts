@@ -25,28 +25,35 @@ type NeighborSource = {
 
 type NeighborAppearance = {
   fill: string;
-  label: [number, number]; // [latitude, longitude]
   overlapWidth: number;
   shortLabel?: string;
+  /** Otomatik etiket noktası uygun değilse elle verilen harita konumu. */
+  labelOverride?: [number, number]; // [latitude, longitude]
 };
 
 export type NeighborArea = NeighborSource & NeighborAppearance;
 
+// Türkiye ile aynı görsel dilde, ama karadan ayırt edilebilsin diye sıcak
+// toprak tonlarında. Her ülkenin tonu komşusundan farklı.
 const APPEARANCE: Record<string, NeighborAppearance> = {
-  Yunanistan: { fill: "#f4ead9", label: [40.65, 25.25], overlapWidth: 2.5 },
-  Bulgaristan: { fill: "#eee0cb", label: [42.35, 27], overlapWidth: 3 },
-  Gürcistan: { fill: "#f2e5d1", label: [42.35, 42.2], overlapWidth: 3.5 },
-  Ermenistan: { fill: "#ead9c2", label: [40.4, 44.95], overlapWidth: 4 },
+  Yunanistan: { fill: "#f6ecd8", overlapWidth: 2.5 },
+  Bulgaristan: { fill: "#eadfc4", overlapWidth: 3 },
+  Gürcistan: { fill: "#f3e3c8", overlapWidth: 3.5 },
+  Ermenistan: { fill: "#e7d4b4", overlapWidth: 4 },
   "Azerbaycan (Nahçıvan)": {
-    fill: "#f1dfc5",
-    label: [39.7, 44.85],
+    fill: "#f2decd",
     overlapWidth: 4,
-    shortLabel: "Azerbaycan",
+    shortLabel: "Nahçıvan",
+    labelOverride: [39.63, 45.05],
   },
-  İran: { fill: "#ead6ba", label: [38.35, 45.05], overlapWidth: 4.5 },
-  Irak: { fill: "#efe0c8", label: [36.7, 44.6], overlapWidth: 4 },
-  Suriye: { fill: "#f4e6d1", label: [36.2, 39], overlapWidth: 3.5 },
+  İran: { fill: "#ecd8b6", overlapWidth: 4.5 },
+  Irak: { fill: "#f0e2c2", overlapWidth: 4 },
+  Suriye: { fill: "#f7ead2", overlapWidth: 3.5 },
 };
+
+/** Ülkeler arası sınır çizgisi rengi — dolgulardan belirgin şekilde koyu. */
+export const NEIGHBOR_BORDER_STROKE = "rgba(146,113,66,0.85)";
+export const NEIGHBOR_BORDER_WIDTH = 0.9;
 
 export const NEIGHBOR_AREAS: NeighborArea[] = (
   neighborCountryData as NeighborSource[]
@@ -63,26 +70,107 @@ function ringPath(ring: Position[]): string {
   );
 }
 
-export function areaPath(area: NeighborArea): string {
-  const polygons =
-    area.geometry.type === "Polygon"
-      ? [area.geometry.coordinates]
-      : area.geometry.coordinates;
+function polygonsOf(area: NeighborArea): Position[][][] {
+  return area.geometry.type === "Polygon"
+    ? [area.geometry.coordinates]
+    : area.geometry.coordinates;
+}
 
-  return polygons
+export function areaPath(area: NeighborArea): string {
+  return polygonsOf(area)
     .flatMap((polygon) => polygon.map((ring) => ringPath(ring)))
     .join(" ");
 }
 
-export function areaLabelPoint(area: NeighborArea): {
-  x: number;
-  y: number;
-  text: string;
-} {
-  const point = project(area.label[0], area.label[1]);
-  return {
-    x: point.x,
-    y: point.y,
-    text: area.shortLabel ?? area.country,
-  };
+type Pt = { x: number; y: number };
+
+function projectRing(ring: Position[]): Pt[] {
+  return ring.map(([lon, lat]) => project(lat, lon));
+}
+
+function pointInRing(p: Pt, ring: Pt[]): boolean {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const a = ring[i];
+    const b = ring[j];
+    if (a.y > p.y !== b.y > p.y && p.x < ((b.x - a.x) * (p.y - a.y)) / (b.y - a.y) + a.x) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
+function distanceToRing(p: Pt, ring: Pt[]): number {
+  let min = Infinity;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const a = ring[i];
+    const b = ring[j];
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const len2 = dx * dx + dy * dy || 1e-9;
+    let t = ((p.x - a.x) * dx + (p.y - a.y) * dy) / len2;
+    t = t < 0 ? 0 : t > 1 ? 1 : t;
+    min = Math.min(min, Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy)));
+  }
+  return min;
+}
+
+/**
+ * Etiketi ülkenin kendi kara parçasının içine yerleştirir: haritada görünen
+ * bölümü ızgara ile tarar ve kenarlardan en uzak noktayı seçer. Böylece yazı
+ * ülkenin sağında/solunda denizde asılı kalmaz.
+ */
+function bestLabelPoint(area: NeighborArea, view: Pt & { w: number; h: number }): Pt | null {
+  const rings = polygonsOf(area)
+    .map((polygon) => projectRing(polygon[0]))
+    .filter((ring) => ring.length > 2);
+  if (rings.length === 0) return null;
+
+  let best: Pt | null = null;
+  let bestScore = -Infinity;
+
+  for (const ring of rings) {
+    const minX = Math.max(view.x, Math.min(...ring.map((p) => p.x)));
+    const maxX = Math.min(view.x + view.w, Math.max(...ring.map((p) => p.x)));
+    const minY = Math.max(view.y, Math.min(...ring.map((p) => p.y)));
+    const maxY = Math.min(view.y + view.h, Math.max(...ring.map((p) => p.y)));
+    if (maxX <= minX || maxY <= minY) continue;
+
+    const steps = 28;
+    for (let i = 0; i <= steps; i++) {
+      for (let j = 0; j <= steps; j++) {
+        const p = {
+          x: minX + ((maxX - minX) * i) / steps,
+          y: minY + ((maxY - minY) * j) / steps,
+        };
+        if (!pointInRing(p, ring)) continue;
+        const edgeGap = Math.min(
+          p.x - view.x,
+          view.x + view.w - p.x,
+          p.y - view.y,
+          view.y + view.h - p.y,
+        );
+        const score = Math.min(distanceToRing(p, ring), edgeGap);
+        if (score > bestScore) {
+          bestScore = score;
+          best = p;
+        }
+      }
+    }
+  }
+
+  return bestScore > 4 ? best : null;
+}
+
+export function areaLabelPoint(
+  area: NeighborArea,
+  view: { x: number; y: number; w: number; h: number },
+): { x: number; y: number; text: string } | null {
+  const text = area.shortLabel ?? area.country;
+  if (area.labelOverride) {
+    const point = project(area.labelOverride[0], area.labelOverride[1]);
+    return { x: point.x, y: point.y, text };
+  }
+  const point = bestLabelPoint(area, view);
+  return point ? { x: point.x, y: point.y, text } : null;
 }
