@@ -542,8 +542,8 @@ function ShapeLayer({
             d={t.shape.d}
             fill={isLine ? "none" : isPlaced ? fill : "rgba(100,116,139,0.18)"}
             stroke={isPlaced ? stroke : ghostStroke}
-            strokeWidth={isLine ? (isPlaced ? 2.2 : 1.6) : 1.2}
-            strokeDasharray={isPlaced ? undefined : isLine ? "4 3" : "2 2"}
+            strokeWidth={isLine ? (isWind ? (isPlaced ? 3.4 : 2.6) : isPlaced ? 2.2 : 1.6) : 1.2}
+            strokeDasharray={isPlaced || isWind ? undefined : isLine ? "4 3" : "2 2"}
             strokeLinecap="round"
             strokeLinejoin="round"
             opacity={isPlaced ? 0.95 : 0.85}
