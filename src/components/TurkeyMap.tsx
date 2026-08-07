@@ -379,9 +379,9 @@ export function TurkeyMap({
         {NEIGHBOR_AREAS.map((area) => {
           // Yazının haritanın kenarında kırpılmaması için güvenli iç pay.
           const label = areaLabelPoint(area, {
-            x: VIEW_X + 30,
+            x: VIEW_X + 48,
             y: VIEW_Y + 10,
-            w: VIEW_W - 60,
+            w: VIEW_W - 96,
             h: VIEW_H - 20,
           });
           if (!label) return null;

@@ -43,8 +43,6 @@ const APPEARANCE: Record<string, NeighborAppearance> = {
   "Azerbaycan (Nahçıvan)": {
     fill: "#f2decd",
     overlapWidth: 4,
-    shortLabel: "Nahçıvan",
-    labelOverride: [39.63, 45.05],
   },
   İran: { fill: "#ecd8b6", overlapWidth: 4.5 },
   Irak: { fill: "#f0e2c2", overlapWidth: 4 },
