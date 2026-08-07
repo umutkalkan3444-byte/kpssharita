@@ -373,7 +373,13 @@ export function TurkeyMap({
       </g>
       <g pointerEvents="none" aria-hidden="true">
         {NEIGHBOR_AREAS.map((area) => {
-          const label = areaLabelPoint(area);
+          const label = areaLabelPoint(area, {
+            x: VIEW_X,
+            y: VIEW_Y,
+            w: VIEW_W,
+            h: VIEW_H,
+          });
+          if (!label) return null;
           return (
             <text
               key={area.country}
@@ -381,27 +387,20 @@ export function TurkeyMap({
               y={label.y}
               textAnchor="middle"
               dominantBaseline="central"
-              fill="rgba(105,88,63,0.9)"
-              stroke="rgba(255,250,241,0.82)"
+              fill="rgba(105,88,63,0.95)"
+              stroke="rgba(255,250,241,0.85)"
               strokeWidth={1.4}
               paintOrder="stroke"
               fontSize={7.5}
               fontWeight={750}
               letterSpacing="0.25"
             >
-              {label.text.split("\n").map((line, lineIndex, lines) => (
-                <tspan
-                  key={line}
-                  x={label.x}
-                  dy={lineIndex === 0 ? (lines.length > 1 ? -4 : 0) : 9}
-                >
-                  {line}
-                </tspan>
-              ))}
+              {label.text}
             </text>
           );
         })}
       </g>
+
       <g pointerEvents="none" aria-hidden="true">
         {renderedLabels.map((entry) => {
           const estimatedWidth = entry.label.length * entry.layout.fontSize * 0.58;
