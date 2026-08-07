@@ -159,9 +159,18 @@ function windArrow(direction: CompassDirection): {
 export function targetsFor(category: Category): TargetPoint[] {
   const targets = category.items.map((it) => {
     if (category.slug === "ruzgarlar" && it.compassDirection) {
-      const { x, y } = COMPASS_TARGETS[it.compassDirection];
-      return { id: it.id, name: it.name, x, y, geoX: x, geoY: y };
+      const arrow = windArrow(it.compassDirection);
+      return {
+        id: it.id,
+        name: it.name,
+        x: arrow.x,
+        y: arrow.y,
+        geoX: arrow.x,
+        geoY: arrow.y,
+        shape: { type: "polyline" as const, d: arrow.d },
+      };
     }
+
     // Aynı ad farklı kavramlarda kullanılabilir (ör. Burdur ili/gölü veya
     // Seyhan nehri/barajı). Şekil yalnız anlamı açık coğrafya kategorilerinde
     // bağlanır; ad eşleşmesi tek başına yeterli kabul edilmez.
