@@ -25,6 +25,14 @@ function essential(
   return { definition, keyPoints, examTip, priority, reviewedAt: REVIEWED_AT };
 }
 
+function distributionEssential(
+  definition: string,
+  keyPoints: readonly [string, string, string],
+  examTip: string,
+): TopicEssential {
+  return essential(definition, keyPoints, examTip);
+}
+
 const administrative = {
   "turkiye-bolgeleri": essential(
     "Türkiye, ortak doğal ve beşerî özelliklere göre yedi coğrafi bölgeye ayrılır; bu sınırlar idari değildir.",
@@ -819,6 +827,222 @@ const landformsAndWater = {
   ),
 } satisfies Record<string, TopicEssential>;
 
+const climateAndVegetation = {
+  "yagis-fazla-iller": distributionEssential(
+    "Türkiye'de yıllık yağışın en yüksek olduğu alanlar, özellikle Doğu Karadeniz kıyı ve dağ kuşağında toplanır.",
+    [
+      "Rize, Artvin, Trabzon ve Giresun Doğu Karadeniz'deki temel yağış kümesidir.",
+      "Zonguldak ve Bartın, Batı Karadeniz'in denize dönük yamaçlarını temsil eder.",
+      "Denize yakınlık tek başına yetmez; dağların uzanışı ve bakı yağış miktarını değiştirir.",
+    ],
+    "En yağışlı il sorusunda Rize'yi; dağılış sorusunda kıyıya paralel dağların yükselme yağışını düşün.",
+  ),
+  "kuraklik-yuksek-iller": distributionEssential(
+    "Kuraklık belirginliği yağış azlığı ve yüksek buharlaşmanın birleştiği İç Anadolu ile Güneydoğu kuşaklarında artar.",
+    [
+      "Konya, Karaman ve Aksaray kapalı havza ve karasallık etkisini gösterir.",
+      "Şanlıurfa ve Mardin'de yaz sıcaklığı ile buharlaşma çok yüksektir.",
+      "Iğdır, çevresindeki yüksek alanlara rağmen mikroklima niteliğinde kurak bir ovadır.",
+    ],
+    "Kuraklığı yalnız güneyde arama; Konya kapalı havzası ve Iğdır Ovası güçlü ayırt edicilerdir.",
+  ),
+  "akdeniz-iklimi-iller": distributionEssential(
+    "Akdeniz ikliminde yazlar sıcak-kurak, kışlar ılık-yağışlıdır; güney ve batı kıyılarında belirgindir.",
+    [
+      "Antalya, Mersin, Adana ve Hatay güney kıyı kuşağının çekirdeğidir.",
+      "Muğla ve İzmir, Ege kıyılarındaki Akdeniz iklimi etkisini temsil eder.",
+      "Dağların kıyıya göre uzanışı deniz etkisinin iç kesimlere sokulma mesafesini değiştirir.",
+    ],
+    "Coğrafi bölge adıyla iklim alanını eşitleme; Ege kıyılarında da Akdeniz iklimi görülür.",
+  ),
+  "sert-karasal-iklim-iller": distributionEssential(
+    "Sert karasal iklim, yükseltinin ve denizden uzaklığın fazla olduğu doğu iç kesimlerinde uzun ve soğuk kışlarla görülür.",
+    [
+      "Erzurum, Kars ve Ardahan yüksek plato koşullarının temel kümesidir.",
+      "Ağrı ve Hakkâri yükselti ve engebe nedeniyle sert kışlara sahiptir.",
+      "Sivas, Doğu Anadolu dışında sert karasal özelliklerin güçlü hissedildiği iç merkezdir.",
+    ],
+    "Enlemden önce yükseltiyi düşün; Erzurum-Kars platosu sert karasal iklimin klasik sınav alanıdır.",
+  ),
+  "orman-yogun-iller": distributionEssential(
+    "Orman oranının yüksek olduğu iller, yağışlı Karadeniz kuşağı ve kıyıya bakan dağlık alanlarda yoğunlaşır.",
+    [
+      "Karabük, Bartın ve Kastamonu Batı Karadeniz orman kuşağının çekirdeğidir.",
+      "Bolu ve Düzce nemli dağ yamaçlarıyla yüksek orman oranına sahiptir.",
+      "Artvin, engebe ve nemin koruduğu Doğu Karadeniz ormanlarını temsil eder.",
+    ],
+    "Toplam orman alanı ile il yüz ölçümüne göre orman oranını karıştırma; soru kökünü dikkatle oku.",
+  ),
+  "maki-iller": distributionEssential(
+    "Maki, Akdeniz iklimindeki kızılçam ormanlarının tahribiyle yaygınlaşan her dem yeşil çalı topluluğudur.",
+    [
+      "Antalya, Mersin, Adana ve Hatay güney kıyı kuşağını oluşturur.",
+      "Muğla ve İzmir'de Ege kıyılarından içeriye sokulan Akdeniz etkisiyle maki görülür.",
+      "Maki doğal iklim göstergesidir; bozkır gibi kurak iç bölge örtüsü değildir.",
+    ],
+    "Makiyi Akdeniz Bölgesi sınırıyla sınırlama; Ege kıyılarında da maki kuşağı belirgindir.",
+  ),
+  "bozkir-iller": distributionEssential(
+    "Bozkır, ilkbahar yağışlarıyla yeşerip yaz kuraklığında sararan kısa boylu ot topluluğudur.",
+    [
+      "Konya, Ankara, Eskişehir ve Yozgat İç Anadolu bozkır çekirdeğidir.",
+      "Karaman kapalı havza; Sivas yüksek ve karasal iç kesim örneğidir.",
+      "Bozkırın genişlemesinde yağış azlığı kadar orman tahribi de etkili olabilir.",
+    ],
+    "Bozkırı çayırla karıştırma; çayır yaz yağışlı yüksek alanlarda yeşil kalırken bozkır yazın kurur.",
+  ),
+  "kizilcam-iller": distributionEssential(
+    "Kızılçam, sıcak ve kurak yaz koşullarına uyumlu, Akdeniz ve Ege kıyılarının alçak kesimlerinde yaygın bir iğne yapraklıdır.",
+    [
+      "Antalya, Mersin, Muğla ve Adana ana kızılçam kuşağındadır.",
+      "İzmir batı kıyısı, Hatay doğu Akdeniz uzantısını temsil eder.",
+      "Yükselti arttıkça kızılçam yerini karaçam, sedir ve göknar gibi türlere bırakabilir.",
+    ],
+    "Kızılçamı kıyının sıcak alçak kesimleriyle; karaçamı daha yüksek ve karasal alanlarla eşleştir.",
+  ),
+  "ladin-iller": distributionEssential(
+    "Ladin, Türkiye'de doğal yayılışı büyük ölçüde Doğu Karadeniz'in çok nemli dağlık kesimleriyle sınırlı bir ağaçtır.",
+    [
+      "Rize ve Artvin ladinin en güçlü doğal yayılış merkezleridir.",
+      "Trabzon ve Giresun kuşağın batıya uzanan diğer temel illeridir.",
+      "Sürekli nem ve serin dağ koşulları ladin dağılışını belirler.",
+    ],
+    "Ladin sorusunda bütün Karadeniz'i işaretleme; Doğu Karadeniz'in nemli yüksek kesimlerine odaklan.",
+  ),
+  "saricam-iller": distributionEssential(
+    "Sarıçam, soğuğa dayanıklı olup Türkiye'de yüksek ve karasal alanlarla serin dağ kuşaklarında yayılır.",
+    [
+      "Erzurum ve Kars sarıçamın yüksek plato çevresindeki temel merkezleridir.",
+      "Artvin kuzeydoğu yayılışını; Bolu ve Kastamonu batıdaki dağ ormanlarını temsil eder.",
+      "Türün dağılışı sıcak kıyılardan çok soğuk ve yüksek alanlarla ilişkilidir.",
+    ],
+    "Sarıçamı kızılçamla karıştırma: sarıçam soğuk-yüksek, kızılçam sıcak-kıyı koşullarını gösterir.",
+  ),
+} satisfies Record<string, TopicEssential>;
+
+const disasters = {
+  "deprem-riski-yuksek-iller": distributionEssential(
+    "Deprem riski, Kuzey Anadolu, Doğu Anadolu ve Batı Anadolu fay sistemleri boyunca yüksek değerler gösterir.",
+    [
+      "Kocaeli ve Düzce Kuzey Anadolu Fayının batı; Erzincan doğu kesimindeki temel hedeflerdir.",
+      "İzmir, Manisa ve Balıkesir Batı Anadolu'nun kırıklı yapısını temsil eder.",
+      "Bingöl ve Hatay Doğu Anadolu fay kuşağındaki kritik düğümlerdir.",
+    ],
+    "Deprem tehlikesi ile nüfus kaynaklı afete dönüşme riskini ayır; harita fay kuşağını sorar.",
+  ),
+  "heyelan-riski-yuksek-iller": distributionEssential(
+    "Heyelan riski; eğim, fazla yağış ve gevşek zemin koşullarının birleştiği Karadeniz yamaçlarında yoğunlaşır.",
+    [
+      "Rize, Trabzon, Artvin ve Giresun Doğu Karadeniz'in çekirdek heyelan alanlarıdır.",
+      "Ordu ve Kastamonu risk kuşağının batıya uzanan önemli örnekleridir.",
+      "Bitki örtüsü riski azaltabilse de aşırı eğim ve suya doygun zemin belirleyicidir.",
+    ],
+    "Heyelanda yalnız yağışı değil eğimi de ara; düz ve yağışlı alan aynı ölçüde riskli değildir.",
+  ),
+  "sel-riski-yuksek-iller": distributionEssential(
+    "Sel ve taşkın riski, kısa sürede şiddetli yağış alan dar kıyı havzaları ile akarsu tabanlarında yükselir.",
+    [
+      "Samsun, Ordu, Rize ve Trabzon Karadeniz kıyı havzalarını temsil eder.",
+      "Bartın ve Zonguldak Batı Karadeniz'in dar vadili, yağışlı örnekleridir.",
+      "Plansız yapılaşma ve geçirimsiz yüzeyler doğal tehlikenin zarara dönüşmesini artırır.",
+    ],
+    "Sel ile taşkını ayır: sel hızlı yüzey akışı, taşkın akarsuyun yatağından çıkmasıdır.",
+  ),
+  "cig-riski-yuksek-iller": distributionEssential(
+    "Çığ riski, uzun süre kar örtüsü bulunan yüksek ve eğimli Doğu Anadolu dağlarında belirgindir.",
+    [
+      "Hakkâri, Bitlis ve Van yüksek, dik yamaçlı güneydoğu kümesidir.",
+      "Ağrı, Erzurum ve Bingöl uzun kar süresi bulunan diğer temel illerdir.",
+      "Kar kalınlığı kadar eğim, rüzgârla birikme ve sıcaklık değişimi de çığı etkiler.",
+    ],
+    "Çığ için sadece kar yağışını değil yüksek eğimli yamaç ve uzun kar örtüsü birlikteliğini ara.",
+  ),
+  "orman-yangini-riski-yuksek-iller": distributionEssential(
+    "Orman yangını riski, sıcak-kurak yazların yaşandığı Akdeniz ve Ege kıyı ormanlarında yükselir.",
+    [
+      "Antalya ve Muğla en belirgin turizm-orman kesişim alanlarıdır.",
+      "İzmir batı kıyısını; Mersin, Adana ve Hatay doğu Akdeniz kuşağını tamamlar.",
+      "Rüzgâr, düşük nem ve insan etkinliği yangının başlamasını ve yayılmasını hızlandırabilir.",
+    ],
+    "Orman varlığının fazla olması tek başına yeterli değildir; yaz kuraklığının belirgin olduğu kıyıları düşün.",
+  ),
+  "kuraklik-riski-yuksek-iller": distributionEssential(
+    "Kuraklık riski, yağışın az ve değişken, buharlaşmanın yüksek olduğu iç ve güneydoğu havzalarda belirgindir.",
+    [
+      "Konya, Karaman ve Aksaray İç Anadolu'nun kapalı havza kümesidir.",
+      "Şanlıurfa, Mardin ve Kilis sıcak Güneydoğu kuşağını temsil eder.",
+      "Sulama kuraklığın etkisini azaltır ancak su kaynakları üzerinde baskı da oluşturabilir.",
+    ],
+    "Kuraklık haritasında çöl arama; yağış-buharlaşma dengesi ve su açığı temel ölçüttür.",
+  ),
+} satisfies Record<string, TopicEssential>;
+
+const populationAndSettlement = {
+  "nufus-yogun-iller": distributionEssential(
+    "Nüfus yoğunluğu; sanayi, hizmet, ulaşım ve istihdam olanaklarının güçlü olduğu batı ve büyük kentlerde artar.",
+    [
+      "İstanbul, Kocaeli ve Bursa Marmara sanayi-nüfus çekirdeğidir.",
+      "İzmir Ege, Ankara İç Anadolu, Gaziantep Güneydoğu'nun başlıca yoğun merkezidir.",
+      "Toplam nüfus ile aritmetik nüfus yoğunluğu aynı kavram değildir; yüz ölçümü sonucu değiştirir.",
+    ],
+    "Soru kökünde toplam nüfus mu yoğunluk mu sorulduğunu ayır; yüz ölçümü küçük Kocaeli özellikle önemlidir.",
+  ),
+  "nufus-seyrek-iller": distributionEssential(
+    "Seyrek nüfus; engebe, sert iklim, sınırlı tarım alanı ve göç verme gibi koşulların birleştiği illerde görülür.",
+    [
+      "Tunceli, Bayburt, Ardahan ve Gümüşhane temel seyrek nüfus kümesidir.",
+      "Hakkâri'de engebe; Sinop'ta göç ve erişilebilirlik etkileri belirgindir.",
+      "İl nüfusunun az olması ile kırsal yerleşme dokusunun seyrekliği ilişkili ancak aynı değildir.",
+    ],
+    "Seyrek nüfusta yalnız doğuyu düşünme; Sinop gibi göç veren Karadeniz illeri de sınav hedefidir.",
+  ),
+  "kentlesme-yuksek-iller": distributionEssential(
+    "Kentleşme oranı, nüfusun il ve ilçe merkezlerinde yaşama payını gösterir ve sanayi-hizmet merkezlerinde yükselir.",
+    [
+      "İstanbul, Ankara ve İzmir ülkenin en büyük hizmet ve yönetim merkezleridir.",
+      "Bursa ve Kocaeli sanayi; Gaziantep üretim ve ticaret çekim merkezidir.",
+      "Kentleşme oranı yüksekliği, plansız kentleşmenin olmadığı anlamına gelmez.",
+    ],
+    "Kentleşme oranını toplam nüfusla eşitleme; ölçüt kentlerde yaşayan nüfusun il toplamına oranıdır.",
+  ),
+  "yasli-nufus-yuksek-iller": distributionEssential(
+    "Yaşlı nüfus oranı, gençlerin göç ettiği ve doğurganlığın görece düşük olduğu kuzey-batı illerinde yükselir.",
+    [
+      "Sinop, Kastamonu ve Giresun Karadeniz'deki temel yaşlı nüfus kümesidir.",
+      "Artvin göç etkisini; Balıkesir ve Çanakkale batıdaki yaşlı nüfus yapısını temsil eder.",
+      "Yaşlı nüfus sayısı ile toplam nüfus içindeki yaşlı oranı birbirinden farklıdır.",
+    ],
+    "İstanbul'da yaşlı sayısı yüksek olabilir; ancak sınavda sorulan yaşlı nüfus oranının yüksekliğidir.",
+  ),
+  "genc-nufus-yuksek-iller": distributionEssential(
+    "Genç nüfus oranı, doğurganlığın görece yüksek olduğu Güneydoğu ve Doğu Anadolu illerinde belirgindir.",
+    [
+      "Şanlıurfa ve Şırnak genç nüfus yapısının en belirgin merkezlerindendir.",
+      "Ağrı, Siirt, Muş ve Hakkâri doğu-güneydoğu kümesini tamamlar.",
+      "Genç nüfus oranı eğitim, istihdam ve bağımlı nüfus gereksinimini etkiler.",
+    ],
+    "Genç nüfusu göç alan büyük kentlerle otomatik eşleştirme; oran üzerinde doğurganlık güçlüdür.",
+  ),
+  "goc-alan-iller": distributionEssential(
+    "Göç alan iller, iş, eğitim, turizm, sanayi ve hizmet fırsatlarının güçlü olduğu çekim merkezleridir.",
+    [
+      "İstanbul, Ankara ve İzmir çok yönlü metropol çekim merkezleridir.",
+      "Antalya turizm-hizmet; Kocaeli sanayi; Tekirdağ İstanbul çevresi üretim etkisiyle öne çıkar.",
+      "Net göç hızı dönemsel değişebilir; kalıcı çekim nedenleri ekonomik yapı ile açıklanır.",
+    ],
+    "Tek yıllık sıralamayı ezberlemek yerine göçün sanayi, hizmet ve turizm nedenlerini haritayla ilişkilendir.",
+  ),
+  "goc-veren-iller": distributionEssential(
+    "Göç veren illerde sınırlı istihdam, sert doğal koşullar ve eğitim-hizmet arayışı nüfus çıkışını destekler.",
+    [
+      "Ağrı, Muş, Kars, Erzurum ve Van doğudaki temel göç verme kümesidir.",
+      "Yozgat İç Anadolu'da uzun süreli dış göçle öne çıkan bir örnektir.",
+      "Göç verme nüfusu azaltırken yaş yapısını ve kırsal hizmet gereksinimini de değiştirir.",
+    ],
+    "Göçün yönünü karıştırma; bu illerden büyük sanayi ve hizmet merkezlerine doğru hareket beklenir.",
+  ),
+} satisfies Record<string, TopicEssential>;
+
 const environment = {
   "milli-parklar": essential(
     "Millî park, bilimsel, estetik, doğal ya da kültürel değeri seçkin geniş alanların koruma ve kontrollü kullanım statüsüdür.",
@@ -916,6 +1140,60 @@ const industry = {
       "İlk ticari petrol Raman/Batman, ilk alüminyum tesisi Seydişehir/Konya, ilk YHT Ankara–Eskişehir'dir.",
     ],
     "Tesisin ilk kuruluşu, ilk üretimi ve güncel işletme durumunu aynı kavram sanma.",
+  ),
+  "demir-celik-fabrikalari": essential(
+    "Demir-çelik sanayisi ağır ham madde, enerji, liman ve demiryolu bağlantılarının etkisiyle belirli merkezlerde toplanır.",
+    [
+      "KARDEMİR–Karabük, ERDEMİR–Ereğli/Zonguldak ve İSDEMİR–İskenderun/Hatay çekirdek eşleştirmelerdir.",
+      "Aliağa–İzmir liman ve ithal ham madde bağlantısıyla öne çıkar.",
+      "Osmaniye ve Sivas diğer önemli üretim merkezleridir.",
+    ],
+    "Demir yatağıyla fabrikayı karıştırma; Divriği çıkarım, Karabük ve Ereğli işleme merkezidir.",
+  ),
+  "petrol-rafinerileri": essential(
+    "Petrol rafinerisi, ham petrolü yakıt ve petrokimya girdilerine dönüştüren büyük ölçekli sanayi tesisidir.",
+    [
+      "Batman rafinerisi yerli üretim sahasına yakın tarihsel merkezdir.",
+      "İzmit/Kocaeli ve Aliağa/İzmir liman-pazar bağlantısıyla öne çıkar.",
+      "Kırıkkale rafinerisi İç Anadolu pazarına ve boru hattına göre konumlanmıştır.",
+    ],
+    "Petrol çıkarılan illerle rafineri illerini aynı liste sanma; konum nedenlerini ayrı öğren.",
+  ),
+  "otomotiv-sanayisi": essential(
+    "Otomotiv sanayisi, yan sanayi, nitelikli iş gücü, pazar ve ulaşım ağlarının güçlü olduğu Marmara'da yoğunlaşır.",
+    [
+      "Bursa, Kocaeli ve Sakarya üretim tesisleri ve yan sanayinin çekirdek kümesidir.",
+      "İstanbul büyük pazar ve tedarik; Ankara ve İzmir diğer üretim merkezleridir.",
+      "Dağılışta tek bir ham maddeye yakınlıktan çok pazar, liman ve ulaşım belirleyicidir.",
+    ],
+    "Otomotiv haritasında önce Bursa–Kocaeli–Sakarya Marmara üçlüsünü bul, sonra diğer merkezleri ekle.",
+  ),
+  "tekstil-sanayisi": essential(
+    "Tekstil sanayisi ham madde, iş gücü, girişimcilik, pazar ve ihracat bağlantılarıyla çok merkezli bir yapı gösterir.",
+    [
+      "İstanbul ve Bursa geleneksel Marmara; Denizli Ege tekstil merkezidir.",
+      "Gaziantep halı ve dokuma; Adana pamuk; Kayseri dokuma ve ev tekstiliyle öne çıkar.",
+      "Pamuk üretim alanı ile tekstil fabrikasının konumu her zaman aynı değildir.",
+    ],
+    "Tarım haritasındaki pamuğu sanayi haritasındaki tekstille otomatik eşleme; pazar ve iş gücünü de düşün.",
+  ),
+  "kagit-fabrikalari": essential(
+    "Kâğıt sanayisi selüloz, su, enerji, ulaşım ve pazar gereksinimi yüksek olan bir üretim koludur.",
+    [
+      "İzmit/Kocaeli Cumhuriyet döneminin ilk kâğıt fabrikası eşleştirmesidir.",
+      "Çaycuma/Zonguldak, Balıkesir ve Dalaman/Muğla klasik harita hedefleridir.",
+      "Aksu/Giresun Karadeniz'deki tarihsel sanayi merkezlerinden biridir.",
+    ],
+    "Kâğıtta yalnız ormana yakınlığı değil bol su, ulaşım ve pazar koşullarını birlikte değerlendir.",
+  ),
+  "gubre-fabrikalari": essential(
+    "Gübre sanayisi tarımsal talep, kimyasal ham madde, enerji ve liman bağlantılarına göre konumlanır.",
+    [
+      "Kütahya ve Samsun iç-kuzey; Mersin ve İskenderun güney liman kuşağıdır.",
+      "Bandırma/Balıkesir ve Gemlik/Bursa Marmara'nın liman-sanayi merkezleridir.",
+      "Fabrika konumu yalnız gübre tüketiminin fazla olduğu tarım alanıyla açıklanamaz.",
+    ],
+    "Gübre tesislerinde tarım pazarının yanında liman, enerji ve kimyasal ham madde bağlantısını ara.",
   ),
 } satisfies Record<string, TopicEssential>;
 
@@ -1257,6 +1535,54 @@ const transportation = {
   ),
 } satisfies Record<string, TopicEssential>;
 
+const developmentProjects = {
+  "bolgesel-kalkinma-planlari": essential(
+    "Bölgesel kalkınma projeleri, bölgeler arası gelişmişlik farkını azaltmak için çok ili kapsayan planlı yatırımlardır.",
+    [
+      "GAP–Şanlıurfa, DAP–Erzurum, DOKAP–Giresun ve KOP–Konya merkez eşleştirmeleri kullanılır.",
+      "Projeler yalnız sulamadan oluşmaz; tarım, sanayi, ulaşım, enerji ve beşerî gelişmeyi birlikte ele alır.",
+      "Coğrafi bölge sınırı ile kalkınma projesi kapsamı tam olarak aynı değildir.",
+    ],
+    "Kısaltmayı önce aç, sonra merkezini ve kapsadığı il kümesini ayrı ayrı eşleştir.",
+  ),
+  "gap-illeri": essential(
+    "GAP, Fırat ve Dicle havzalarında sulama, enerji ve sosyal kalkınmayı bütünleştiren dokuz illi bölgesel projedir.",
+    [
+      "Adıyaman, Batman, Diyarbakır, Gaziantep ve Kilis GAP kapsamındadır.",
+      "Mardin, Siirt, Şanlıurfa ve Şırnak diğer proje illeridir.",
+      "Sulama pamuk, mısır ve ikinci ürün tarımını güçlendirirken kentleşme ve sanayiyi de etkiler.",
+    ],
+    "GAP'ı yalnız baraj projesi sanma; dokuz ilde ekonomik ve sosyal kalkınmayı birlikte hedefler.",
+  ),
+  "dap-illeri": essential(
+    "DAP, Doğu Anadolu'nun tarım-hayvancılık, altyapı ve beşerî gelişme olanaklarını güçlendirmeyi amaçlayan bölgesel projedir.",
+    [
+      "Haritadaki Erzurum, Kars, Ardahan ve Ağrı kuzeydoğu çekirdek kümesidir.",
+      "Van, Muş, Bitlis ve Bingöl göl havzası ile Yukarı Fırat'a uzanan çalışma kümesini gösterir.",
+      "Oyun okunabilirlik için PDF'deki çekirdek illeri kullanır; proje kapsamı bu sekiz ille sınırlı değildir.",
+    ],
+    "DAP'ı coğrafi Doğu Anadolu Bölgesi sınırıyla bire bir eşitleme; burada çekirdek öğrenme kümesi gösterilir.",
+  ),
+  "dokap-illeri": essential(
+    "DOKAP, Doğu Karadeniz'in kırsal kalkınma, ulaşım, turizm ve tarımsal üretim potansiyelini geliştiren projedir.",
+    [
+      "Artvin, Rize, Trabzon, Giresun ve Ordu kıyı çekirdeğini oluşturur.",
+      "Gümüşhane ve Bayburt iç kesim; Samsun batı bağlantısı olarak haritada yer alır.",
+      "Oyun okunabilirlik için merkezî kümeyi kullanır; güncel idari kapsam daha geniş olabilir.",
+    ],
+    "DOKAP'ı yalnız kıyı illeri sanma; Gümüşhane ve Bayburt gibi iç kesim hedeflerini unutma.",
+  ),
+  "kop-illeri": essential(
+    "KOP, su kaynaklarını verimli kullanma ve İç Anadolu'nun tarımsal-ekonomik yapısını geliştirme odaklı bölgesel projedir.",
+    [
+      "Konya, Karaman, Aksaray ve Niğde projenin klasik çekirdek illeridir.",
+      "Nevşehir, Kırıkkale, Kırşehir ve Yozgat genişletilmiş KOP kapsamındaki diğer illerdir.",
+      "Sulama yanında kırsal kalkınma, enerji verimliliği ve beşerî kapasite çalışmaları da bulunur.",
+    ],
+    "Eski dört illi ezberle yetinme; genişletilmiş KOP kümesindeki sekiz ili birlikte öğren.",
+  ),
+} satisfies Record<string, TopicEssential>;
+
 const tourismAndCulture = {
   "sakin-sehirler": essential(
     "Sakin şehir, Cittaslow ağına kabul edilen; yerel yaşam kalitesi, çevre ve kültürel kimliği korumayı amaçlayan yerleşmedir.",
@@ -1334,11 +1660,15 @@ export const TOPIC_ESSENTIALS: Readonly<Record<string, TopicEssential>> = {
   ...agriculture,
   ...livestock,
   ...landformsAndWater,
+  ...climateAndVegetation,
+  ...disasters,
+  ...populationAndSettlement,
   ...environment,
   ...industry,
   ...mines,
   ...energy,
   ...transportation,
+  ...developmentProjects,
   ...tourismAndCulture,
 };
 

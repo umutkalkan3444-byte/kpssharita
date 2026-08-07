@@ -3,6 +3,7 @@ import { normalizePlaceName } from "@/lib/place-name";
 
 const provinces = (provincesData as { provinces: { name: string }[] }).provinces;
 
+export const PROVINCE_NAMES = provinces.map((province) => province.name);
 export const PROVINCE_NAME_SET = new Set(provinces.map((p) => normalizePlaceName(p.name)));
 
 /** İsim gerçek bir il adına karşılık geliyor mu? */

@@ -37,6 +37,7 @@ try {
   const names = await vite.ssrLoadModule("/src/lib/place-name.ts");
   const cardLabels = await vite.ssrLoadModule("/src/lib/card-label.ts");
   const gameModes = await vite.ssrLoadModule("/src/lib/game-mode.ts");
+  const gameDesigns = await vite.ssrLoadModule("/src/data/game-design.ts");
   const provinceNames = await vite.ssrLoadModule("/src/lib/province-names.ts");
   const neighbors = await vite.ssrLoadModule("/src/data/neighbors.ts");
   const regions = await vite.ssrLoadModule("/src/lib/province-regions.ts");
@@ -113,29 +114,67 @@ try {
       duplicateValues(category.items.map((item) => safeCardLabels[item.id])).length === 0,
       `${category.slug}: konum ipucu gizlendikten sonra kart etiketleri ayırt edilemiyor.`,
     );
-    const modeItems = gameModes.splitGameItems(category.slug, category.items);
-    const partitionIds = [...modeItems.clickItems, ...modeItems.dragItems].map((item) => item.id);
+    const modeItems = gameModes.partitionGameItems(category);
+    const partitionIds = [
+      ...modeItems.clickItems,
+      ...modeItems.dragItems,
+      ...modeItems.guidedItems,
+    ].map((item) => item.id);
     assert(
       partitionIds.length === category.items.length &&
         duplicateValues(partitionIds).length === 0 &&
         category.items.every((item) => partitionIds.includes(item.id)),
-      `${category.slug}: tıklama/sürükleme ayrımı hedefleri eksiksiz bölmeli.`,
+      `${category.slug}: harita/seçim/sürükleme ayrımı hedefleri eksiksiz bölmeli.`,
     );
     assert(
       modeItems.clickItems.every((item) => provinceNames.isProvinceName(item.name)),
       `${category.slug}: tıklamalı hedefler yalnız gerçek il adlarından oluşmalı.`,
     );
+    assert(
+      modeItems.guidedItems.every((item) => {
+        const visibleQuestion = names.normalizePlaceName(
+          item.prompt ?? safeCardLabels[item.id] ?? item.name,
+        );
+        return !visibleQuestion.includes(names.normalizePlaceName(item.answerProvince));
+      }),
+      `${category.slug}: yönlendirmeli soru doğru il adını ele vermemeli.`,
+    );
     if (category.slug === "iller-81" || geo.REGION_ILLERI_SLUGS[category.slug]) {
       assert(
-        modeItems.clickItems.length === 0,
+        modeItems.design.interaction === "drag",
         `${category.slug}: il öğretim oyunları sürüklemeli kalmalı.`,
       );
     }
+    if (category.slug === "buyuksehirler") {
+      assert(
+        modeItems.design.interaction === "drag",
+        "buyuksehirler: kullanıcı talebi gereği il kartları sürükle-bırak olmalı.",
+      );
+    }
     assert(
-      gameModes.gameModeLabel(modeItems.clickItems.length > 0, modeItems.dragItems.length > 0) !==
-        null,
+      gameModes.gameModeLabel(modeItems.design.interaction).length > 0,
       `${category.slug}: oyun modu etiketi oluşturulamadı.`,
     );
+    assert(
+      modeItems.design.learningGoal.trim().length >= 20 &&
+        modeItems.design.startingKnowledge.trim().length >= 20 &&
+        modeItems.design.rationale.trim().length >= 20 &&
+        modeItems.design.pdfPages.trim().length > 0,
+      `${category.slug}: öğrenme hedefi veya etkileşim gerekçesi eksik.`,
+    );
+    assert(
+      category.items.every((item) => provinceNames.isProvinceName(item.answerProvince)),
+      `${category.slug}: yönlendirmeli cevap ili gerçek bir il olmalı.`,
+    );
+    if (
+      (category.mainSlug === "tarim" && category.slug !== "tum-tarim") ||
+      (category.mainSlug === "hayvancilik" && category.slug !== "tum-hayvancilik")
+    ) {
+      assert(
+        category.items.length > 0 && category.items.length <= 6,
+        `${category.slug}: tarım/hayvancılık oyunu yalnız 1–6 önemli hedef içermeli.`,
+      );
+    }
 
     for (const item of category.items) {
       assert(
@@ -231,6 +270,11 @@ try {
       );
     }
   }
+
+  assert(
+    gameDesigns.getGameDesign(game.CATEGORY_MAP.buyuksehirler).interaction === "drag",
+    "Büyükşehirler etkileşim tasarımı sürükle-bırak olmalı.",
+  );
 
   const allMountains = game.CATEGORY_MAP["tum-daglar"].items.map((item) => item.name).sort();
   const mountainUnion = ["kivrim-daglari", "kirik-daglari", "volkanik-daglar"]

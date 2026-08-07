@@ -1,40 +1,37 @@
-import { isProvinceName } from "./province-names";
-import { REGION_ILLERI_SLUGS } from "./geo";
-import { normalizePlaceName } from "./place-name";
+import {
+  getGameDesign,
+  interactionLabel,
+  type GameDesign,
+  type InteractionModel,
+} from "@/data/game-design";
+
+type DesignedCategory<T> = {
+  slug: string;
+  title: string;
+  mainSlug: string;
+  items: readonly T[];
+};
 
 /**
- * İl adlarını kart olarak öğreten kategoriler tıklamalı moda geçemez
- * (soru zaten ilin kendisi olur). Bunlar sürüklemeli kalır.
+ * PDF'deki öğrenme hedefini temel alan bilinçli oyun ayrımı. Bir kategorinin
+ * bütün kartları aynı akışta kalır; böylece etkileşim veri adına göre tesadüfen
+ * değişmez ve mobil kullanıcı ne yapacağını oyuna girer girmez anlar.
  */
-const CLICK_EXCLUDED_SLUGS = new Set<string>(["iller-81", ...Object.keys(REGION_ILLERI_SLUGS)]);
-
-/**
- * Bir kart "dümdüz il seçimi" mi? (ör. "Konya") → tıklamalı.
- * "TÜBİTAK-MAM (Kocaeli)" gibi tesis adları → sürüklemeli.
- */
-export function splitGameItems<T extends { name: string }>(
-  slug: string,
-  items: readonly T[],
-): { clickItems: T[]; dragItems: T[] } {
-  if (CLICK_EXCLUDED_SLUGS.has(slug)) return { clickItems: [], dragItems: [...items] };
-  const clickItems: T[] = [];
-  const dragItems: T[] = [];
-  const used = new Set<string>();
-  for (const item of items) {
-    const key = normalizePlaceName(item.name);
-    if (isProvinceName(item.name) && !used.has(key)) {
-      used.add(key);
-      clickItems.push(item);
-    } else {
-      dragItems.push(item);
-    }
-  }
-  return { clickItems, dragItems };
+export function partitionGameItems<T>(category: DesignedCategory<T>): {
+  design: GameDesign;
+  clickItems: T[];
+  dragItems: T[];
+  guidedItems: T[];
+} {
+  const design = getGameDesign(category);
+  return {
+    design,
+    clickItems: design.interaction === "map-select" ? [...category.items] : [],
+    dragItems: design.interaction === "drag" ? [...category.items] : [],
+    guidedItems: design.interaction === "guided-choice" ? [...category.items] : [],
+  };
 }
 
-export function gameModeLabel(hasClick: boolean, hasDrag: boolean): string | null {
-  if (hasClick && hasDrag) return "Karma";
-  if (hasClick) return "Tıklamalı";
-  if (hasDrag) return "Sürüklemeli";
-  return null;
+export function gameModeLabel(interaction: InteractionModel): string {
+  return interactionLabel(interaction);
 }

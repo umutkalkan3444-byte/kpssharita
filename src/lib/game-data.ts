@@ -5,6 +5,7 @@ import {
   MAIN_CATEGORIES,
   MAIN_MAP,
   SUBCATEGORY_MAP,
+  nearestProvinceName,
   type Subcategory,
   type MainCategory,
   type GameItem,
@@ -32,6 +33,9 @@ export type Category = {
     lon: number;
     hint?: string;
     compassDirection?: CompassDirection;
+    /** Yönlendirmeli seçim akışında kabul edilen il. */
+    answerProvince: string;
+    prompt?: string;
   }[];
 };
 
@@ -52,6 +56,8 @@ function buildCategory(main: MainCategory, sub: Subcategory): Category {
       lon: it.lon,
       hint: it.hint,
       compassDirection: it.compassDirection,
+      answerProvince: nearestProvinceName(it.lat, it.lon),
+      prompt: it.prompt,
     })),
   };
 }
@@ -74,6 +80,7 @@ export type TargetPoint = {
   geoX: number;
   geoY: number;
   shape?: { type: "polyline" | "polygon"; d: string };
+  answerProvince: string;
 };
 
 const SHAPE_CATEGORY_SLUGS = new Set([
@@ -155,7 +162,6 @@ function windArrow(direction: CompassDirection): {
   };
 }
 
-
 export function targetsFor(category: Category): TargetPoint[] {
   const targets = category.items.map((it) => {
     if (category.slug === "ruzgarlar" && it.compassDirection) {
@@ -167,6 +173,7 @@ export function targetsFor(category: Category): TargetPoint[] {
         y: arrow.y,
         geoX: arrow.x,
         geoY: arrow.y,
+        answerProvince: it.answerProvince,
         shape: { type: "polyline" as const, d: arrow.d },
       };
     }
@@ -188,10 +195,19 @@ export function targetsFor(category: Category): TargetPoint[] {
         y,
         geoX: x,
         geoY: y,
+        answerProvince: it.answerProvince,
         shape: { type: def.type, d: projectShapePath(def) },
       };
     }
-    return { id: it.id, name: it.name, x, y, geoX: x, geoY: y };
+    return {
+      id: it.id,
+      name: it.name,
+      x,
+      y,
+      geoX: x,
+      geoY: y,
+      answerProvince: it.answerProvince,
+    };
   });
   return targets;
 }

@@ -60,12 +60,12 @@ import { Button } from "@/components/ui/button";
 
 import { cn } from "@/lib/utils";
 import { normalizePlaceName } from "@/lib/place-name";
-import { allNamesAreProvinces } from "@/lib/province-names";
+import { allNamesAreProvinces, PROVINCE_NAMES } from "@/lib/province-names";
 import { getCompetitiveMode } from "@/lib/competitive-mode";
 import { findProvinceDropIdAtPoint, PROVINCE_DROP_KIND } from "@/lib/province-drop-target";
 import { mistakeKey, type StudyMistake, type StudyReviewRequest } from "@/lib/study/schemas";
 import { buildCardLabels } from "@/lib/card-label";
-import { splitGameItems, gameModeLabel } from "@/lib/game-mode";
+import { gameModeLabel, partitionGameItems } from "@/lib/game-mode";
 
 const PostGameStudy = lazy(() =>
   import("@/components/study/PostGameStudy").then((module) => ({
@@ -86,6 +86,45 @@ function shuffle<T>(arr: T[]): T[] {
     [a[i], a[j]] = [a[j], a[i]];
   }
   return a;
+}
+
+function stringHash(value: string): number {
+  let hash = 2_166_136_261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16_777_619);
+  }
+  return hash >>> 0;
+}
+
+/** Aynı kart için her render'da değişmeyen, tek doğru cevaplı dört il seçeneği. */
+function guidedOptions(
+  item: Category["items"][number],
+  categoryItems: Category["items"],
+): string[] {
+  const categoryAnswers = [...new Set(categoryItems.map((candidate) => candidate.answerProvince))];
+  const distractorPool = [
+    ...categoryAnswers,
+    ...PROVINCE_NAMES.filter(
+      (provinceName) =>
+        !categoryAnswers.some(
+          (answerProvince) =>
+            normalizePlaceName(answerProvince) === normalizePlaceName(provinceName),
+        ),
+    ),
+  ];
+  const distractors = distractorPool
+    .filter(
+      (provinceName) =>
+        normalizePlaceName(provinceName) !== normalizePlaceName(item.answerProvince),
+    )
+    .sort((left, right) => stringHash(`${item.id}:${left}`) - stringHash(`${item.id}:${right}`))
+    .slice(0, 3);
+
+  return [item.answerProvince, ...distractors].sort(
+    (left, right) =>
+      stringHash(`${item.id}:choice:${left}`) - stringHash(`${item.id}:choice:${right}`),
+  );
 }
 
 function addStudyMistake(
@@ -126,6 +165,27 @@ type ArenaPlayers = Record<ArenaPlayerId, ArenaPlayer>;
 type ArenaPlaced = Record<ArenaPlayerId, Placed>;
 type ArenaCards = Category["items"];
 type ArenaWrongProvinces = Record<ArenaPlayerId, string[]>;
+type DragMagnifierState = {
+  clientX: number;
+  clientY: number;
+  mapXRatio: number;
+  mapYRatio: number;
+  provinceName: string;
+};
+
+const DENSE_PROVINCE_NAMES = new Set(
+  [
+    "İstanbul",
+    "Yalova",
+    "Kocaeli",
+    "Bilecik",
+    "Sakarya",
+    "Düzce",
+    "Bartın",
+    "Karabük",
+    "Kırıkkale",
+  ].map(normalizePlaceName),
+);
 
 function emptyArenaPlayers(): ArenaPlayers {
   return {
@@ -351,7 +411,6 @@ const DropDot = memo(function DropDot({
           </span>
         </>
       ) : inactiveClaim ? (
-
         <span
           className={cn(
             "h-2.5 w-2.5 rounded-full border-2 border-white shadow",
@@ -580,7 +639,7 @@ const Card = memo(function Card({ id, name, shake }: { id: string; name: string;
       {...attributes}
       {...listeners}
       className={cn(
-        "group relative min-h-[40px] w-full touch-none select-none whitespace-normal break-words rounded-xl border border-cyan-200/70 bg-white/95 px-2.5 py-1.5 text-center text-xs font-semibold text-slate-800 shadow-md shadow-cyan-500/10",
+        "group relative min-h-11 w-full touch-none select-none whitespace-normal break-words rounded-xl border border-cyan-200/70 bg-white/95 px-2.5 py-1.5 text-center text-xs font-semibold text-slate-800 shadow-md shadow-cyan-500/10",
         "sm:w-[170px]",
         "hover:border-cyan-400 active:cursor-grabbing",
         isDragging && "opacity-30",
@@ -657,6 +716,45 @@ function ArenaPressure({ remaining, total }: { remaining: number; total: number 
   );
 }
 
+function DragMagnifier({ state }: { state: DragMagnifierState }) {
+  const lensWidth = 210;
+  const lensHeight = 118;
+  const scale = 2.7;
+  const mapHeight = lensWidth * (VIEW_H / VIEW_W);
+  const left = Math.min(state.clientX + 18, window.innerWidth - lensWidth - 12);
+  const top = Math.max(10, state.clientY - lensHeight - 20);
+  const translateX = lensWidth / 2 - state.mapXRatio * lensWidth * scale;
+  const translateY = lensHeight / 2 - state.mapYRatio * mapHeight * scale;
+
+  return (
+    <div
+      aria-hidden="true"
+      className="pointer-events-none fixed z-[55] overflow-hidden rounded-3xl border-4 border-white bg-cyan-50 shadow-2xl ring-2 ring-cyan-500"
+      style={{ left, top, width: lensWidth, height: lensHeight }}
+    >
+      <div
+        className="absolute left-0 top-0"
+        style={{
+          width: lensWidth,
+          height: mapHeight,
+          transform: `translate(${translateX}px, ${translateY}px) scale(${scale})`,
+          transformOrigin: "left top",
+        }}
+      >
+        <TurkeyMap
+          className="h-full w-full"
+          variant="provinces"
+          hintProvinces={[state.provinceName]}
+        />
+      </div>
+      <span className="absolute left-1/2 top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-cyan-700 bg-white/25 shadow" />
+      <span className="absolute bottom-1.5 left-1/2 -translate-x-1/2 rounded-full bg-slate-950/80 px-2 py-0.5 text-[9px] font-black text-white">
+        Hassas bırakma
+      </span>
+    </div>
+  );
+}
+
 function useIsPortraitMobile() {
   const [portrait, setPortrait] = useState(false);
   useEffect(() => {
@@ -688,16 +786,15 @@ export function GameBoard({ category }: { category: Category }) {
   const targets = useMemo(() => targetsFor(category), [category]);
   const targetById = useMemo(() => Object.fromEntries(targets.map((t) => [t.id, t])), [targets]);
 
-  // Kart "dümdüz il seçimi" ise tıklamalı, tesis/şekil ise sürüklemelidir.
-  // İkisi de varsa oyun karma çalışır.
-  const { clickItems, dragItems } = useMemo(
-    () => splitGameItems(category.slug, category.items),
-    [category.items, category.slug],
+  const { design, clickItems, dragItems, guidedItems } = useMemo(
+    () => partitionGameItems(category),
+    [category],
   );
   const hasClick = clickItems.length > 0;
   const hasDrag = dragItems.length > 0;
-  const isClickMode = hasClick && !hasDrag;
-  const modeBadge = gameModeLabel(hasClick, hasDrag);
+  const isClickMode = design.interaction === "map-select";
+  const isGuidedMode = design.interaction === "guided-choice";
+  const modeBadge = gameModeLabel(design.interaction);
   const clickIds = useMemo(() => new Set(clickItems.map((item) => item.id)), [clickItems]);
   const dragTargets = useMemo(
     () => targets.filter((target) => !clickIds.has(target.id)),
@@ -711,7 +808,8 @@ export function GameBoard({ category }: { category: Category }) {
     [dragItems, hasDrag],
   );
 
-  const [cards, setCards] = useState(() => shuffle(dragItems));
+  const cardPoolItems = isGuidedMode ? guidedItems : dragItems;
+  const [cards, setCards] = useState(() => shuffle(cardPoolItems));
   const [placed, setPlaced] = useState<Placed>({});
   const [wrongIds, setWrongIds] = useState<string[]>([]);
   const [shakeTarget, setShakeTarget] = useState<{
@@ -719,6 +817,7 @@ export function GameBoard({ category }: { category: Category }) {
     owner: ArenaPlayerId | null;
   } | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [dragMagnifier, setDragMagnifier] = useState<DragMagnifierState | null>(null);
   const [correctCount, setCorrectCount] = useState(0);
   const [wrongCount, setWrongCount] = useState(0);
   const [studyMistakes, setStudyMistakes] = useState<StudyMistake[]>([]);
@@ -734,7 +833,7 @@ export function GameBoard({ category }: { category: Category }) {
   const arenaTurnRef = useRef<ArenaPlayerId>("red");
   const [arenaPlayers, setArenaPlayers] = useState<ArenaPlayers>(emptyArenaPlayers);
   const arenaPlayersRef = useRef<ArenaPlayers>(emptyArenaPlayers());
-  const [arenaCards, setArenaCards] = useState<ArenaCards>(() => initialArenaCards(dragItems));
+  const [arenaCards, setArenaCards] = useState<ArenaCards>(() => initialArenaCards(category.items));
   const arenaCardsRef = useRef<ArenaCards>(arenaCards);
   const [arenaPlaced, setArenaPlaced] = useState<ArenaPlaced>(emptyArenaPlaced);
   const arenaPlacedRef = useRef<ArenaPlaced>(emptyArenaPlaced());
@@ -798,12 +897,13 @@ export function GameBoard({ category }: { category: Category }) {
 
   const isPortraitMobile = useIsPortraitMobile();
 
-  // İl-illeri kategorilerinde doğru bırakılan illeri harita üzerinde yeşile boyayalım
+  // İl oyunlarında ve yönlendirmeli sorularda doğru illeri haritada boyayalım.
   const isIlleri =
     !!REGION_ILLERI_SLUGS[category.slug] ||
     category.slug === "iller-81" ||
     category.slug === "buyuksehirler" ||
-    isClickMode;
+    isClickMode ||
+    isGuidedMode;
   const allPlacedPreview = useMemo(
     () => Object.fromEntries(targets.map((t) => [t.id, t])) as Placed,
     [targets],
@@ -815,14 +915,16 @@ export function GameBoard({ category }: { category: Category }) {
     () =>
       Object.values(placed)
         .filter((p) => isIlleri || clickIds.has(p.id))
-        .map((p) => p.name),
-    [clickIds, placed, isIlleri],
+        .map((p) => (isGuidedMode ? p.answerProvince : p.name)),
+    [clickIds, placed, isGuidedMode, isIlleri],
   );
   const displayedHintProvinces = useMemo(() => {
     if (!revealAll) return hintProvinces;
-    const revealed = targets.filter((t) => !placed[t.id]).map((t) => t.name);
+    const revealed = targets
+      .filter((t) => !placed[t.id])
+      .map((t) => (isGuidedMode ? t.answerProvince : t.name));
     return [...hintProvinces, ...revealed];
-  }, [hintProvinces, placed, revealAll, targets]);
+  }, [hintProvinces, isGuidedMode, placed, revealAll, targets]);
 
   const provinceDropTargets = useMemo(
     () =>
@@ -855,9 +957,7 @@ export function GameBoard({ category }: { category: Category }) {
       const shift =
         candidates.find(
           (c) =>
-            !used.some(
-              (u) => Math.abs(u.x - target.x) < 62 && Math.abs(u.y - (target.y + c)) < 11,
-            ),
+            !used.some((u) => Math.abs(u.x - target.x) < 62 && Math.abs(u.y - (target.y + c)) < 11),
         ) ?? 0;
       shifts[target.id] = shift;
       used.push({ x: target.x, y: target.y + shift });
@@ -877,12 +977,12 @@ export function GameBoard({ category }: { category: Category }) {
       isCompetitive
         ? (["red", "blue"] as const).flatMap((tone) =>
             Object.values(arenaPlaced[tone]).map((target) => ({
-              provinceName: target.name,
+              provinceName: isGuidedMode ? target.answerProvince : target.name,
               tone,
             })),
           )
         : undefined,
-    [arenaPlaced, isCompetitive],
+    [arenaPlaced, isCompetitive, isGuidedMode],
   );
 
   // Otomatik odak (bölge oyunları için)
@@ -908,6 +1008,45 @@ export function GameBoard({ category }: { category: Category }) {
     return () => ro.disconnect();
   }, []);
 
+  useEffect(() => {
+    if (!activeId || !isProvinceDrag) {
+      setDragMagnifier(null);
+      return;
+    }
+
+    const handlePointerMove = (event: PointerEvent) => {
+      const provinceElement = document
+        .elementsFromPoint(event.clientX, event.clientY)
+        .find((element) => element.hasAttribute("data-province-name"));
+      const provinceName = provinceElement?.getAttribute("data-province-name");
+      const mapRect = mapSurfaceRef.current?.getBoundingClientRect();
+      if (
+        !provinceName ||
+        !DENSE_PROVINCE_NAMES.has(normalizePlaceName(provinceName)) ||
+        !mapRect ||
+        mapRect.width <= 0 ||
+        mapRect.height <= 0
+      ) {
+        setDragMagnifier(null);
+        return;
+      }
+
+      setDragMagnifier({
+        clientX: event.clientX,
+        clientY: event.clientY,
+        mapXRatio: Math.min(1, Math.max(0, (event.clientX - mapRect.left) / mapRect.width)),
+        mapYRatio: Math.min(1, Math.max(0, (event.clientY - mapRect.top) / mapRect.height)),
+        provinceName,
+      });
+    };
+
+    window.addEventListener("pointermove", handlePointerMove, { passive: true });
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      setDragMagnifier(null);
+    };
+  }, [activeId, isProvinceDrag]);
+
   // Odak uygulaması — container boyutu ölçüldükten sonra
   useEffect(() => {
     if (!focus || containerW <= 0 || !zoomRef.current) return;
@@ -924,6 +1063,11 @@ export function GameBoard({ category }: { category: Category }) {
   const total = category.items.length;
   const gameTotal = total;
   const visibleCards = isCompetitive ? arenaCards : cards;
+  const currentGuided = isGuidedMode ? visibleCards[0] : undefined;
+  const currentGuidedOptions = useMemo(
+    () => (currentGuided ? guidedOptions(currentGuided, guidedItems) : []),
+    [currentGuided, guidedItems],
+  );
 
   // Event handler'ları aynı frame içindeki ikinci touch/pointer olayında da
   // güncel değeri görsün; React effect turunu beklemiyoruz.
@@ -1162,8 +1306,89 @@ export function GameBoard({ category }: { category: Category }) {
     }
   };
 
+  const clearGuidedWrongChoices = () => {
+    setWrongProvinces([]);
+    wrongProvincesRef.current = [];
+    const emptyArenaWrong = emptyArenaWrongProvinces();
+    setArenaWrongProvinces(emptyArenaWrong);
+    arenaWrongProvincesRef.current = emptyArenaWrong;
+  };
+
+  const handleGuidedChoice = (provinceName: string) => {
+    if (!isGuidedMode || !currentGuided || doneRef.current) return;
+    const playerId = arenaTurnRef.current;
+    const currentWrongChoices = isCompetitive
+      ? arenaWrongProvincesRef.current[playerId]
+      : wrongProvincesRef.current;
+    if (
+      currentWrongChoices.some(
+        (wrongProvince) => normalizePlaceName(wrongProvince) === normalizePlaceName(provinceName),
+      )
+    ) {
+      return;
+    }
+
+    if (normalizePlaceName(provinceName) === normalizePlaceName(currentGuided.answerProvince)) {
+      sfx.correct();
+      const target = targetById[currentGuided.id];
+      const committed = commitCorrectTarget(currentGuided.id, target);
+      clearGuidedWrongChoices();
+      if (committed?.nextCorrect === gameTotal) {
+        finalize(
+          committed.nextCorrect,
+          wrongCountRef.current,
+          wrongIdsRef.current,
+          committed.arenaSnapshot,
+        );
+      }
+      return;
+    }
+
+    sfx.wrong();
+    if (isCompetitive) {
+      const nextArenaWrong: ArenaWrongProvinces = {
+        ...arenaWrongProvincesRef.current,
+        [playerId]: [...arenaWrongProvincesRef.current[playerId], provinceName],
+      };
+      arenaWrongProvincesRef.current = nextArenaWrong;
+      setArenaWrongProvinces(nextArenaWrong);
+    } else {
+      const nextWrongProvinces = [...wrongProvincesRef.current, provinceName];
+      wrongProvincesRef.current = nextWrongProvinces;
+      setWrongProvinces(nextWrongProvinces);
+    }
+    const nextWrongIds = wrongIdsRef.current.includes(currentGuided.id)
+      ? wrongIdsRef.current
+      : [...wrongIdsRef.current, currentGuided.id];
+    wrongIdsRef.current = nextWrongIds;
+    setWrongIds(nextWrongIds);
+    setStudyMistakes((current) =>
+      addStudyMistake(current, {
+        kind: "target",
+        id: currentGuided.id,
+      }),
+    );
+    commitWrongMove();
+  };
+
   const takeJoker = () => {
-    if (!hasClick || doneRef.current) return;
+    if (doneRef.current) return;
+    if (isGuidedMode) {
+      if (!currentGuided) return;
+      setHintProvinces((current) => [...current, currentGuided.answerProvince]);
+      const committed = commitCorrectTarget(currentGuided.id, targetById[currentGuided.id]);
+      clearGuidedWrongChoices();
+      if (committed?.nextCorrect === gameTotal) {
+        finalize(
+          committed.nextCorrect,
+          wrongCountRef.current,
+          wrongIdsRef.current,
+          committed.arenaSnapshot,
+        );
+      }
+      return;
+    }
+    if (!hasClick) return;
     const takenNames = new Set(
       [...Object.values(placedRef.current).map((t) => t.name), ...hintProvinces].map(
         normalizePlaceName,
@@ -1225,8 +1450,8 @@ export function GameBoard({ category }: { category: Category }) {
     setShakeTarget(null);
     runGenerationRef.current += 1;
     activeDragRef.current = null;
-    const nextCards = shuffle(dragItems);
-    const nextArenaCards = initialArenaCards(dragItems);
+    const nextCards = shuffle(cardPoolItems);
+    const nextArenaCards = initialArenaCards(category.items);
     const nextArenaPlaced = emptyArenaPlaced();
     const nextArenaWrong = emptyArenaWrongProvinces();
     setCards(nextCards);
@@ -1353,7 +1578,9 @@ export function GameBoard({ category }: { category: Category }) {
 
         <h1 className="min-w-0 truncate text-base font-black tracking-tight text-slate-900 sm:text-2xl max-lg:landscape:text-sm">
           <span className="mr-2">{category.emoji}</span>
-          <span className={isClickMode ? "text-emerald-700" : undefined}>{category.title}</span>
+          <span className={isClickMode || isGuidedMode ? "text-emerald-700" : undefined}>
+            {category.title}
+          </span>
           {modeBadge ? (
             <span className="ml-1 font-semibold text-xs text-cyan-700 sm:text-sm max-lg:landscape:text-[10px]">
               ({modeBadge})
@@ -1361,7 +1588,7 @@ export function GameBoard({ category }: { category: Category }) {
           ) : null}
           {isClickMode ? (
             <span className="ml-1 text-slate-500 font-semibold text-xs sm:text-sm max-lg:landscape:text-[10px]">
-              {category.slug === "buyuksehirler" ? "— doğru illere tıkla" : "— doğru illere tıkla"}
+              — doğru illere tıkla
             </span>
           ) : null}
         </h1>
@@ -1369,7 +1596,7 @@ export function GameBoard({ category }: { category: Category }) {
         <div className="flex items-center justify-end gap-1.5 text-sm text-slate-700 sm:gap-2">
           <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">
             ✓ {correctCount}
-            {isClickMode || isCompetitive ? `/${gameTotal}` : ""}
+            {isClickMode || isGuidedMode || isCompetitive ? `/${gameTotal}` : ""}
           </span>
           <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-semibold text-rose-700">
             ✗ {wrongCount}
@@ -1402,9 +1629,111 @@ export function GameBoard({ category }: { category: Category }) {
             transition={{ duration: 0.4 }}
           />
         </div>
+        <div className="mt-1 flex items-center justify-between gap-2 text-[10px] font-semibold text-slate-500 max-lg:landscape:hidden">
+          <span className="truncate" title={`${design.startingKnowledge} ${design.rationale}`}>
+            Hedef: {design.learningGoal}
+          </span>
+          <span className="shrink-0 rounded-full bg-white/80 px-2 py-0.5 ring-1 ring-cyan-100">
+            PDF s. {design.pdfPages}
+          </span>
+        </div>
       </div>
 
-      {isClickMode ? (
+      {isGuidedMode ? (
+        <div className="flex flex-1 min-h-0 flex-col gap-3 lg:flex-row max-lg:landscape:flex-row max-lg:landscape:gap-2">
+          <div className="relative flex-1 min-h-0" ref={mapWrapRef}>
+            <TransformWrapper
+              key={category.slug + (containerW > 0 ? "-ready" : "-init")}
+              ref={zoomRef}
+              initialScale={focusScale}
+              minScale={0.9}
+              maxScale={8}
+              doubleClick={{ mode: "toggle", step: 1.5 }}
+              wheel={{ step: 0.15 }}
+              pinch={{ step: 5 }}
+              panning={{ velocityDisabled: true }}
+              limitToBounds
+              centerOnInit={!focus}
+            >
+              <>
+                <ZoomControls
+                  revealAll={revealAll}
+                  onToggleRevealAll={() => setRevealAll((value) => !value)}
+                />
+                <TransformComponent
+                  wrapperClass="!w-full !h-full !overflow-hidden !rounded-2xl !border !border-cyan-200 !bg-gradient-to-br !from-white !via-sky-50 !to-cyan-50 !shadow-xl !shadow-cyan-500/10"
+                  contentClass="!w-full"
+                >
+                  <div className="relative w-full" style={{ aspectRatio: `${VIEW_W} / ${VIEW_H}` }}>
+                    <TurkeyMap
+                      className="absolute inset-0 h-full w-full"
+                      variant={category.mapVariant}
+                      highlightedProvinces={highlightedProvinces}
+                      wrongProvinces={displayedWrongProvinces}
+                      hintProvinces={displayedHintProvinces}
+                      provinceClaims={provinceClaims}
+                    />
+                  </div>
+                </TransformComponent>
+              </>
+            </TransformWrapper>
+          </div>
+
+          <aside className="flex min-h-[210px] shrink-0 flex-col rounded-2xl border border-cyan-200 bg-white/90 p-3 shadow-xl lg:w-[310px] max-lg:landscape:h-full max-lg:landscape:w-[260px]">
+            {currentGuided ? (
+              <>
+                <div className="text-[10px] font-black uppercase tracking-[0.16em] text-cyan-700">
+                  Hangi ilde / hangi ille eşleşir?
+                </div>
+                <h2 className="mt-2 text-base font-black leading-tight text-slate-900 sm:text-lg max-lg:landscape:text-sm">
+                  {currentGuided.prompt ?? cardLabels[currentGuided.id] ?? currentGuided.name}
+                </h2>
+                {currentGuided.hint ? (
+                  <p className="mt-1 text-xs font-semibold leading-relaxed text-slate-500 max-lg:landscape:text-[10px]">
+                    İpucu: {currentGuided.hint}
+                  </p>
+                ) : null}
+                <div className="mt-3 grid flex-1 grid-cols-2 content-start gap-2">
+                  {currentGuidedOptions.map((provinceName) => {
+                    const isWrong = displayedWrongProvinces.some(
+                      (wrongProvince) =>
+                        normalizePlaceName(wrongProvince) === normalizePlaceName(provinceName),
+                    );
+                    return (
+                      <button
+                        key={provinceName}
+                        type="button"
+                        onClick={() => handleGuidedChoice(provinceName)}
+                        disabled={isWrong || done}
+                        className={cn(
+                          "min-h-11 rounded-xl border px-2 py-2 text-sm font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 active:scale-[0.98] max-lg:landscape:min-h-9 max-lg:landscape:text-xs",
+                          isWrong
+                            ? "border-rose-300 bg-rose-100 text-rose-700 line-through"
+                            : "border-cyan-200 bg-cyan-50 text-slate-800 hover:border-cyan-400 hover:bg-cyan-100",
+                        )}
+                      >
+                        {provinceName}
+                      </button>
+                    );
+                  })}
+                </div>
+                <button
+                  type="button"
+                  onClick={takeJoker}
+                  disabled={done}
+                  className="mt-3 inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-black text-amber-800 transition active:scale-95 disabled:opacity-40 max-lg:landscape:min-h-9"
+                >
+                  <Lightbulb className="h-4 w-4" /> Joker · doğru ili göster
+                </button>
+              </>
+            ) : (
+              <div className="grid flex-1 place-items-center text-center text-sm font-bold text-emerald-700">
+                Tüm sorular tamamlandı 🎉
+              </div>
+            )}
+          </aside>
+        </div>
+      ) : isClickMode ? (
         // Click-mode: harita tam genişlik, kart paneli yok
         <div className="flex flex-1 min-h-0 flex-row gap-2">
           <div className="relative flex-1 min-h-0" ref={mapWrapRef}>
@@ -1593,7 +1922,6 @@ export function GameBoard({ category }: { category: Category }) {
                 ref={cardScrollRef}
                 className="cards-scroll min-h-0 flex-1 overflow-y-auto rounded-2xl bg-white/50 p-2 pr-3 ring-1 ring-cyan-100"
               >
-
                 <div className="flex flex-wrap items-start justify-start gap-1.5 max-lg:landscape:flex-col max-lg:landscape:flex-nowrap">
                   {visibleCards.map((c) => (
                     <div key={c.id} className="max-lg:landscape:w-full">
@@ -1625,6 +1953,7 @@ export function GameBoard({ category }: { category: Category }) {
         </DndContext>
       )}
 
+      {dragMagnifier ? <DragMagnifier state={dragMagnifier} /> : null}
       {isCompetitive ? <ArenaPressure remaining={arenaCards.length} total={total} /> : null}
 
       <Suspense fallback={null}>
