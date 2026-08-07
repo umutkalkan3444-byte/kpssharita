@@ -93,25 +93,68 @@ const SHAPE_CATEGORY_SLUGS = new Set([
   "dogalgaz-boru-hatlari",
 ]);
 
+/**
+ * Rüzgârlar haritada pusula gülü yerine, geldikleri yönden Türkiye'nin
+ * üzerine doğru uzanan oklarla gösterilir (ör. Yıldız kuzeyden güneye).
+ */
+const COMPASS_VECTORS: Record<CompassDirection, { dx: number; dy: number }> = {
+  N: { dx: 0, dy: -1 },
+  NE: { dx: 0.7071, dy: -0.7071 },
+  E: { dx: 1, dy: 0 },
+  SE: { dx: 0.7071, dy: 0.7071 },
+  S: { dx: 0, dy: 1 },
+  SW: { dx: -0.7071, dy: 0.7071 },
+  W: { dx: -1, dy: 0 },
+  NW: { dx: -0.7071, dy: -0.7071 },
+};
+
+const WIND_CENTER = { x: 500, y: 205 };
+const WIND_OUTER = { x: 480, y: 215 };
+const WIND_INNER_RATIO = 0.42;
+
 export const COMPASS_LAYOUT: ReadonlyArray<{
   direction: CompassDirection;
   label: string;
   x: number;
   y: number;
-}> = [
-  { direction: "N", label: "K", x: 500, y: 42 },
-  { direction: "NE", label: "KD", x: 620, y: 90 },
-  { direction: "E", label: "D", x: 674, y: 210 },
-  { direction: "SE", label: "GD", x: 620, y: 330 },
-  { direction: "S", label: "G", x: 500, y: 378 },
-  { direction: "SW", label: "GB", x: 380, y: 330 },
-  { direction: "W", label: "B", x: 326, y: 210 },
-  { direction: "NW", label: "KB", x: 380, y: 90 },
-];
+}> = (
+  [
+    ["N", "K"],
+    ["NE", "KD"],
+    ["E", "D"],
+    ["SE", "GD"],
+    ["S", "G"],
+    ["SW", "GB"],
+    ["W", "B"],
+    ["NW", "KB"],
+  ] as const
+).map(([direction, label]) => {
+  const v = COMPASS_VECTORS[direction];
+  return {
+    direction,
+    label,
+    x: WIND_CENTER.x + v.dx * WIND_OUTER.x,
+    y: WIND_CENTER.y + v.dy * WIND_OUTER.y,
+  };
+});
 
-const COMPASS_TARGETS = Object.fromEntries(
-  COMPASS_LAYOUT.map(({ direction, x, y }) => [direction, { x, y }]),
-) as Record<CompassDirection, { x: number; y: number }>;
+function windArrow(direction: CompassDirection): {
+  x: number;
+  y: number;
+  d: string;
+} {
+  const v = COMPASS_VECTORS[direction];
+  const sx = WIND_CENTER.x + v.dx * WIND_OUTER.x;
+  const sy = WIND_CENTER.y + v.dy * WIND_OUTER.y;
+  const ex = WIND_CENTER.x + v.dx * WIND_OUTER.x * WIND_INNER_RATIO;
+  const ey = WIND_CENTER.y + v.dy * WIND_OUTER.y * WIND_INNER_RATIO;
+  return {
+    x: (sx + ex) / 2,
+    y: (sy + ey) / 2,
+    d: `M${sx.toFixed(1)},${sy.toFixed(1)} L${ex.toFixed(1)},${ey.toFixed(1)}`,
+  };
+}
+
 
 export function targetsFor(category: Category): TargetPoint[] {
   const targets = category.items.map((it) => {
