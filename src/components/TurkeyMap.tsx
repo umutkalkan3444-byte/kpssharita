@@ -377,11 +377,12 @@ export function TurkeyMap({
       </g>
       <g pointerEvents="none" aria-hidden="true">
         {NEIGHBOR_AREAS.map((area) => {
+          // Yazının haritanın kenarında kırpılmaması için güvenli iç pay.
           const label = areaLabelPoint(area, {
-            x: VIEW_X,
-            y: VIEW_Y,
-            w: VIEW_W,
-            h: VIEW_H,
+            x: VIEW_X + 30,
+            y: VIEW_Y + 10,
+            w: VIEW_W - 60,
+            h: VIEW_H - 20,
           });
           if (!label) return null;
           return (
