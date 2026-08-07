@@ -44,7 +44,7 @@ import {
   type ReactZoomPanPinchRef,
 } from "react-zoom-pan-pinch";
 
-import { COMPASS_LAYOUT, type Category, targetsFor, type TargetPoint } from "@/lib/game-data";
+import { type Category, targetsFor, type TargetPoint } from "@/lib/game-data";
 import {
   VIEW_W,
   VIEW_H,
@@ -415,52 +415,6 @@ function TargetGuideLayer({ targets, placed }: { targets: TargetPoint[]; placed:
           </g>
         );
       })}
-    </svg>
-  );
-}
-
-function CompassGuideLayer() {
-  return (
-    <svg
-      viewBox={VIEW_BOX}
-      className="pointer-events-none absolute inset-0 h-full w-full"
-      preserveAspectRatio="xMidYMid meet"
-      aria-label="Sekiz yönlü rüzgâr pusulası"
-      role="img"
-    >
-      <circle
-        cx="500"
-        cy="210"
-        r="168"
-        fill="rgba(255,255,255,0.18)"
-        stroke="rgba(8,145,178,0.35)"
-        strokeWidth="1.5"
-        strokeDasharray="5 6"
-      />
-      {COMPASS_LAYOUT.map((spoke) => (
-        <g key={spoke.label}>
-          <line
-            x1="500"
-            y1="210"
-            x2={spoke.x}
-            y2={spoke.y}
-            stroke="rgba(8,145,178,0.3)"
-            strokeWidth="1.25"
-          />
-          <text
-            x={500 + (spoke.x - 500) * 0.78}
-            y={210 + (spoke.y - 210) * 0.78}
-            textAnchor="middle"
-            dominantBaseline="middle"
-            fill="#0e7490"
-            fontSize="12"
-            fontWeight="800"
-          >
-            {spoke.label}
-          </text>
-        </g>
-      ))}
-      <circle cx="500" cy="210" r="4" fill="#0891b2" stroke="white" strokeWidth="2" />
     </svg>
   );
 }
@@ -1575,7 +1529,6 @@ export function GameBoard({ category }: { category: Category }) {
                         onProvinceClick={hasClick ? onProvinceClick : undefined}
                         interactive={hasClick}
                       />
-                      {category.slug === "ruzgarlar" ? <CompassGuideLayer /> : null}
                       <ShapeLayer
                         targets={dragTargets}
                         placed={displayedPlaced}
