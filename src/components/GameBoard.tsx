@@ -45,7 +45,16 @@ import {
 } from "react-zoom-pan-pinch";
 
 import { COMPASS_LAYOUT, type Category, targetsFor, type TargetPoint } from "@/lib/game-data";
-import { MAP_W, MAP_H, focusBoundsForSlug, REGION_ILLERI_SLUGS } from "@/lib/geo";
+import {
+  MAP_W,
+  MAP_H,
+  VIEW_W,
+  VIEW_H,
+  VIEW_BOX,
+  viewPercent,
+  focusBoundsForSlug,
+  REGION_ILLERI_SLUGS,
+} from "@/lib/geo";
 import { TurkeyMap } from "@/components/TurkeyMap";
 import { sfx } from "@/lib/sfx";
 import { recordRun } from "@/lib/storage";
@@ -308,8 +317,8 @@ const DropDot = memo(function DropDot({
             : "grid h-10 w-10 place-items-center",
       )}
       style={{
-        left: `${(t.x / MAP_W) * 100}%`,
-        top: `${(t.y / MAP_H) * 100}%`,
+        left: `${viewPercent(t.x, t.y).left}%`,
+        top: `${viewPercent(t.x, t.y).top}%`,
         zIndex: placed ? 2 : 1,
       }}
     >
@@ -377,7 +386,7 @@ const DropDot = memo(function DropDot({
 function TargetGuideLayer({ targets, placed }: { targets: TargetPoint[]; placed: Placed }) {
   return (
     <svg
-      viewBox={`0 0 ${MAP_W} ${MAP_H}`}
+      viewBox={VIEW_BOX}
       className="pointer-events-none absolute inset-0 h-full w-full"
       preserveAspectRatio="xMidYMid meet"
       aria-hidden="true"
@@ -415,7 +424,7 @@ function TargetGuideLayer({ targets, placed }: { targets: TargetPoint[]; placed:
 function CompassGuideLayer() {
   return (
     <svg
-      viewBox={`0 0 ${MAP_W} ${MAP_H}`}
+      viewBox={VIEW_BOX}
       className="pointer-events-none absolute inset-0 h-full w-full"
       preserveAspectRatio="xMidYMid meet"
       aria-label="Sekiz yönlü rüzgâr pusulası"
@@ -541,7 +550,7 @@ function ShapeLayer({
   const ghostStroke = "rgba(71,85,105,0.7)";
   return (
     <svg
-      viewBox={`0 0 ${MAP_W} ${MAP_H}`}
+      viewBox={VIEW_BOX}
       className={cn("absolute inset-0 h-full w-full", !interactive && "pointer-events-none")}
       preserveAspectRatio="xMidYMid meet"
     >
@@ -930,7 +939,7 @@ export function GameBoard({ category }: { category: Category }) {
     [category.items, category.slug],
   );
   // Daha geniş bir genel görünüm için odak ölçeğine padding uygula (0.72 → %28 daha geriden bak)
-  const focusScale = focus ? Math.max(1, Math.min(MAP_W / focus.w, MAP_H / focus.h) * 0.62) : 1;
+  const focusScale = focus ? Math.max(1, Math.min(VIEW_W / focus.w, VIEW_H / focus.h) * 0.62) : 1;
 
   const mapWrapRef = useRef<HTMLDivElement>(null);
   const mapSurfaceRef = useRef<HTMLDivElement>(null);
@@ -950,11 +959,11 @@ export function GameBoard({ category }: { category: Category }) {
   // Odak uygulaması — container boyutu ölçüldükten sonra
   useEffect(() => {
     if (!focus || containerW <= 0 || !zoomRef.current) return;
-    const contH = containerW * (MAP_H / MAP_W);
-    const fx = focus.x / MAP_W;
-    const fy = focus.y / MAP_H;
-    const fw = focus.w / MAP_W;
-    const fh = focus.h / MAP_H;
+    const contH = containerW * (VIEW_H / VIEW_W);
+    const fx = viewPercent(focus.x, focus.y).left / 100;
+    const fy = viewPercent(focus.x, focus.y).top / 100;
+    const fw = focus.w / VIEW_W;
+    const fh = focus.h / VIEW_H;
     const px = containerW / 2 - focusScale * containerW * (fx + fw / 2);
     const py = contH / 2 - focusScale * contH * (fy + fh / 2);
     zoomRef.current.setTransform(px, py, focusScale, 0);
@@ -1469,7 +1478,7 @@ export function GameBoard({ category }: { category: Category }) {
                   wrapperClass="!w-full !h-full !overflow-hidden !rounded-2xl !border !border-cyan-200 !bg-gradient-to-br !from-white !via-sky-50 !to-cyan-50 !shadow-xl !shadow-cyan-500/10"
                   contentClass="!w-full"
                 >
-                  <div className="relative w-full" style={{ aspectRatio: `${MAP_W} / ${MAP_H}` }}>
+                  <div className="relative w-full" style={{ aspectRatio: `${VIEW_W} / ${VIEW_H}` }}>
                     <TurkeyMap
                       className="absolute inset-0 h-full w-full"
                       variant={category.mapVariant}
@@ -1554,7 +1563,7 @@ export function GameBoard({ category }: { category: Category }) {
                     <div
                       ref={mapSurfaceRef}
                       className="relative w-full"
-                      style={{ aspectRatio: `${MAP_W} / ${MAP_H}` }}
+                      style={{ aspectRatio: `${VIEW_W} / ${VIEW_H}` }}
                     >
                       <TurkeyMap
                         className="absolute inset-0 h-full w-full"
