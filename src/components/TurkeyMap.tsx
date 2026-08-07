@@ -2,18 +2,22 @@ import { useDroppable, type UniqueIdentifier } from "@dnd-kit/core";
 import { memo, useId, useMemo, type RefCallback } from "react";
 import provincesData from "@/data/turkey-provinces.json";
 import { PROVINCE_LABEL_LAYOUT } from "@/data/province-labels";
-import { MAP_W, MAP_H } from "@/lib/geo";
+import { MAP_W, MAP_H, MAP_PAD_X, MAP_PAD_Y, VIEW_X, VIEW_Y, VIEW_W, VIEW_H, VIEW_BOX } from "@/lib/geo";
 import { REGION_OF, REGION_COLORS } from "@/lib/province-regions";
 import { normalizePlaceName } from "@/lib/place-name";
 import { PROVINCE_DROP_KIND } from "@/lib/province-drop-target";
-import { NEIGHBOR_AREAS, areaPath, areaLabelPoint } from "@/data/neighbors";
+import {
+  NEIGHBOR_AREAS,
+  NEIGHBOR_BORDER_STROKE,
+  NEIGHBOR_BORDER_WIDTH,
+  areaPath,
+  areaLabelPoint,
+} from "@/data/neighbors";
 
 
 type ProvinceDef = { name: string; path: string };
 const provinces = (provincesData as { provinces: ProvinceDef[] }).provinces;
-const MAP_PAD_X = 58;
-const MAP_PAD_Y = 30;
-const DEFAULT_VIEW_BOX = `${-MAP_PAD_X} ${-MAP_PAD_Y} ${MAP_W + MAP_PAD_X * 2} ${MAP_H + MAP_PAD_Y * 2}`;
+const DEFAULT_VIEW_BOX = VIEW_BOX;
 
 export type MapVariant = "provinces" | "regions" | "muted";
 
@@ -287,7 +291,19 @@ export function TurkeyMap({
             strokeLinejoin="round"
           />
         ))}
+        {NEIGHBOR_AREAS.map((area) => (
+          <path
+            key={`border-${area.country}`}
+            d={areaPath(area)}
+            fill="none"
+            fillRule="evenodd"
+            stroke={NEIGHBOR_BORDER_STROKE}
+            strokeWidth={NEIGHBOR_BORDER_WIDTH}
+            strokeLinejoin="round"
+          />
+        ))}
       </g>
+
       <g>
 
         {provinces.map((p) => {
@@ -361,7 +377,14 @@ export function TurkeyMap({
       </g>
       <g pointerEvents="none" aria-hidden="true">
         {NEIGHBOR_AREAS.map((area) => {
-          const label = areaLabelPoint(area);
+          // Yazının haritanın kenarında kırpılmaması için güvenli iç pay.
+          const label = areaLabelPoint(area, {
+            x: VIEW_X + 48,
+            y: VIEW_Y + 10,
+            w: VIEW_W - 96,
+            h: VIEW_H - 20,
+          });
+          if (!label) return null;
           return (
             <text
               key={area.country}
@@ -369,27 +392,20 @@ export function TurkeyMap({
               y={label.y}
               textAnchor="middle"
               dominantBaseline="central"
-              fill="rgba(105,88,63,0.9)"
-              stroke="rgba(255,250,241,0.82)"
+              fill="rgba(105,88,63,0.95)"
+              stroke="rgba(255,250,241,0.85)"
               strokeWidth={1.4}
               paintOrder="stroke"
               fontSize={7.5}
               fontWeight={750}
               letterSpacing="0.25"
             >
-              {label.text.split("\n").map((line, lineIndex, lines) => (
-                <tspan
-                  key={line}
-                  x={label.x}
-                  dy={lineIndex === 0 ? (lines.length > 1 ? -4 : 0) : 9}
-                >
-                  {line}
-                </tspan>
-              ))}
+              {label.text}
             </text>
           );
         })}
       </g>
+
       <g pointerEvents="none" aria-hidden="true">
         {renderedLabels.map((entry) => {
           const estimatedWidth = entry.label.length * entry.layout.fontSize * 0.58;

@@ -2,6 +2,25 @@
 // simplified province geojson bundled at src/data/turkey-provinces.json.
 export const MAP_W = 1000;
 export const MAP_H = 420;
+
+// Türkiye'nin çevresinde komşu ülkelerin görünmesi için bırakılan pay.
+// Haritanın SVG'si ve üzerine binen tüm katmanlar bu tek görünüm kutusunu
+// kullanır; aksi halde noktalar/etiketler kayar.
+export const MAP_PAD_X = 58;
+export const MAP_PAD_Y = 30;
+export const VIEW_X = -MAP_PAD_X;
+export const VIEW_Y = -MAP_PAD_Y;
+export const VIEW_W = MAP_W + MAP_PAD_X * 2;
+export const VIEW_H = MAP_H + MAP_PAD_Y * 2;
+export const VIEW_BOX = `${VIEW_X} ${VIEW_Y} ${VIEW_W} ${VIEW_H}`;
+
+/** Harita koordinatını kapsayıcı içindeki yüzde konuma çevirir. */
+export function viewPercent(x: number, y: number): { left: number; top: number } {
+  return {
+    left: ((x - VIEW_X) / VIEW_W) * 100,
+    top: ((y - VIEW_Y) / VIEW_H) * 100,
+  };
+}
 const MIN_LON = 25.665;
 const MAX_LON = 44.834;
 const MIN_LAT = 35.815;
