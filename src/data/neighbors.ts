@@ -43,6 +43,7 @@ const APPEARANCE: Record<string, NeighborAppearance> = {
   "Azerbaycan (Nahçıvan)": {
     fill: "#f2decd",
     overlapWidth: 4,
+    shortLabel: "Nahçıvan",
   },
   İran: { fill: "#ecd8b6", overlapWidth: 4.5 },
   Irak: { fill: "#f0e2c2", overlapWidth: 4 },
@@ -170,5 +171,9 @@ export function areaLabelPoint(
     return { x: point.x, y: point.y, text };
   }
   const point = bestLabelPoint(area, view);
-  return point ? { x: point.x, y: point.y, text } : null;
+  if (!point) return null;
+  // Kenarda kalan küçük alanlarda yazı harita dışına taşmasın.
+  const x = Math.min(Math.max(point.x, view.x), view.x + view.w);
+  const y = Math.min(Math.max(point.y, view.y), view.y + view.h);
+  return { x, y, text };
 }
