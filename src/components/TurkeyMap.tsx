@@ -287,7 +287,19 @@ export function TurkeyMap({
             strokeLinejoin="round"
           />
         ))}
+        {NEIGHBOR_AREAS.map((area) => (
+          <path
+            key={`border-${area.country}`}
+            d={areaPath(area)}
+            fill="none"
+            fillRule="evenodd"
+            stroke={NEIGHBOR_BORDER_STROKE}
+            strokeWidth={NEIGHBOR_BORDER_WIDTH}
+            strokeLinejoin="round"
+          />
+        ))}
       </g>
+
       <g>
 
         {provinces.map((p) => {
