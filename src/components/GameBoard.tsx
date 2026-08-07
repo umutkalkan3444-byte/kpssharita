@@ -46,8 +46,6 @@ import {
 
 import { COMPASS_LAYOUT, type Category, targetsFor, type TargetPoint } from "@/lib/game-data";
 import {
-  MAP_W,
-  MAP_H,
   VIEW_W,
   VIEW_H,
   VIEW_BOX,
