@@ -7,9 +7,10 @@ export function kpssCountdown(now: Date = new Date()): {
   months: number;
   days: number;
 } {
-  const year = now.getMonth() > 8 || (now.getMonth() === 8 && now.getDate() > 6)
-    ? now.getFullYear() + 1
-    : now.getFullYear();
+  const year =
+    now.getMonth() > 8 || (now.getMonth() === 8 && now.getDate() > 6)
+      ? now.getFullYear() + 1
+      : now.getFullYear();
   const target = new Date(year, 8, 6, 9, 0, 0); // Ay: 8 = Eylül
   const ms = target.getTime() - now.getTime();
   const totalDays = Math.max(0, Math.ceil(ms / 86400000));

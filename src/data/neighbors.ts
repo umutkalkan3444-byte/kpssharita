@@ -54,9 +54,9 @@ const APPEARANCE: Record<string, NeighborAppearance> = {
 export const NEIGHBOR_BORDER_STROKE = "rgba(146,113,66,0.85)";
 export const NEIGHBOR_BORDER_WIDTH = 0.9;
 
-export const NEIGHBOR_AREAS: NeighborArea[] = (
-  neighborCountryData as NeighborSource[]
-).map((area) => ({ ...area, ...APPEARANCE[area.country] }));
+export const NEIGHBOR_AREAS: NeighborArea[] = (neighborCountryData as NeighborSource[]).map(
+  (area) => ({ ...area, ...APPEARANCE[area.country] }),
+);
 
 function ringPath(ring: Position[]): string {
   return (
@@ -70,9 +70,7 @@ function ringPath(ring: Position[]): string {
 }
 
 function polygonsOf(area: NeighborArea): Position[][][] {
-  return area.geometry.type === "Polygon"
-    ? [area.geometry.coordinates]
-    : area.geometry.coordinates;
+  return area.geometry.type === "Polygon" ? [area.geometry.coordinates] : area.geometry.coordinates;
 }
 
 export function areaPath(area: NeighborArea): string {

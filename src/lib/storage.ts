@@ -124,8 +124,7 @@ export function recordRun(
   }
 
   // Badges
-  if (pct === 100 && !s.badges.includes(`perfect-${slug}`))
-    s.badges.push(`perfect-${slug}`);
+  if (pct === 100 && !s.badges.includes(`perfect-${slug}`)) s.badges.push(`perfect-${slug}`);
   if (s.streak >= 3 && !s.badges.includes("streak-3")) s.badges.push("streak-3");
   if (s.streak >= 7 && !s.badges.includes("streak-7")) s.badges.push("streak-7");
   if (s.level >= 5 && !s.badges.includes("level-5")) s.badges.push("level-5");

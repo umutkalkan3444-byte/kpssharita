@@ -26,7 +26,10 @@ function RepeatPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-white via-sky-50 to-cyan-50 pb-16">
       <div className="mx-auto max-w-3xl px-4 pt-6 sm:px-6">
-        <Link to="/" className="inline-flex items-center gap-1 text-sm font-semibold text-cyan-700 hover:underline">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-1 text-sm font-semibold text-cyan-700 hover:underline"
+        >
           <ChevronLeft className="h-4 w-4" /> Ana sayfa
         </Link>
         <h1 className="mt-3 flex items-center gap-2 text-3xl font-black tracking-tight sm:text-4xl">
@@ -64,12 +67,16 @@ function RepeatPage() {
                 className="rounded-3xl border border-cyan-100 bg-white/80 p-5 shadow-sm backdrop-blur"
               >
                 <div className="flex items-center gap-3">
-                  <div className={`grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br ${c.gradient} text-xl`}>
+                  <div
+                    className={`grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br ${c.gradient} text-xl`}
+                  >
                     {c.emoji}
                   </div>
                   <div className="flex-1">
                     <div className="text-lg font-black">{c.title}</div>
-                    <div className="text-xs text-slate-500">{items.length} konu tekrar bekliyor</div>
+                    <div className="text-xs text-slate-500">
+                      {items.length} konu tekrar bekliyor
+                    </div>
                   </div>
                   <Link
                     to="/kategori/$slug"
