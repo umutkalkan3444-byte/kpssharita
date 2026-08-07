@@ -2,18 +2,22 @@ import { useDroppable, type UniqueIdentifier } from "@dnd-kit/core";
 import { memo, useId, useMemo, type RefCallback } from "react";
 import provincesData from "@/data/turkey-provinces.json";
 import { PROVINCE_LABEL_LAYOUT } from "@/data/province-labels";
-import { MAP_W, MAP_H } from "@/lib/geo";
+import { MAP_W, MAP_H, MAP_PAD_X, MAP_PAD_Y, VIEW_X, VIEW_Y, VIEW_W, VIEW_H, VIEW_BOX } from "@/lib/geo";
 import { REGION_OF, REGION_COLORS } from "@/lib/province-regions";
 import { normalizePlaceName } from "@/lib/place-name";
 import { PROVINCE_DROP_KIND } from "@/lib/province-drop-target";
-import { NEIGHBOR_AREAS, areaPath, areaLabelPoint } from "@/data/neighbors";
+import {
+  NEIGHBOR_AREAS,
+  NEIGHBOR_BORDER_STROKE,
+  NEIGHBOR_BORDER_WIDTH,
+  areaPath,
+  areaLabelPoint,
+} from "@/data/neighbors";
 
 
 type ProvinceDef = { name: string; path: string };
 const provinces = (provincesData as { provinces: ProvinceDef[] }).provinces;
-const MAP_PAD_X = 58;
-const MAP_PAD_Y = 30;
-const DEFAULT_VIEW_BOX = `${-MAP_PAD_X} ${-MAP_PAD_Y} ${MAP_W + MAP_PAD_X * 2} ${MAP_H + MAP_PAD_Y * 2}`;
+const DEFAULT_VIEW_BOX = VIEW_BOX;
 
 export type MapVariant = "provinces" | "regions" | "muted";
 
