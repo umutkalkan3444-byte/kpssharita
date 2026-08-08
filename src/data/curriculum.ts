@@ -451,25 +451,41 @@ export const MAIN_CATEGORIES: MainCategory[] = [
         slug: "sinir-kapilari",
         title: "Sınır Kapıları",
         emoji: "🛂",
+        description:
+          "ÖSYM'nin sorduğu aktif kara sınır kapılarını komşu ülke ve il sırasına göre haritaya sürükle.",
         items: [
-          { name: "Kapıkule (Bulgaristan)", lat: 41.72, lon: 26.36 },
-          { name: "İpsala (Yunanistan)", lat: 40.92, lon: 26.38 },
-          { name: "Hamzabeyli (Bulgaristan)", lat: 41.87, lon: 26.66 },
-          { name: "Dereköy (Bulgaristan)", lat: 41.98, lon: 27.4 },
-          { name: "Sarp (Gürcistan)", lat: 41.52, lon: 41.55 },
-          { name: "Türkgözü (Gürcistan)", lat: 41.587, lon: 42.818 },
-          { name: "Aktaş (Gürcistan)", lat: 41.234, lon: 43.196 },
-          { name: "Gürbulak (İran)", lat: 39.65, lon: 44.5 },
-          { name: "Kapıköy (İran)", lat: 38.48, lon: 44.37 },
-          { name: "Esendere (İran)", lat: 37.53, lon: 44.6 },
-          { name: "Habur (Irak)", lat: 37.35, lon: 42.35 },
-          { name: "Cilvegözü (Suriye)", lat: 36.22, lon: 36.68 },
-          { name: "Öncüpınar (Suriye)", lat: 36.72, lon: 37.11 },
-          { name: "Karkamış (Suriye)", lat: 36.83, lon: 38.0 },
-          { name: "Akçakale (Suriye)", lat: 36.71, lon: 38.95 },
-          { name: "Nusaybin (Suriye)", lat: 37.07, lon: 41.22 },
-          { name: "Dilucu (Nahçıvan)", lat: 39.66, lon: 44.79 },
+          // Bulgaristan
+          { name: "Kapıkule (Bulgaristan)", lat: 41.717, lon: 26.333, hint: "Edirne" },
+          { name: "Hamzabeyli (Bulgaristan)", lat: 41.88, lon: 26.637, hint: "Edirne" },
+          { name: "Dereköy (Bulgaristan)", lat: 41.92, lon: 27.27, hint: "Kırklareli" },
+          // Yunanistan
+          { name: "İpsala (Yunanistan)", lat: 40.928, lon: 26.343, hint: "Edirne" },
+          { name: "Pazarkule (Yunanistan)", lat: 41.657, lon: 26.523, hint: "Edirne — Karaağaç" },
+          // Gürcistan
+          { name: "Sarp (Gürcistan)", lat: 41.515, lon: 41.545, hint: "Artvin" },
+          { name: "Türkgözü (Gürcistan)", lat: 41.588, lon: 42.82, hint: "Ardahan — Posof" },
+          { name: "Aktaş (Gürcistan)", lat: 41.21, lon: 43.45, hint: "Ardahan — Çıldır" },
+          // Ermenistan (kapalı) ve Nahçıvan
+          { name: "Alican (Ermenistan)", lat: 39.93, lon: 44.2, hint: "Iğdır — kapalı kapı" },
+          { name: "Dilucu (Nahçıvan)", lat: 39.649, lon: 44.795, hint: "Iğdır" },
+          // İran
+          { name: "Gürbulak (İran)", lat: 39.42, lon: 44.46, hint: "Ağrı — Doğubayazıt" },
+          { name: "Kapıköy (İran)", lat: 38.45, lon: 44.36, hint: "Van — Saray" },
+          { name: "Esendere (İran)", lat: 37.62, lon: 44.58, hint: "Hakkâri — Yüksekova" },
+          // Irak
+          { name: "Habur (Irak)", lat: 37.19, lon: 42.47, hint: "Şırnak — Silopi" },
+          // Suriye
+          { name: "Nusaybin (Suriye)", lat: 37.067, lon: 41.217, hint: "Mardin" },
+          { name: "Şenyurt (Suriye)", lat: 37.05, lon: 40.72, hint: "Mardin — Kızıltepe" },
+          { name: "Ceylanpınar (Suriye)", lat: 36.833, lon: 40.033, hint: "Şanlıurfa" },
+          { name: "Akçakale (Suriye)", lat: 36.7, lon: 38.95, hint: "Şanlıurfa" },
+          { name: "Mürşitpınar (Suriye)", lat: 36.85, lon: 38.35, hint: "Şanlıurfa — Suruç" },
+          { name: "Karkamış (Suriye)", lat: 36.833, lon: 37.983, hint: "Gaziantep" },
+          { name: "Öncüpınar (Suriye)", lat: 36.68, lon: 37.1, hint: "Kilis" },
+          { name: "Cilvegözü (Suriye)", lat: 36.233, lon: 36.667, hint: "Hatay — Reyhanlı" },
+          { name: "Yayladağı (Suriye)", lat: 35.92, lon: 36.033, hint: "Hatay" },
         ],
+
       },
     ],
   },
