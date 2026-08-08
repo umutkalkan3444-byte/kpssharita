@@ -14,7 +14,7 @@ export type TopicEssential = {
   reviewedAt: string;
 };
 
-const REVIEWED_AT = "2026-08-05";
+const REVIEWED_AT = "2026-08-08";
 
 function essential(
   definition: string,
@@ -128,8 +128,8 @@ const administrative = {
     "Sınır kapıları Türkiye'nin kara komşularına açılan uluslararası geçiş noktalarıdır.",
     [
       "Kapıkule–Bulgaristan, İpsala–Yunanistan, Sarp–Gürcistan temel eşleştirmeleridir.",
-      "Gürbulak–İran, Habur–Irak ve Cilvegözü–Suriye sınavda sık kullanılan kapılardır.",
-      "Kapının bulunduğu il ile açıldığı ülkeyi birlikte öğrenmek gerekir.",
+      "Akyaka–Ermenistan, Dilucu–Nahçıvan, Gürbulak–İran ve Habur–Irak doğu sınırının temel kapılarıdır.",
+      "Suriye sınırında Nusaybin'den Yayladağı'na uzanan dokuz kapı PDF'deki sırayla çalışılır.",
     ],
     "Kapıkule'yi Yunanistan ile karıştırma: Edirne'deki Kapıkule Bulgaristan'a, İpsala Yunanistan'a açılır.",
   ),
@@ -167,7 +167,7 @@ const agriculture = {
     "Kivi, nemli kıyılar ve don riskinin düşük olduğu mikroklima alanlarında yetişen tamamlayıcı bir üründür.",
     [
       "Yalova ile Ordu–Samsun–Rize–Giresun kuşağı başlıca merkezlerdir.",
-      "Bursa, Kocaeli ve Sakarya gibi nemli Marmara illeri de üretimde yer alır.",
+      "Bursa, Kocaeli, Sakarya ve Mersin de üretim hedefleri arasında yer alır.",
       "Dağılış, kıyı nemi ve mikroklimayla ilişkilidir.",
     ],
     "Kiviyi yalnız Doğu Karadeniz ürünü sanma; Yalova ana sınav hedeflerinden biridir.",
@@ -187,7 +187,7 @@ const agriculture = {
     [
       "Tekirdağ, Edirne ve Kırklareli yağlık ayçiçeğinde çekirdektir.",
       "Toplam yağlık ve çerezlik üretimde Konya da güçlüdür.",
-      "Adana, Eskişehir ve İç Anadolu'daki sulanan alanlar dağılışı genişletir.",
+      "Adana ve İç Anadolu'daki sulanan alanlar dağılışı genişletir.",
     ],
     "Soruda yağlık mı toplam üretim mi istendiğini ayır; lider il buna göre değişebilir.",
   ),
@@ -205,7 +205,8 @@ const agriculture = {
     "Zeytin, kışları ılık Akdeniz iklimini isteyen ve kıyı kuşağında yoğunlaşan çok yıllık bir üründür.",
     [
       "Ege'de Manisa–Aydın–İzmir–Muğla, Güney Marmara'da Balıkesir–Bursa–Çanakkale çekirdektir.",
-      "Hatay, Mersin ve Antalya Akdeniz kuşağındaki önemli hedeflerdir.",
+      "Hatay, Mersin, Antalya, Adana ve Osmaniye Akdeniz kuşağındaki önemli hedeflerdir.",
+      "Gaziantep ve Kilis güneydeki tamamlayıcı hedeflerdir.",
       "Yağlık ve sofralık üretim ile var–yok yılı il sıralamasını değiştirebilir.",
     ],
     "Zeytini yalnız Ege'ye sıkıştırma; Güney Marmara ve Akdeniz de doğru kuşaktır.",
@@ -232,7 +233,7 @@ const agriculture = {
     "Tütün, işçilik isteyen bir sanayi bitkisidir; tarihsel Ege kuşağına ek olarak üretim Güneydoğu'ya yayılmıştır.",
     [
       "Denizli, Manisa, Uşak, Aydın ve Muğla Ege tütünüyle ilişkilidir.",
-      "Adıyaman, Batman, Mardin ve Hatay güncel üretim kümelerindendir.",
+      "Adıyaman, Mardin ve Hatay güncel üretim kümelerindendir.",
       "Samsun ve Tokat kalıcı KPSS merkezleri arasında tutulur.",
     ],
     "Eski notlardaki yalnız-Ege dağılışına takılma; güncel Güneydoğu hedeflerini de bil.",
@@ -242,28 +243,18 @@ const agriculture = {
     [
       "Aydın ve Büyük Menderes çevresi kuru incirin kesin merkezidir.",
       "İzmir ikinci ana Ege hedefidir.",
-      "Bursa, Mersin, Hatay ve Antalya tamamlayıcı sıcak kuşak hedefleridir.",
+      "Bursa, Mersin ve Balıkesir tamamlayıcı hedeflerdir.",
     ],
     "İncirde Aydın'ı mutlaka sabitle; toplam yaş ürün ile kaliteli kuru incir odağı farklı okunabilir.",
   ),
-  keten: essential(
-    "Keten, lif ve tohum amacıyla yetiştirilebilen; Türkiye'de üretimi sınırlı bir sanayi bitkisidir.",
-    [
-      "Lif üretiminde Samsun ve Amasya klasik hedeflerdir.",
-      "Tohum alt oyununda Uşak, Samsun ve Tokat ayrıştırılmalıdır.",
-      "Küçük deneme üretimleri ana harita hedefi sayılmaz.",
-    ],
-    "Liflik keten ile tohumluk keteni tek dağılış gibi ezberleme.",
-    "Tamamlayıcı",
-  ),
   "keten-tohum": essential(
-    "Tohumluk keten, liflik ketenden farklı üretim amacıyla; yağ ve tohum için yetiştirilir.",
+    "Tohumluk keten, yağ ve tohum amacıyla yetiştirilen sınırlı üretimli bir sanayi bitkisidir.",
     [
-      "Uşak, Samsun ve Tokat tohum alt oyununun ana hedefleridir.",
-      "Liflik ketenin Samsun–Amasya dağılışıyla aynı hedef kümesi kullanılmamalıdır.",
+      "Uşak, Samsun, Tokat ve İstanbul oyunun hedef illeridir.",
+      "Oyunda yalnız keten tohumu üretim alanları gösterilir.",
       "Üretim çok düşük olduğundan küçük deneme alanları ana merkez sayılmaz.",
     ],
-    "Soruda kullanım amacını kontrol et: lif keteni ile tohum keteninin dağılışını birleştirme.",
+    "Soruda ürünün tohum amacıyla yetiştirildiğini kontrol et.",
     "Tamamlayıcı",
   ),
   susam: essential(
@@ -299,7 +290,7 @@ const agriculture = {
     "Soya, yağ ve yem sanayisinde kullanılan; sıcaklıkla birlikte bol su isteyen bir üründür.",
     [
       "Adana ve Mersin'deki Çukurova çekirdek üretim alanıdır.",
-      "Osmaniye, Kahramanmaraş ve Hatay yakın kuşaktaki hedeflerdir.",
+      "Osmaniye ve Kahramanmaraş yakın kuşaktaki hedeflerdir.",
       "GAP illeri ve Samsun sulama koşullarıyla tamamlayıcı üretim alanlarıdır.",
     ],
     "Soya için Çukurova'yı temel al; yağ bitkisi olmasını kuraklığa dayanıklı olduğu şeklinde yorumlama.",
@@ -338,7 +329,7 @@ const agriculture = {
     [
       "Anamur–Bozyazı çevresiyle Mersin ana çekirdektir.",
       "Alanya–Gazipaşa çevresiyle Antalya ikinci ana kuşaktır.",
-      "Hatay ve Adana korunaklı alanlar ve örtü altı üretimle hedefe eklenir.",
+      "Adana korunaklı alanlar ve örtü altı üretimle hedefe eklenir.",
     ],
     "Türkiye'de muzun dar kıyı mikroklimasına bağlı olduğunu unutma; iç kesimlere yayma.",
   ),
@@ -375,7 +366,7 @@ const agriculture = {
     [
       "Şanlıurfa ve Diyarbakır ana üretim merkezleridir.",
       "Siirt, Batman ve Mardin Güneydoğu çekirdeğini tamamlar.",
-      "Konya ve Elazığ daha sınırlı tamamlayıcı hedeflerdir.",
+      "Elazığ daha sınırlı tamamlayıcı hedeftir.",
     ],
     "Kırmızı mercimeği Güneydoğu; yeşil mercimeği İç Anadolu ile eşleştir.",
   ),
@@ -391,7 +382,7 @@ const agriculture = {
   arpa: essential(
     "Arpa, buğdaya göre soğuğa ve kuraklığa daha dayanıklı; yem ve malt amacıyla yetiştirilen tahıldır.",
     [
-      "Konya, Ankara, Afyonkarahisar ve Sivas ana üretim hedefleridir.",
+      "Konya, Ankara, Kayseri, Şanlıurfa ve Sivas ana üretim hedefleridir.",
       "İç Anadolu ile yüksek iç havzalar temel kuşaktır.",
       "Biralık arpada Karaman özel önem taşır.",
     ],
@@ -410,7 +401,7 @@ const agriculture = {
     "Yeşil mercimek, karasal iç bölgelerde yetişen ve İç Anadolu'da yoğunlaşan baklagildir.",
     [
       "Yozgat, Konya ve Kırşehir ana hedeflerdir.",
-      "Çorum, Ankara, Kayseri ve Çankırı üretim kuşağını tamamlar.",
+      "Çorum, Ankara ve Çankırı üretim kuşağını tamamlar.",
       "Kurak koşullara uyumlu olsa da dağılışı kırmızı mercimekten farklıdır.",
     ],
     "Renk ayrımını haritaya taşı: yeşil mercimek İç Anadolu, kırmızı mercimek Güneydoğu.",
@@ -445,9 +436,9 @@ const agriculture = {
   kenevir: essential(
     "Kenevir, lif, tohum ve farklı sanayi kullanım alanları bulunan; üretimi mevzuata bağlı bir bitkidir.",
     [
-      "Konya güncel fiilî üretimde öne çıkar.",
-      "Samsun tarihsel KPSS ve ihtisas merkezi; Amasya ve Çorum diğer hedeflerdir.",
-      "İzin verilen il listesi, anlamlı üretim yapılan il listesiyle aynı değildir.",
+      "Samsun tarihsel KPSS ve ihtisas merkezidir.",
+      "Kastamonu, Amasya ve Sinop diğer oyun hedefleridir.",
+      "Oyun yalnız bu dört ili kapsar.",
     ],
     "Mevzuatta izinli bütün illeri ana üretim hedefi sayma.",
     "Tamamlayıcı",
@@ -466,7 +457,7 @@ const agriculture = {
     "Aspir, kuraklığa dayanıklı ve yağ elde edilen bir iç bölge bitkisidir.",
     [
       "Kayseri, Konya, Isparta ve Aksaray başlıca hedeflerdir.",
-      "Nevşehir, Sivas, Kırşehir ve Yozgat kuşağı tamamlar.",
+      "Nevşehir, Kırşehir ve Yozgat kuşağı tamamlar.",
       "Sulama gereksiniminin görece düşük olması yarı kurak alanlarda avantaj sağlar.",
     ],
     "Aspirin temel ipucu kuraklık dayanımıdır; ayçiçeğinin Trakya kuşağıyla karıştırma.",
@@ -476,7 +467,7 @@ const agriculture = {
     "Kuru fasulye, iç bölgelerin sulanabilen yüksek alanlarında yoğunlaşan baklagildir.",
     [
       "Niğde ve Konya ana üretim merkezleridir.",
-      "Bitlis, Nevşehir, Karaman ve Kayseri diğer önemli hedeflerdir.",
+      "Bitlis, Nevşehir ve Karaman diğer önemli hedeflerdir.",
       "Gümüşhane gibi serin yüksek alanlar da dağılışa katılır.",
     ],
     "Kuru fasulyeyi yalnız İç Anadolu'yla sınırlama; Bitlis ve Gümüşhane yüksek alanlarını da bil.",
@@ -497,7 +488,7 @@ const livestock = {
     "Sığır yetiştiriciliği, doğal çayırların bulunduğu doğu illeriyle yem ve pazar avantajlı batı işletmelerinde yoğunlaşır.",
     [
       "Erzurum, Kars, Ardahan, Ağrı, Van ve Muş çayır–mera kuşağıdır.",
-      "Konya, İzmir, Balıkesir ve Afyonkarahisar modern işletme ve yem avantajıyla öne çıkar.",
+      "Konya, Ankara, İzmir, Balıkesir ve Afyonkarahisar modern işletme ve yem avantajıyla öne çıkar.",
       "Faaliyet Türkiye geneline yayıldığından harita yalnız yoğunlaşma illerini ölçer.",
     ],
     "Büyükbaşı yalnız Doğu Anadolu'ya sıkıştırma; Konya ve batıdaki modern işletmeleri unutma.",
@@ -507,7 +498,7 @@ const livestock = {
     [
       "Samsun ve Kızılırmak Deltası en güçlü coğrafi eşleştirmedir.",
       "Diyarbakır ve İstanbul güncel varlıkta belirgin hedeflerdir.",
-      "Bitlis, Muş, Tokat ve Afyonkarahisar diğer önemli merkezlerdir.",
+      "Bitlis, Muş, Tokat, Afyonkarahisar ve Kayseri diğer önemli merkezlerdir.",
     ],
     "Manda için Samsun–Diyarbakır–İstanbul üçlüsünü ve sulak alan bağını birlikte hatırla.",
   ),
@@ -525,7 +516,7 @@ const livestock = {
     [
       "Mersin, Antalya, Adana ve Hatay ana Akdeniz hedefleridir.",
       "Kahramanmaraş, Muğla, Isparta ve Burdur Toros kuşağını tamamlar.",
-      "Ana coğrafi eşleştirme Toroslar ve Akdeniz'dir.",
+      "Siirt ve Şırnak güneydoğudaki diğer hedeflerdir.",
     ],
     "Kıl keçisini Toroslar; tiftik keçisini Ankara ile ayır.",
   ),
@@ -534,7 +525,7 @@ const livestock = {
     [
       "Ankara kesin ve ilk hatırlanacak hedeftir.",
       "Siirt, Mardin ve Şırnak desteklenen Güneydoğu tiftik kuşağıdır.",
-      "Kırıkkale ve Bolu tamamlayıcı hedefler arasındadır.",
+      "Eskişehir ve Bolu tamamlayıcı hedefler arasındadır.",
     ],
     "Ankara keçisini kıl keçisiyle karıştırma: ürünü tiftiktir.",
   ),
@@ -552,7 +543,7 @@ const livestock = {
     [
       "Diyarbakır/Kulp güncel yaş koza üretiminin çekirdeğidir.",
       "Bursa–Bilecik tarihsel ipekçilik ve örgütlenme merkezidir.",
-      "Eskişehir, Antalya/Alanya ve Sakarya tamamlayıcı hedeflerdir.",
+      "Eskişehir, Antalya/Alanya, Sakarya, Muğla ve Bolu tamamlayıcı hedeflerdir.",
     ],
     "Güncel koza merkezi Diyarbakır, tarihsel ipek sanayisi merkezi Bursa ayrımını koru.",
   ),

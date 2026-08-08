@@ -4,7 +4,7 @@ import { type StudyMistake, type VerifiedFact } from "@/lib/study/schemas";
 import { STUDY_CONTENT_VERSION } from "./version";
 import { sourceRefsForCategory } from "./sources";
 
-const REVIEWED_AT = "2026-08-05";
+const REVIEWED_AT = "2026-08-08";
 const EXAM_TAGS = ["KPSS", "YKS-TYT", "YKS-AYT"] as const;
 
 export function categoryOverviewFactId(categorySlug: string): string {

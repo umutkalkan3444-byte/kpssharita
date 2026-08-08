@@ -56,7 +56,7 @@ function buildCategory(main: MainCategory, sub: Subcategory): Category {
       lon: it.lon,
       hint: it.hint,
       compassDirection: it.compassDirection,
-      answerProvince: nearestProvinceName(it.lat, it.lon),
+      answerProvince: it.answerProvince ?? nearestProvinceName(it.lat, it.lon),
       prompt: it.prompt,
     })),
   };

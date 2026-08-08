@@ -18,7 +18,7 @@ export const STUDY_SOURCES: Record<string, StudySource> = {
     title: "Harita Ustası gözden geçirilmiş kategori ve hedef verisi",
     publisher: "Harita Ustası",
     kind: "internal-reviewed",
-    reviewedAt: "2026-08-05",
+    reviewedAt: "2026-08-08",
     note: "Kategori üyeliği, görünen hedef adı ve çalışma metninin dayandığı uygulama içi veri kümesi.",
   },
   "map-coordinates-reviewed": {
@@ -26,7 +26,7 @@ export const STUDY_SOURCES: Record<string, StudySource> = {
     title: "Harita Ustası gözden geçirilmiş hedef koordinatları",
     publisher: "Harita Ustası",
     kind: "internal-reviewed",
-    reviewedAt: "2026-08-05",
+    reviewedAt: "2026-08-08",
     note: "Yalnızca uygulamadaki mekânsal sıralama ve göreli konum sorularında kullanılır.",
   },
   "hgm-mulki-idare": {

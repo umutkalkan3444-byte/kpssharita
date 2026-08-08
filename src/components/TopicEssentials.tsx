@@ -72,7 +72,7 @@ export function TopicEssentials({
         </div>
 
         <p className="text-right text-[10px] font-semibold text-slate-400">
-          5 Ağustos 2026 tarihinde sınav odağıyla gözden geçirildi.
+          8 Ağustos 2026 tarihinde sınav odağıyla gözden geçirildi.
         </p>
       </div>
     </section>

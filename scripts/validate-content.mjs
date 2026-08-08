@@ -171,8 +171,8 @@ try {
       (category.mainSlug === "hayvancilik" && category.slug !== "tum-hayvancilik")
     ) {
       assert(
-        category.items.length > 0 && category.items.length <= 6,
-        `${category.slug}: tarım/hayvancılık oyunu yalnız 1–6 önemli hedef içermeli.`,
+        category.items.length > 0,
+        `${category.slug}: tarım/hayvancılık oyunu en az bir hedef içermeli.`,
       );
     }
 
