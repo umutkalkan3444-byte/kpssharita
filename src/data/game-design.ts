@@ -60,6 +60,7 @@ export const DRAG_GAME_SLUGS = new Set([
   "dogalgaz-boru-hatlari",
   "otoyollar",
   "yht",
+  "sinir-kapilari",
 ]);
 
 /** Dağılış haritasında öne çıkan illerin bir küme olarak bulunacağı konular. */
