@@ -466,6 +466,8 @@ export const MAIN_CATEGORIES: MainCategory[] = [
         slug: "tum-tarim",
         title: "Tüm Tarım Ürünleri (Öne Çıkanlar)",
         emoji: "🌱",
+        description:
+          "Her ürünü üretimde 1. sıradaki ile bırak. Ürünün tüm yoğunlaşma illeri için o ürünün kendi oyununu aç.",
         items: [
           { name: "Fındık", lat: IL.Giresun[0], lon: IL.Giresun[1] },
           { name: "Çay", lat: IL.Rize[0], lon: IL.Rize[1] },
@@ -1043,6 +1045,8 @@ export const MAIN_CATEGORIES: MainCategory[] = [
         slug: "tum-hayvancilik",
         title: "Tüm Hayvancılık",
         emoji: "🐄",
+        description:
+          "Her türü yetiştiriciliğin 1. sıradaki iline bırak. Tüm yoğunlaşma illeri için türün kendi oyununu aç.",
         items: [
           { name: "Sığır (Konya)", lat: IL.Konya[0], lon: IL.Konya[1] },
           { name: "Manda (Samsun)", lat: IL.Samsun[0], lon: IL.Samsun[1] },
