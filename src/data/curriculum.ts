@@ -200,7 +200,6 @@ const KIVRIM_DAGLARI: GameItem[] = [
   { name: "Yalnızçam Dağları", lat: 41.0, lon: 42.45 },
   { name: "Bey Dağları", lat: 36.75, lon: 30.25 },
   { name: "Akdağlar", lat: 36.8, lon: 29.7 },
-  { name: "Sultan Dağları", lat: 38.5, lon: 31.15 },
   { name: "Dedegöl Dağları", lat: 37.65, lon: 31.3 },
   { name: "Geyik Dağları", lat: 36.85, lon: 32.25 },
   { name: "Bolkar Dağları", lat: 37.4, lon: 34.6 },
@@ -209,12 +208,15 @@ const KIVRIM_DAGLARI: GameItem[] = [
   { name: "Binboğa Dağları", lat: 38.05, lon: 36.65 },
   { name: "Güneydoğu Toroslar", lat: 38.25, lon: 40.7 },
   { name: "Cilo Dağları", lat: 37.48, lon: 43.95 },
-  { name: "Sündiken Dağları", lat: 39.85, lon: 30.85 },
-  { name: "Elmadağ", lat: 39.75, lon: 33.05 },
   { name: "Munzur (Mercan)", lat: 39.4, lon: 39.3 },
   { name: "Palandöken", lat: 39.8, lon: 41.3 },
   { name: "Allahuekber Dağları", lat: 40.45, lon: 42.55 },
   { name: "Aras Güneyi Dağları", lat: 39.25, lon: 43.0 },
+  { name: "Nur (Amanos) Dağları", lat: 36.7, lon: 36.3 },
+  { name: "Ahır Dağı", lat: 37.65, lon: 36.9 },
+  { name: "Malatya Dağları", lat: 38.2, lon: 38.0 },
+  { name: "Şerafettin Dağları", lat: 38.9, lon: 41.0 },
+  { name: "Uludoruk (Reşko)", lat: 37.45, lon: 44.0 },
 ];
 
 const KIRIK_DAGLAR: GameItem[] = [
@@ -224,7 +226,14 @@ const KIRIK_DAGLAR: GameItem[] = [
   { name: "Bozdağlar", lat: 38.32, lon: 28.15 },
   { name: "Aydın Dağları", lat: 37.95, lon: 28.15 },
   { name: "Menteşe Dağları", lat: 37.3, lon: 28.5 },
-  { name: "Nur (Amanos)", lat: 36.7, lon: 36.3 },
+  { name: "Uludağ", lat: 40.07, lon: 29.22 },
+  { name: "Sultan Dağları", lat: 38.5, lon: 31.15 },
+  { name: "Sündiken Dağları", lat: 39.85, lon: 30.85 },
+  { name: "Elmadağ", lat: 39.75, lon: 33.05 },
+  { name: "Murat Dağı", lat: 38.85, lon: 29.68 },
+  { name: "Eğrigöz Dağı", lat: 39.28, lon: 29.28 },
+  { name: "Emir Dağları", lat: 39.05, lon: 31.45 },
+  { name: "Yıldız (Istranca) Dağları", lat: 41.85, lon: 27.5 },
 ];
 
 const VOLKANIK_DAGLAR: GameItem[] = [
@@ -240,6 +249,9 @@ const VOLKANIK_DAGLAR: GameItem[] = [
   { name: "Karacadağ (Konya)", lat: 37.68, lon: 33.55 },
   { name: "Karacadağ (Güneydoğu)", lat: 37.7, lon: 39.8 },
   { name: "Kula (Divlit)", lat: 38.55, lon: 28.63 },
+  { name: "Acıgöl (Nevşehir)", lat: 38.57, lon: 34.53 },
+  { name: "Göllü Dağ", lat: 38.28, lon: 34.55 },
+  { name: "Erenler Dağı", lat: 37.7, lon: 32.2 },
 ];
 
 // ---------- Müfredat ----------
@@ -473,6 +485,8 @@ export const MAIN_CATEGORIES: MainCategory[] = [
         slug: "tum-tarim",
         title: "Tüm Tarım Ürünleri (Öne Çıkanlar)",
         emoji: "🌱",
+        description:
+          "Her ürünü üretimde 1. sıradaki ile bırak. Ürünün tüm yoğunlaşma illeri için o ürünün kendi oyununu aç.",
         items: [
           { name: "Fındık", lat: IL.Giresun[0], lon: IL.Giresun[1] },
           { name: "Çay", lat: IL.Rize[0], lon: IL.Rize[1] },
@@ -1050,6 +1064,8 @@ export const MAIN_CATEGORIES: MainCategory[] = [
         slug: "tum-hayvancilik",
         title: "Tüm Hayvancılık",
         emoji: "🐄",
+        description:
+          "Her türü yetiştiriciliğin 1. sıradaki iline bırak. Tüm yoğunlaşma illeri için türün kendi oyununu aç.",
         items: [
           { name: "Sığır (Konya)", lat: IL.Konya[0], lon: IL.Konya[1] },
           { name: "Manda (Samsun)", lat: IL.Samsun[0], lon: IL.Samsun[1] },
@@ -1314,6 +1330,9 @@ export const MAIN_CATEGORIES: MainCategory[] = [
           { name: "Uşak-Eşme P.", lat: 38.45, lon: 29.0 },
           { name: "Teke P.", lat: 36.75, lon: 29.65 },
           { name: "Ardahan P.", lat: 41.11, lon: 42.7 },
+          { name: "Mardin-Midyat P.", lat: 37.32, lon: 40.75 },
+          { name: "Bayburt P.", lat: 40.25, lon: 40.22 },
+          { name: "Kelkit-Şiran P.", lat: 40.15, lon: 39.0 },
         ],
       },
       {

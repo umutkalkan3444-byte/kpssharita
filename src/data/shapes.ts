@@ -808,13 +808,85 @@ export const SHAPES: Record<string, ShapeDef> = {
       [39.35, 43.8],
     ],
   },
-  "Nur (Amanos)": {
+  "Nur (Amanos) Dağları": {
     type: "polyline",
     coords: [
       [36.3, 36.2],
       [36.55, 36.28],
       [36.85, 36.4],
       [37.1, 36.55],
+    ],
+  },
+  "Ahır Dağı": {
+    type: "polyline",
+    coords: [
+      [37.68, 36.6],
+      [37.65, 36.9],
+      [37.6, 37.2],
+    ],
+  },
+  "Malatya Dağları": {
+    type: "polyline",
+    coords: [
+      [38.55, 37.6],
+      [38.3, 37.9],
+      [38.05, 38.25],
+    ],
+  },
+  "Şerafettin Dağları": {
+    type: "polyline",
+    coords: [
+      [38.98, 40.6],
+      [38.9, 41.0],
+      [38.8, 41.35],
+    ],
+  },
+  "Uludoruk (Reşko)": {
+    type: "polyline",
+    coords: [
+      [37.55, 43.7],
+      [37.45, 44.0],
+      [37.38, 44.3],
+    ],
+  },
+  Uludağ: {
+    type: "polyline",
+    coords: [
+      [40.12, 29.02],
+      [40.07, 29.22],
+      [40.03, 29.42],
+    ],
+  },
+  "Murat Dağı": {
+    type: "polyline",
+    coords: [
+      [38.95, 29.45],
+      [38.85, 29.68],
+      [38.75, 29.9],
+    ],
+  },
+  "Eğrigöz Dağı": {
+    type: "polyline",
+    coords: [
+      [39.4, 29.15],
+      [39.28, 29.28],
+      [39.15, 29.42],
+    ],
+  },
+  "Emir Dağları": {
+    type: "polyline",
+    coords: [
+      [39.25, 31.2],
+      [39.05, 31.45],
+      [38.85, 31.7],
+    ],
+  },
+  "Yıldız (Istranca) Dağları": {
+    type: "polyline",
+    coords: [
+      [41.95, 27.0],
+      [41.85, 27.5],
+      [41.65, 28.0],
     ],
   },
   "Kaz Dağı": {
